@@ -8,9 +8,9 @@
 #include <vector>
 namespace RAJA
 {
-
 struct SymAccess;
 
+int can_fuse(std::vector<SymAccess> a1, std::vector<SymAccess> a2);
 struct SymIter {
     std::string name;
     int idx;
@@ -28,6 +28,14 @@ struct SymIter {
         accesses = other.accesses;
     }
 
+    template <typename T>
+    SymIter operator * (T const & other) {
+        std::stringstream b;
+        b << name << "*" << other;
+        SymIter newIter = SymIter(b.str());
+        newIter.accesses = this->accesses;
+        return newIter;
+    }
     SymIter operator + (const int & other) {
         std::stringstream b;
 
@@ -112,14 +120,31 @@ struct SymAccessList {
         return operator+(other);
     }
     
-    template <typename T>
+/*    template <typename T>
     SymAccessList& operator * (T const &) {
         return arith_op();
     }
+
     
+    template <typename T>
+    int operator <= (T const &) {
+        for(SymAccess& a : accesses) {
+            a.set_read();
+        }
+        
+        for(SymAccess& a : accesses) {
+            for(SymIter& i : a.iters) {
+                i.accesses->push_back(a);
+            }
+        }
+        return 1;
+
+
+    }
     SymAccessList& arith_op () {
         return *this;
     }
+   
     SymAccessList& operator + (const int &) {
         return arith_op();
     }
@@ -132,10 +157,8 @@ struct SymAccessList {
         return arith_op();
     }
     
-    SymAccessList  operator * (const double &) {
-        return arith_op();
-    }
     
+    */
     SymAccessList operator = (const SymAccessList& other) {
         SymAccessList newList = SymAccessList();
         
@@ -156,7 +179,8 @@ struct SymAccessList {
         }
         return newList;
     }
-    operator long int() {
+
+    void arith_cast() {
         for(SymAccess& a : accesses) {
             a.set_read();
         }
@@ -166,33 +190,23 @@ struct SymAccessList {
                 i.accesses->push_back(a);
             }
         }
+
+    }
+/*
+    operator long int() {
+        arith_cast();
         return 1;
     }
     operator int() {
-        for(SymAccess& a : accesses) {
-            a.set_read();
-        }
-        
-        for(SymAccess& a : accesses) {
-            for(SymIter& i : a.iters) {
-                i.accesses->push_back(a);
-            }
-        }
+        arith_cast();
         return 1;
+    }
+    */
+    operator double() {
+        arith_cast();
+        return 1.0;
     }
     
-    operator double() {
-        for(SymAccess& a : accesses) {
-            a.set_read();
-        }
-        
-        for(SymAccess& a : accesses) {
-            for(SymIter& i : a.iters) {
-                i.accesses->push_back(a);
-            }
-        }
-        return 1;
-    }
     SymAccessList& arith_assign() {
         for(SymAccess& a : accesses) {
             a.set_write();
@@ -237,7 +251,7 @@ struct ForAll {
     
     
     void execute_symbolically() {
-        SymIter i = SymIter("i");
+        SymIter i = SymIter("i0");
         func(i);
         symbolicAccesses = *(i.accesses);
     }
@@ -275,18 +289,18 @@ auto fuse(RAJA::ForAll<ExecPolicy,Container,Func1> &forall1, RAJA::ForAll<ExecPo
 #include "all-isl.h"
 
 template <typename ExecPolicy, typename Container, typename Func1, typename Func2, typename...Args>
-void chain(ForAll<ExecPolicy,Container,Func1> &forall1, RAJA::ForAll<ExecPolicy,Container,Func2> &forall2, Args...args) {
+void chain(ForAll<ExecPolicy,Container,Func1> &&forall1, RAJA::ForAll<ExecPolicy,Container,Func2> &&forall2, Args...args) {
     if (can_fuse(forall1.symbolicAccesses, forall2.symbolicAccesses)) {
         auto newForAll = fuse(forall1, forall2);
-        return chain(newForAll, args...);
+        chain(newForAll, args...);
     } else {
         forall1();
-        return chain(forall2, args...);
+        chain(forall2, args...);
     }
     
 }
 
-template <typename ExecPolicy, typename Container, typename Func1, typename Func2, typename...Args>
+template <typename ExecPolicy, typename Container, typename Func1, typename...Args>
 void chain(ForAll<ExecPolicy,Container,Func1> &forall1) {
     forall1();
 }

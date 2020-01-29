@@ -155,7 +155,18 @@ struct SymAccessList {
         }
         return newList;
     }
-    
+    operator long int() {
+        for(SymAccess& a : accesses) {
+            a.set_read();
+        }
+        
+        for(SymAccess& a : accesses) {
+            for(SymIter& i : a.iters) {
+                i.accesses->push_back(a);
+            }
+        }
+        return 1;
+    }
     operator int() {
         for(SymAccess& a : accesses) {
             a.set_read();
@@ -166,7 +177,7 @@ struct SymAccessList {
                 i.accesses->push_back(a);
             }
         }
-        return 0;
+        return 1;
     }
     
     operator double() {
@@ -179,7 +190,7 @@ struct SymAccessList {
                 i.accesses->push_back(a);
             }
         }
-        return 0;
+        return 1;
     }
     SymAccessList& arith_assign() {
         for(SymAccess& a : accesses) {

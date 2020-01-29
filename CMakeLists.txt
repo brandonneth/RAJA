@@ -157,7 +157,8 @@ set (raja_sources
   src/LockFreeIndexSetBuilders.cpp
   src/MemUtils_CUDA.cpp
   src/MemUtils_HIP.cpp
-  src/PluginStrategy.cpp)
+  src/PluginStrategy.cpp
+  src/LoopChain.cpp)
 
 set (raja_depends)
 

@@ -81,18 +81,23 @@ struct SymAccess {
 
     std::string access_string() {
         std::stringstream s;
-        s << type << " " << view << " ";
-        for(SymIter i : iters) {
-            s << i.name << " ";
+        for(auto i : iters) {
+            s << i.name << ",";
         }
-        return s.str();
+        std::string res = s.str();
+        res.pop_back();
+        return res;
     }
 
-    friend std::ostream&  operator<< (std::ostream& o, SymAccess a) {
-        o << a.access_string();
-        return o;
+    friend std::ostream&  operator<< (std::ostream& s, SymAccess a) {
+        s << a.type << " " << a.view << " ";
+        for(SymIter i : a.iters) {
+            s << i.name << " ";
+        }
+        return s;
     }
-};
+
+    };
 
 struct SymAccessList {
     

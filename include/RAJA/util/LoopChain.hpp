@@ -203,7 +203,81 @@ struct SymAccessList {
     }
 };
 
+template <typename ExecPolicy,
+          typename Container,
+          typename LoopBody>
+struct ForAll {
 
+    Container segment;
+    LoopBody func;
+    std::vector<SymAccess> symbolicAccesses;
+    ForAll(Container && c, LoopBody && l) :
+        segment(std::forward<Container>(c)),
+        func(std::forward<LoopBody>(l))
+    {
+        execute_symbolically();
+    }
+
+    
+    
+    ForAll(const ForAll & f) = default;
+    ForAll(ForAll && f) = default;
+    
+    
+    void execute_symbolically() {
+        SymIter i = SymIter("i");
+        func(i);
+        symbolicAccesses = *(i.accesses);
+    }
+    
+    ForAll & operator=(const ForAll & f) = default;
+    ForAll & operator=(ForAll && f) = default;
+    
+    void operator() () {
+        forall<ExecPolicy>(
+            std::forward<Container>(segment),
+            std::forward<LoopBody>(func));
+    }
+    
+};
+
+template <typename ExecPolicy, typename Container, typename LoopBody>
+ForAll<ExecPolicy,Container,LoopBody> makeForAll(Container&& c, LoopBody && l) {
+    return ForAll<ExecPolicy,Container,LoopBody(
+        std::forward<Container>(c),
+        std::forward<LoopBody>(l));
+}
+
+
+template <typename ExecPolicy,
+    typename Container,
+    typename Func1,
+    typename Func2>
+auto fuse(RAJA::ForAll<ExecPolicy,Container,Func1> &forall1, RAJA::ForAll<ExecPolicy,Container,Func2> &forall2) {
+    auto func = [=] (auto i) {forall1.func(i); forall2.func(i);};
+    
+    return RAJA::makeForAll<ExecPolicy>(std::forward<Container>(forall1.segment),std::forward<decltype(func)>(func));
+}
+
+
+#include "all-isl.h"
+
+template <typename ExecPolicy, typename Container, typename Func1, typename Func2, typename...Args>
+void chain(ForAll<ExecPolicy,Container,Func1> &forall1, RAJA::ForAll<ExecPolicy,Container,Func2> &forall2, Args...args) {
+    if (can_fuse(forall1.symbolicAccesses, forall2.symbolicAccesses)) {
+        auto newForAll = fuse(forall1, forall2);
+        return chain(newForAll, args...);
+    } else {
+        forall1();
+        return chain(forall2, args...);
+    }
+    
+}
+
+template <typename ExecPolicy, typename Container, typename Func1, typename Func2, typename...Args>
+void chain(ForAll<ExecPolicy,Container,Func1> &forall1) {
+    forall1();
+}
 } //namespace RAJA
 
 #endif

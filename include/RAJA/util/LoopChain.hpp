@@ -102,18 +102,19 @@ struct SymAccessList {
         accesses.push_back(a);
     }
     
-    SymAccessList operator + (const SymAccessList& other) {
-        SymAccessList newList = SymAccessList();
-        
-        for(SymAccess a : accesses) {
-            newList.push_back(a);
-        }
-        
+    SymAccessList& operator + (const SymAccessList& other) {
         for(SymAccess a : other.accesses) {
-            newList.push_back(a);
+            accesses.push_back(a);
         }
-        
-        return newList;
+        return *this;
+    }
+    SymAccessList& operator * (SymAccessList const & other) {
+        return operator+(other);
+    }
+    
+    template <typename T>
+    SymAccessList& operator * (T const &) {
+        return arith_op();
     }
     
     SymAccessList& arith_op () {

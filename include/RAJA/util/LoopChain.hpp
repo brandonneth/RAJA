@@ -156,7 +156,7 @@ struct SymAccessList {
         return newList;
     }
     
-    operator int() const {
+    operator int() {
         for(SymAccess& a : accesses) {
             a.set_read();
         }
@@ -169,7 +169,7 @@ struct SymAccessList {
         return 0;
     }
     
-    operator double() const {
+    operator double() {
         for(SymAccess& a : accesses) {
             a.set_read();
         }
@@ -243,7 +243,7 @@ struct ForAll {
 
 template <typename ExecPolicy, typename Container, typename LoopBody>
 ForAll<ExecPolicy,Container,LoopBody> makeForAll(Container&& c, LoopBody && l) {
-    return ForAll<ExecPolicy,Container,LoopBody(
+    return ForAll<ExecPolicy,Container,LoopBody>(
         std::forward<Container>(c),
         std::forward<LoopBody>(l));
 }

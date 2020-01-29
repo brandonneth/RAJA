@@ -1,14 +1,14 @@
 //Contains functions related to the use of loop chaining for interloop data optimization
 
 #include "RAJA/pattern/forall.hpp"
-
+#include "RAJA/util/LoopChain.hpp"
 #include <vector>
 #include <string>
 #include <map>
 namespace RAJA
     {
     
-    std::string get_array_name(RAJA::SymAccess a) {
+    std::string get_array_name(SymAccess a) {
         
         static std::map<const void*,std::string> map;
         static int arrayCount = 0;

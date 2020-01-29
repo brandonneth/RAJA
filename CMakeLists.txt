@@ -4,9 +4,36 @@
 #
 # SPDX-License-Identifier: (BSD-3-Clause)
 ###############################################################################
-
+cmake_policy(SET CMP0025 NEW)
 cmake_policy(SET CMP0042 NEW)
 cmake_policy(SET CMP0048 NEW)
+
+set(CMAKE_C_COMPILER "/usr/local/Cellar/llvm/9.0.1/bin/clang")
+set(CMAKE_CXX_COMPILER "/usr/local/Cellar/llvm/9.0.1/bin/clang++")
+set(OPENMP_LIBRARIES "/usr/local/Cellar/llvm/9.0.1/lib")
+set(OPENMP_INCLUDES "/usr/local/Cellar/llvm/9.0.1/include")
+
+OPTION (USE_OpenMP "Use OpenMP to enamble <omp.h>" ON)
+
+# Find OpenMP
+if(APPLE AND USE_OpenMP)
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+        set(OpenMP_C "${CMAKE_C_COMPILER}")
+        set(OpenMP_C_FLAGS "-fopenmp=libomp -L/usr/local/opt/libomp/lib")
+        set(OpenMP_C_LIB_NAMES "libomp" "libgomp" "libiomp5")
+        set(OpenMP_libomp_LIBRARY ${OpenMP_C_LIB_NAMES})
+        set(OpenMP_libgomp_LIBRARY ${OpenMP_C_LIB_NAMES})
+        set(OpenMP_libiomp5_LIBRARY ${OpenMP_C_LIB_NAMES})
+    endif()
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set(OpenMP_CXX "${CMAKE_CXX_COMPILER}")
+        set(OpenMP_CXX_FLAGS "-L/usr/local/opt/libomp/lib -fopenmp=libomp")
+        set(OpenMP_CXX_LIB_NAMES "libomp" "libgomp" "libiomp5")
+        set(OpenMP_libomp_LIBRARY ${OpenMP_CXX_LIB_NAMES})
+        set(OpenMP_libgomp_LIBRARY ${OpenMP_CXX_LIB_NAMES})
+        set(OpenMP_libiomp5_LIBRARY ${OpenMP_CXX_LIB_NAMES})
+    endif()
+endif()
 
 # Set version number
 set(RAJA_VERSION_MAJOR 0)
@@ -94,6 +121,7 @@ endif()
 
 # Detect C++ standard and add appropriate flag _before_ loading BLT
 set(COMPILERS_KNOWN_TO_CMAKE33 AppleClang Clang GNU MSVC)
+
 
 include(CheckCXXCompilerFlag)
 if(RAJA_CXX_STANDARD_FLAG MATCHES default)
@@ -303,3 +331,5 @@ endif ()
 if (ENABLE_BENCHMARKS)
   add_subdirectory(benchmark)
 endif ()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L/usr/local/opt/libomp/lib")

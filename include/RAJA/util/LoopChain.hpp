@@ -63,7 +63,8 @@ struct SymAccess {
     std::string type;
 
     std::vector<SymIter> iters;
-
+    int isRead;
+    int isWrite;
     SymAccess(void * v, std::vector<SymIter>& is) {
         view = v;
         iters = is;
@@ -73,10 +74,12 @@ struct SymAccess {
 
     void set_read() {
         type = "READ";
+        isRead = 1;
     }
 
     void set_write() {
         type = "WRITE";
+        isWrite = 1;
     }
 
     std::string access_string() {
@@ -239,11 +242,11 @@ template <typename ExecPolicy,
           typename LoopBody>
 struct ForAll {
 
-    Container segment;
+    const Container &segment;
     LoopBody func;
-    constexpr ForAll(Container && c, LoopBody && l) :
-        segment(std::forward<Container>(c)),
-        func(std::forward<LoopBody>(l))
+    constexpr ForAll(Container const & c, LoopBody const & l) :
+        segment((c)),
+        func(l)
     {
     }
 
@@ -253,7 +256,7 @@ struct ForAll {
     ForAll(ForAll && f) = default;
     
     
-    std::vector<SymAccess> execute_symbolically() {
+    std::vector<SymAccess> execute_symbolically() const {
         
         SymIter i = SymIter("i0");
         func(i);
@@ -263,19 +266,19 @@ struct ForAll {
     ForAll & operator=(const ForAll & f) = default;
     ForAll & operator=(ForAll && f) = default;
     
-    void operator() () {
+    void operator() () const {
         forall<ExecPolicy>(
-            std::forward<Container>(segment),
-            std::forward<LoopBody>(func));
+            segment,
+            func);
     }
     
 };
 
 template <typename ExecPolicy, typename Container, typename LoopBody>
-constexpr ForAll<ExecPolicy,Container,LoopBody> makeForAll(Container&& c, LoopBody && l) {
+ForAll<ExecPolicy,Container,LoopBody> makeForAll(Container const & c, LoopBody const & l) {
     return ForAll<ExecPolicy,Container,LoopBody>(
-        std::forward<Container>(c),
-        std::forward<LoopBody>(l));
+        (c),
+        (l));
 }
 
 
@@ -283,32 +286,32 @@ template <typename ExecPolicy,
     typename Container,
     typename Func1,
     typename Func2>
-constexpr auto fuse(RAJA::ForAll<ExecPolicy,Container,Func1> &forall1, RAJA::ForAll<ExecPolicy,Container,Func2> &forall2) {
-    auto func = [&] (auto i) {forall1.func(i); forall2.func(i);};
+ auto fuse(RAJA::ForAll<ExecPolicy,Container,Func1> forall1, RAJA::ForAll<ExecPolicy,Container,Func2> forall2) {
+    auto func = [=] (auto i) {forall1.func(i); forall2.func(i);};
     
-    return RAJA::makeForAll<ExecPolicy>(std::forward<Container>(forall1.segment),std::forward<decltype(func)>(func));
+    return RAJA::makeForAll<ExecPolicy>(forall2.segment,(func));
 }
 
 
 #include "all-isl.h"
 
 template <typename ExecPolicy, typename Container, typename Func1, typename Func2, typename...Args>
-void chain(ForAll<ExecPolicy,Container,Func1> &&forall1, RAJA::ForAll<ExecPolicy,Container,Func2> &&forall2, Args...args) {
+void chain(ForAll<ExecPolicy,Container,Func1> forall1, RAJA::ForAll<ExecPolicy,Container,Func2>  forall2, Args&&...args) {
 
     static bool fusable = can_fuse(forall1.execute_symbolically(), forall2.execute_symbolically());
 
     if (fusable) {
         auto newForAll = fuse(forall1, forall2);
-        chain(newForAll, args...);
+        chain(newForAll, std::forward<Args>(args)...);
     } else {
         forall1();
-        chain(forall2, args...);
+        chain(forall2, std::forward<Args>(args)...);
     }
     
 }
 
 template <typename ExecPolicy, typename Container, typename Func1, typename...Args>
-void chain(ForAll<ExecPolicy,Container,Func1> &forall1) {
+void chain(ForAll<ExecPolicy,Container,Func1> forall1) {
     forall1();
 }
 } //namespace RAJA

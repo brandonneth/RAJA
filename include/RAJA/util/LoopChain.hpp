@@ -10,7 +10,7 @@ namespace RAJA
 {
 struct SymAccess;
 
-int can_fuse(std::vector<SymAccess> a1, std::vector<SymAccess> a2);
+int can_fuse(std::vector<SymAccess> const & a1, std::vector<SymAccess> const & a2);
 struct SymIter {
     std::string name;
     int idx;
@@ -166,7 +166,7 @@ struct SymAccessList {
     */
     SymAccessList operator = (const SymAccessList& other) {
         SymAccessList newList = SymAccessList();
-        
+         
         for(SymAccess& a : accesses) {
             a.set_write();
             newList.push_back(a);
@@ -241,12 +241,10 @@ struct ForAll {
 
     Container segment;
     LoopBody func;
-    std::vector<SymAccess> symbolicAccesses;
-    ForAll(Container && c, LoopBody && l) :
+    constexpr ForAll(Container && c, LoopBody && l) :
         segment(std::forward<Container>(c)),
         func(std::forward<LoopBody>(l))
     {
-        execute_symbolically();
     }
 
     
@@ -255,10 +253,11 @@ struct ForAll {
     ForAll(ForAll && f) = default;
     
     
-    void execute_symbolically() {
+    std::vector<SymAccess> execute_symbolically() {
+        
         SymIter i = SymIter("i0");
         func(i);
-        symbolicAccesses = *(i.accesses);
+        return  *(i.accesses);
     }
     
     ForAll & operator=(const ForAll & f) = default;
@@ -273,7 +272,7 @@ struct ForAll {
 };
 
 template <typename ExecPolicy, typename Container, typename LoopBody>
-ForAll<ExecPolicy,Container,LoopBody> makeForAll(Container&& c, LoopBody && l) {
+constexpr ForAll<ExecPolicy,Container,LoopBody> makeForAll(Container&& c, LoopBody && l) {
     return ForAll<ExecPolicy,Container,LoopBody>(
         std::forward<Container>(c),
         std::forward<LoopBody>(l));
@@ -284,8 +283,8 @@ template <typename ExecPolicy,
     typename Container,
     typename Func1,
     typename Func2>
-auto fuse(RAJA::ForAll<ExecPolicy,Container,Func1> &forall1, RAJA::ForAll<ExecPolicy,Container,Func2> &forall2) {
-    auto func = [=] (auto i) {forall1.func(i); forall2.func(i);};
+constexpr auto fuse(RAJA::ForAll<ExecPolicy,Container,Func1> &forall1, RAJA::ForAll<ExecPolicy,Container,Func2> &forall2) {
+    auto func = [&] (auto i) {forall1.func(i); forall2.func(i);};
     
     return RAJA::makeForAll<ExecPolicy>(std::forward<Container>(forall1.segment),std::forward<decltype(func)>(func));
 }
@@ -295,7 +294,10 @@ auto fuse(RAJA::ForAll<ExecPolicy,Container,Func1> &forall1, RAJA::ForAll<ExecPo
 
 template <typename ExecPolicy, typename Container, typename Func1, typename Func2, typename...Args>
 void chain(ForAll<ExecPolicy,Container,Func1> &&forall1, RAJA::ForAll<ExecPolicy,Container,Func2> &&forall2, Args...args) {
-    if (can_fuse(forall1.symbolicAccesses, forall2.symbolicAccesses)) {
+
+    static bool fusable = can_fuse(forall1.execute_symbolically(), forall2.execute_symbolically());
+
+    if (fusable) {
         auto newForAll = fuse(forall1, forall2);
         chain(newForAll, args...);
     } else {

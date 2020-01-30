@@ -91,10 +91,9 @@ namespace RAJA
         isl_union_set* domain;
         isl_union_map* schedule, *read, *write, *schedule_inverse, *lex, *before;
         isl_union_map* raw, *war, *waw;
-        //isl_printer* p;
         
         ctx = isl_ctx_alloc();
-        //p = isl_printer_to_file(ctx, stdout);
+        //isl_printer* p = isl_printer_to_file(ctx, stdout);
         
         
         //printf("\n Running isl_can_fuse()\nRead String: %s\nWrite String: %s\n", readString,writeString);
@@ -184,7 +183,7 @@ namespace RAJA
         
         fused_before = isl_union_map_apply_range(fused_before, isl_union_map_copy(fused_schedule_inverse));
         
-        //printf("\nFused Before\n");
+        //printf("\nFused Before\n";
         //p = isl_printer_print_union_map(p, fused_before);
         
         isl_bool respect1 = isl_union_map_is_subset(raw, isl_union_map_copy(fused_before));
@@ -206,8 +205,8 @@ namespace RAJA
         
     }
     
-    int can_fuse(std::vector<SymAccess> a1, std::vector<SymAccess> a2) {
-        
+    int can_fuse(std::vector<SymAccess> const & a1, std::vector<SymAccess> const & a2) {
+       
         std::string read = read_string(a1,a2);
         
         std::string write = write_string(a1,a2);

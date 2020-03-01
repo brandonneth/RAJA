@@ -1,11 +1,20 @@
 // Contains code relevant to the use of loop chaining to perform inter-loop optimizations
 #ifndef RAJA_loopchain_generic_HPP
 #define RAJA_loopchain_generic_HPP
+#include "RAJA/config.hpp"
+
+
+
+#include "RAJA/util/camp_aliases.hpp"
+
+#include "RAJA/pattern/kernel.hpp"
 #include "RAJA/pattern/forall.hpp"
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <vector>
+
+
 namespace RAJA
 {
 struct SymAccess;
@@ -236,6 +245,8 @@ struct SymAccessList {
         return arith_assign();
     }
 };
+
+
 
 template <typename ExecPolicy,
           typename Container,

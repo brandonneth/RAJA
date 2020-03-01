@@ -23,9 +23,12 @@
 #include "RAJA/config.hpp"
 
 #include "RAJA/pattern/atomic.hpp"
-
 #include "RAJA/util/Layout.hpp"
 #include "RAJA/util/OffsetLayout.hpp"
+
+
+
+#include "RAJA/util/LoopChain.hpp"
 
 namespace RAJA
 {

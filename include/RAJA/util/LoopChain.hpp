@@ -67,6 +67,12 @@ struct SymIter {
         return newIter;
     }
 
+    friend std::ostream&  operator<< (std::ostream& s, SymIter i) {
+        s << i.name;
+        return s;
+    }
+
+    
     
 };
 
@@ -181,7 +187,7 @@ struct SymAccessList {
     
     */
     SymAccessList operator = (const SymAccessList& other) {
-        std::cout << "SymAccessList operator =\n";
+        //std::cout << "SymAccessList operator =\n";
 
         SymAccessList newList = SymAccessList();
          
@@ -255,14 +261,19 @@ struct SymAccessList {
 template <typename PolicyType, typename SegmentTuple, typename... Bodies> 
 struct KernelW {
   
-  SegmentTuple segments;
+  const SegmentTuple &segments;
   std::tuple<Bodies...> bodies;
 
-  KernelW(SegmentTuple &&s, Bodies &&... b) : segments(s), bodies(b...) {
+  KernelW(SegmentTuple const & s, Bodies const &... b) : segments(s), bodies(b...) {
   
   }
-  
-  
+ 
+  KernelW(const KernelW & k) = default; 
+  KernelW(KernelW && k) = default;
+  KernelW & operator=(const KernelW & k) = default;
+  KernelW & operator=(KernelW && k) = default;
+
+
   void execute_symbolically() {
     SymIter i = SymIter("i0");
     SymIter j = SymIter("i1");
@@ -296,7 +307,7 @@ struct KernelW {
  
   template <std::size_t... Is>
   void execute(std::index_sequence<Is...>) {
-    kernel_param<PolicyType>(segments,RAJA::make_tuple(), std::get<Is>(bodies)...);
+    RAJA::kernel<PolicyType>(segments, std::get<Is>(bodies)...);
     
   }
   void operator () () {
@@ -307,38 +318,36 @@ struct KernelW {
 };
 
 template <typename PolicyType, typename SegmentTuple, typename... Bodies> 
-KernelW<PolicyType,SegmentTuple,Bodies...> makeKernel(SegmentTuple&& segment, Bodies &&... bodies) {
+KernelW<PolicyType,SegmentTuple,Bodies...> makeKernel(SegmentTuple const & segment, Bodies const &... bodies) {
 
-   return KernelW<PolicyType,SegmentTuple,Bodies...>(std::forward<SegmentTuple>(segment), std::forward<Bodies>(bodies)...);
-}
-
-
-template <typename PolicyType, typename SegmentTuple, typename... Bodies1, typename... Bodies2, std::size_t... Is1, std::size_t... Is2>
-KernelW<PolicyType,SegmentTuple,Bodies1...,Bodies2...> expandKernels(SegmentTuple segments, std::tuple<Bodies1...> bodies1, std::tuple<Bodies2...> bodies2, std::index_sequence<Is1>, std::index_sequence<Is2>) {
-  
-  return makeKernel<PolicyType>(segments, std::get<Is1>(bodies1)..., std::get<Is2>(bodies2)...);
+   return KernelW<PolicyType,SegmentTuple,Bodies...>((segment), (bodies)...);
 }
 
 template <typename PolicyType, typename SegmentTuple, typename... Bodies1, typename... Bodies2>
-KernelW<PolicyType,SegmentTuple,Bodies1...,Bodies2...>  fuseKernels(
+auto fuseKernels(
    KernelW<PolicyType,SegmentTuple,Bodies1...> knl1,
    KernelW<PolicyType,SegmentTuple,Bodies2...> knl2)
 {
-  std::cout << "fusing kernels\n";
+  //std::cout << "fusing kernels\n";
   
   static bool canFuse = 1;
-
-  if(canFuse) {
-    auto bodies1 = knl1.bodies;
-    auto bodies2 = knl2.bodies;
+  auto bodies1 = knl1.bodies;
+   auto bodies2 = knl2.bodies;
     
-    auto seq1 = std::index_sequence_for<Bodies1...>{};
-    auto seq2 = std::index_sequence_for<Bodies2...>{};
+    
+  auto lambda1 = std::get<0>(bodies1);
+  auto lambda2 = std::get<0>(bodies2);
+  auto newlambda = [=] (auto i, auto j) {
+     lambda1(i,j);
+     lambda2(i,j);
+  };
 
-    auto newKernel =  expandKernels<PolicyType>(knl1.segments, bodies1, bodies2, seq1, seq2 );
-    return newKernel;
-  }
+  auto newKernel = makeKernel<PolicyType>(knl1.segments,newlambda);
   
+  std::cout << "\nexecuting fused kernel from within fuseKernels\n";
+
+  newKernel();
+  return newKernel;
 }
 
 /*

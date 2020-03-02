@@ -209,6 +209,25 @@ struct SymAccessList {
         return newList;
     }
 
+    SymAccessList operator += (double) {
+        //std::cout << "SymAccessList operator =\n";
+
+        SymAccessList newList = SymAccessList();
+         
+        for(SymAccess& a : accesses) {
+            a.set_write();
+            a.set_read();
+            newList.push_back(a);
+        }
+        
+        for(SymAccess& a : newList.accesses) {
+            for(SymIter& i : a.iters) {
+                i.accesses->push_back(a);
+            }
+        }
+        return newList;
+    }
+    
     void arith_cast() {
         for(SymAccess& a : accesses) {
             a.set_read();
@@ -284,21 +303,12 @@ struct KernelW {
     func(i,j);
 
     auto accesses1 = (i.accesses);
-
-    std::cout << std::size(*accesses1) << "\n";
-    std::cout << "access1: " << accesses1->at(0) << "\n";
-    std::cout << "access2: " << accesses1->at(1) << "\n";
-    
     auto accesses2 = (j.accesses);
-    
-    std::cout << std::size(*accesses2) << "\n";
-    std::cout << "access1: " << accesses2->at(0) << "\n";
-    std::cout << "access2: " << accesses2->at(1) << "\n";
 
     std::vector<SymAccess> allAccesses = std::vector<SymAccess>();
 
-    for(int i = 0; i < std::size(*accesses1); i++) {allAccesses.push_back(accesses1->at(i));}
-    for(int i = 0; i < std::size(*accesses2); i++) {allAccesses.push_back(accesses2->at(i));}
+    for(int i = 0; i < accesses1->size(); i++) {allAccesses.push_back(accesses1->at(i));}
+    for(int i = 0; i < accesses2->size(); i++) {allAccesses.push_back(accesses2->at(i));}
     return allAccesses;
   }
 
@@ -347,7 +357,7 @@ auto fuseKernels(
 
   auto newKernel = makeKernel<PolicyType>(knl1.segments,newlambda);
   
-  std::cout << "\nexecuting fused kernel from within fuseKernels\n";
+  //std::cout << "\nexecuting fused kernel from within fuseKernels\n";
 
   newKernel();
   return newKernel;

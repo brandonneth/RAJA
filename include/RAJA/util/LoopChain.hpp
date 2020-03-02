@@ -274,7 +274,7 @@ struct KernelW {
   KernelW & operator=(KernelW && k) = default;
 
 
-  void execute_symbolically() {
+  std::vector<SymAccess> execute_symbolically() {
     SymIter i = SymIter("i0");
     SymIter j = SymIter("i1");
 
@@ -295,8 +295,11 @@ struct KernelW {
     std::cout << "access1: " << accesses2->at(0) << "\n";
     std::cout << "access2: " << accesses2->at(1) << "\n";
 
+    std::vector<SymAccess> allAccesses = std::vector<SymAccess>();
 
-
+    for(int i = 0; i < std::size(*accesses1); i++) {allAccesses.push_back(accesses1->at(i));}
+    for(int i = 0; i < std::size(*accesses2); i++) {allAccesses.push_back(accesses2->at(i));}
+    return allAccesses;
   }
 
   

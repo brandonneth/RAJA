@@ -1,4 +1,5 @@
 // Contains code relevant to the use of loop chaining to perform inter-loop optimizations
+
 #ifndef RAJA_loopchain_generic_HPP
 #define RAJA_loopchain_generic_HPP
 #include "RAJA/config.hpp"
@@ -13,7 +14,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-
+#include <memory>
 
 namespace RAJA
 {
@@ -23,17 +24,18 @@ int can_fuse(std::vector<SymAccess> const & a1, std::vector<SymAccess> const & a
 struct SymIter {
     std::string name;
     int idx;
-    std::vector<SymAccess> * accesses;
+    std::shared_ptr<std::vector<SymAccess>> accesses;
 
     SymIter(std::string str) : name(str), idx(0) {
-        accesses = new std::vector<SymAccess>();
+        accesses = std::make_shared<std::vector<SymAccess>>();
     }
-
+    
     SymIter(int num) : name("placeholder"), idx(num) {
-        accesses = new std::vector<SymAccess>();
+        accesses = std::make_shared<std::vector<SymAccess>>();
     }
 
     SymIter(const SymIter & other) : name(other.name), idx(other.idx) {
+        //std::cout << "SymIter & constructor\n";
         accesses = other.accesses;
     }
 
@@ -64,6 +66,8 @@ struct SymIter {
         newIter.accesses = this->accesses;
         return newIter;
     }
+
+    
 };
 
 struct SymAccess {
@@ -177,6 +181,8 @@ struct SymAccessList {
     
     */
     SymAccessList operator = (const SymAccessList& other) {
+        std::cout << "SymAccessList operator =\n";
+
         SymAccessList newList = SymAccessList();
          
         for(SymAccess& a : accesses) {
@@ -246,7 +252,102 @@ struct SymAccessList {
     }
 };
 
+template <typename PolicyType, typename SegmentTuple, typename... Bodies> 
+struct KernelW {
+  
+  SegmentTuple segments;
+  std::tuple<Bodies...> bodies;
 
+  KernelW(SegmentTuple &&s, Bodies &&... b) : segments(s), bodies(b...) {
+  
+  }
+  
+  
+  void execute_symbolically() {
+    SymIter i = SymIter("i0");
+    SymIter j = SymIter("i1");
+
+    auto func = std::get<0>(bodies);
+
+
+    func(i,j);
+
+    auto accesses1 = (i.accesses);
+
+    std::cout << std::size(*accesses1) << "\n";
+    std::cout << "access1: " << accesses1->at(0) << "\n";
+    std::cout << "access2: " << accesses1->at(1) << "\n";
+    
+    auto accesses2 = (j.accesses);
+    
+    std::cout << std::size(*accesses2) << "\n";
+    std::cout << "access1: " << accesses2->at(0) << "\n";
+    std::cout << "access2: " << accesses2->at(1) << "\n";
+
+
+
+  }
+
+  
+
+
+
+
+ 
+  template <std::size_t... Is>
+  void execute(std::index_sequence<Is...>) {
+    kernel_param<PolicyType>(segments,RAJA::make_tuple(), std::get<Is>(bodies)...);
+    
+  }
+  void operator () () {
+ 	auto seq = std::index_sequence_for<Bodies...>{};
+    execute(seq);
+  }
+
+};
+
+template <typename PolicyType, typename SegmentTuple, typename... Bodies> 
+KernelW<PolicyType,SegmentTuple,Bodies...> makeKernel(SegmentTuple&& segment, Bodies &&... bodies) {
+
+   return KernelW<PolicyType,SegmentTuple,Bodies...>(std::forward<SegmentTuple>(segment), std::forward<Bodies>(bodies)...);
+}
+
+
+template <typename PolicyType, typename SegmentTuple, typename... Bodies1, typename... Bodies2, std::size_t... Is1, std::size_t... Is2>
+KernelW<PolicyType,SegmentTuple,Bodies1...,Bodies2...> expandKernels(SegmentTuple segments, std::tuple<Bodies1...> bodies1, std::tuple<Bodies2...> bodies2, std::index_sequence<Is1>, std::index_sequence<Is2>) {
+  
+  return makeKernel<PolicyType>(segments, std::get<Is1>(bodies1)..., std::get<Is2>(bodies2)...);
+}
+
+template <typename PolicyType, typename SegmentTuple, typename... Bodies1, typename... Bodies2>
+KernelW<PolicyType,SegmentTuple,Bodies1...,Bodies2...>  fuseKernels(
+   KernelW<PolicyType,SegmentTuple,Bodies1...> knl1,
+   KernelW<PolicyType,SegmentTuple,Bodies2...> knl2)
+{
+  std::cout << "fusing kernels\n";
+  
+  static bool canFuse = 1;
+
+  if(canFuse) {
+    auto bodies1 = knl1.bodies;
+    auto bodies2 = knl2.bodies;
+    
+    auto seq1 = std::index_sequence_for<Bodies1...>{};
+    auto seq2 = std::index_sequence_for<Bodies2...>{};
+
+    auto newKernel =  expandKernels<PolicyType>(knl1.segments, bodies1, bodies2, seq1, seq2 );
+    return newKernel;
+  }
+  
+}
+
+/*
+ *
+ *
+ * ForAll Wrapper Class and Functions
+ *
+ *
+*/
 
 template <typename ExecPolicy,
           typename Container,
@@ -284,6 +385,7 @@ struct ForAll {
     }
     
 };
+
 
 template <typename ExecPolicy, typename Container, typename LoopBody>
 ForAll<ExecPolicy,Container,LoopBody> makeForAll(Container const & c, LoopBody const & l) {

@@ -39,14 +39,14 @@ namespace RAJA
         reads << "[" << bnds << "] -> {";
         
         for(RAJA::SymAccess a : a1) {
-            if(a.type == "READ") {
+            if(a.isRead) {
                 std::string array_name = get_array_name(a);
                 reads << "\tL1[" << i0 << "] -> " << array_name << "[" << a.access_string() << "];";
             }
             
         }
         for(RAJA::SymAccess a : a2) {
-            if(a.type == "READ") {
+            if(a.isRead) {
                 std::string array_name = get_array_name(a);
                 reads << "\tL2[" << i0 << "] -> " << array_name << "[" << a.access_string() << "];";
             }
@@ -68,14 +68,14 @@ namespace RAJA
         writes << "[" << bnds << "] -> {";
         
         for(RAJA::SymAccess a : a1) {
-            if(a.type == "WRITE") {
+            if(a.isWrite ) {
                 std::string array_name = get_array_name(a);
                 writes << "\tL1[" << i0 << "] -> " << array_name << "[" << a.access_string() << "];";
             }
             
         }
         for(RAJA::SymAccess a : a2) {
-            if(a.type == "WRITE") {
+            if(a.isWrite) {
                 std::string array_name = get_array_name(a);
                 writes << "\tL2[" << i0 << "] -> " << array_name << "[" << a.access_string() << "];";
             }
@@ -206,12 +206,15 @@ namespace RAJA
     }
     
     int can_fuse(std::vector<SymAccess> const & a1, std::vector<SymAccess> const & a2) {
-       
+      
+        //std::cout << "can fuse\n"; 
         std::string read = read_string(a1,a2);
         
         std::string write = write_string(a1,a2);
-        
-        return isl_can_fuse(read.c_str(), write.c_str());
+        //std::cout << "readstring: " << read << "\nwritestring: " << write << "\n\n"; 
+        int result =  isl_can_fuse(read.c_str(), write.c_str());
+        //std::cout << "can fuse: " << result << "\n";
+        return result;
         return 0;
     }
 

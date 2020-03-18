@@ -22,10 +22,10 @@ struct SymAccess;
 
 int can_fuse_1d(std::vector<SymAccess> const & a1, std::vector<SymAccess> const & a2);
 int can_fuse_2d(std::vector<SymAccess> const & a1, std::vector<SymAccess> const & a2);
-int amount_to_shift(std::vector<SymAccess> const & a1, std::vector<SymAccess> const & a2);
 
 
-
+std::string read_string(std::vector<std::vector<SymAccess>> accessLists, int dimensions);
+std::string write_string(std::vector<std::vector<SymAccess>> accessLists, int dimensions);
 
 struct SymIter {
     std::string name;
@@ -491,6 +491,182 @@ std::string write_string(std::vector<SymAccess> a1, std::vector<SymAccess> a2, i
 
 isl_stat print_point_val(isl_point * pnt, void * user);
 isl_stat collect_point_val(isl_point * pnt, void * user);
+
+
+
+
+template <typename ExecPol, typename Container, typename Func, typename ...Rest>
+std::vector<int> amount_to_shift_foralls(ForAll<ExecPol,Container,Func> forall1, Rest&&... rest){
+
+  std::cout << "In user-called amount to shift foralls\n";
+  
+  std::vector<std::vector<SymAccess>> accessLists = std::vector<std::vector<SymAccess>>();
+
+
+  return amount_to_shift_foralls(accessLists, forall1, std::forward<Rest>(rest)...);
+
+}
+
+template<typename ExecPol, typename Container, typename Func, typename ...Rest>
+std::vector<int> amount_to_shift_foralls(const std::vector<std::vector<SymAccess>> &accessLists, ForAll<ExecPol,Container,Func> forall1, Rest&&... rest) {
+ 
+  std::cout << "In intermediate amount to shift foralls, size = " << accessLists.size() << "\n"; 
+  std::vector<SymAccess> accesses = forall1.execute_symbolically();
+  
+  std::vector<std::vector<SymAccess>> newAccessLists = std::vector<std::vector<SymAccess>>();
+
+  for(auto lst : accessLists) {
+    newAccessLists.push_back(lst);
+  }
+  newAccessLists.push_back(accesses);
+
+  return amount_to_shift_foralls(newAccessLists, std::forward<Rest>(rest)...);
+
+}
+
+template <typename...Rest>
+std::vector<int> amount_to_shift_foralls(const std::vector<std::vector<SymAccess>> &accessLists) {
+
+  std::cout << "Finished collecting access information, performing shift calculation\n";
+
+  std::cout << "Gathered access information for " << accessLists.size() << " kernels\n";
+
+  auto numKernels = accessLists.size();
+
+  auto readString = read_string(accessLists,1);
+  auto writeString = write_string(accessLists,1);
+  
+  std::cout << "reads: " << readString;
+  std::cout << "\nwrites: " << writeString;
+
+  isl_ctx* ctx = isl_ctx_alloc();
+  isl_printer * p = isl_printer_to_file(ctx, stdout);
+
+  isl_union_map * reads = isl_union_map_read_from_str(ctx, readString.c_str());
+  isl_union_map * writes = isl_union_map_read_from_str(ctx, writeString.c_str());
+
+  isl_union_map * reads_inverse = isl_union_map_reverse(isl_union_map_copy(reads));
+  isl_union_map * writes_inverse = isl_union_map_reverse(isl_union_map_copy(writes));
+
+  isl_union_map * raw = isl_union_map_apply_range(isl_union_map_copy(writes), isl_union_map_copy(reads_inverse));
+  isl_union_map * waw = isl_union_map_apply_range(isl_union_map_copy(writes), isl_union_map_copy(writes_inverse));
+  isl_union_map * war = isl_union_map_apply_range(isl_union_map_copy(reads), isl_union_map_copy(writes_inverse));
+
+  isl_union_map * deps = isl_union_map_union(raw, waw);
+  deps = isl_union_map_union(deps, war);
+
+  std::vector<std::vector<int>> depOffsetLists = std::vector<std::vector<int>>();
+  for(int i = 0; i < numKernels; i++) {
+    for(int j = i+1; j < numKernels; j++) {
+      std::string srcLoop = "{L" + std::to_string(i) + "[0]}";
+      std::string dstLoop = "{L" + std::to_string(j) + "[n]}";
+ 
+      isl_union_set * srcSet = isl_union_set_read_from_str(ctx, srcLoop.c_str());
+      isl_union_set * dstSet = isl_union_set_read_from_str(ctx, dstLoop.c_str());
+
+      
+      isl_union_set * fromSrc = isl_union_set_apply(srcSet, isl_union_map_copy(deps));
+       
+      isl_union_set * src2dstUnion = isl_union_set_intersect(isl_union_set_copy(fromSrc), dstSet);
+      
+      std::cout << "\ndeps from " << i << " to " << j << "\n";
+      p = isl_printer_print_union_set(p,src2dstUnion);
+
+     
+            std::vector<int> * depOffsetPtr = new std::vector<int>();
+      
+      if(!isl_union_set_is_empty(src2dstUnion)) {
+        isl_set * src2dst =  isl_set_from_union_set(src2dstUnion);
+ 
+        isl_set_foreach_point(src2dst, collect_point_val, (void*) depOffsetPtr);
+      }
+      std::vector<int> depOffsets = *depOffsetPtr;
+      
+      delete depOffsetPtr;
+      
+      depOffsetLists.push_back(depOffsets);
+      
+    }//j
+  }//i
+
+  std::string objFncDmn = "";
+  std::string objFncRng = "";
+  for(int i = 0; i < numKernels; i++) {
+    objFncDmn += "S" + std::to_string(i);
+    objFncRng += "S" + std::to_string(i);// + "*S" + std::to_string(i);
+    if(i != numKernels-1) {
+      objFncDmn += ",";
+      objFncRng += "+";
+    }
+  }
+  std::string objFncStr = "{ [" + objFncDmn + "] -> [" + objFncRng + "] }";
+  
+  std::cout << "\nobjective function string: " << objFncStr << "\n";
+
+  isl_aff * objFnc = isl_aff_read_from_str(ctx, objFncStr.c_str());
+  
+  std::string startingSetStr = "{ [" + objFncDmn + "] }";
+  
+  isl_set * shiftSet = isl_set_read_from_str(ctx, startingSetStr.c_str());
+
+  
+  for(int i = numKernels-1; i >= 0; i--) {
+    for(int j = numKernels-1; j > i; j--) {
+      auto depOffsets = depOffsetLists.back();
+      depOffsetLists.pop_back();
+      if(depOffsets.size() == 0) {continue;}
+      
+      std::string srcName = "S" + std::to_string(i);
+      std::string dstName = "S" + std::to_string(j);
+      
+      int minOffset = depOffsets[0];
+     
+      for(auto offset : depOffsets) {
+        if(offset < minOffset) {minOffset = offset;}
+      }
+      
+      std::string constraintString = "{ [" + objFncDmn + "]" + ": " + dstName + "-" + srcName + "= " + std::to_string(-1 * minOffset) + "}";
+      
+      std::cout << "constraint: " << constraintString << "\n";
+
+      isl_set * constraintSet = isl_set_read_from_str(ctx, constraintString.c_str());
+      shiftSet = isl_set_intersect(isl_set_copy(shiftSet), constraintSet);
+    }
+  }
+
+  if(isl_set_is_empty(shiftSet)) {
+    return std::vector<int>();
+  }
+
+  
+  isl_point * point = isl_set_sample_point(shiftSet);
+
+
+  
+  std::cout << "\nsample point\n";
+  p = isl_printer_print_point(p,point);
+
+  std::vector<int> shifts = std::vector<int>();
+
+  for(int i = 0; i < numKernels; i++) {
+    isl_val * shift = isl_point_get_coordinate_val(point, isl_dim_set, i);
+
+    std::cout << "\ndimension " << i << "\n";
+    p = isl_printer_print_val(p, shift);
+
+    auto shiftAmount = isl_val_get_num_si(shift);
+
+    shifts.push_back(shiftAmount);
+  }
+
+  //isl_val * minVal = isl_set_min_val(shiftSet, objFnc);
+
+  //std::cout << "minVal\n";
+  //p = isl_printer_print_val(p,minVal);
+  return shifts;
+
+}
+
 
 template <typename ExecPol, typename Container, typename Func1, typename Func2>
 std::vector<int> amount_to_shift_no_nesting(ForAll<ExecPol,Container,Func1> forall1, ForAll<ExecPol,Container,Func2> forall2) {

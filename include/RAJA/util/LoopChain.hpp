@@ -450,6 +450,46 @@ auto fuse_unequal_bounds(RAJA::ForAll<ExecPolicy,Container,Func1> forall1, RAJA:
 }
 
 
+struct Default{};
+template <auto> struct Fuse {};
+template <auto> struct Shift {};
+
+
+
+template <typename ExecPol,typename Container,typename Func, typename ...ForAlls>
+auto apply_shift(std::vector<int> shiftAmounts, ForAll<ExecPol,Container,Func> knl, ForAlls&&... knls) {
+
+  std::vector<int> remainingShifts = std::vector<int>();
+  for(unsigned long i = 1; i < shiftAmounts.size(); i++ ){
+    remainingShifts.push_back(shiftAmounts[i]);
+  }
+
+  int shiftAmount = shiftAmounts.at(0);
+
+  auto remainingForAllTuple = apply_shift(remainingShifts, std::forward<ForAlls>(knls)...);
+  
+  auto newKnl = shift_forall(knl, shiftAmount);
+
+  auto currForAllTuple = std::make_tuple(newKnl);
+
+  auto fullTuple = std::tuple_cat(currForAllTuple,remainingForAllTuple);
+
+  return fullTuple;
+}
+
+template <typename ExecPol,typename Container,typename Func>
+auto apply_shift(std::vector<int> shiftAmounts, ForAll<ExecPol,Container,Func> knl) {
+
+  int shiftAmount = shiftAmounts.at(0);
+
+  auto newKnl = shift_forall(knl, shiftAmount);
+  return std::make_tuple(newKnl);
+}
+
+
+
+
+
 
 
 template <typename ExecPolicy,
@@ -494,7 +534,47 @@ isl_stat collect_point_val(isl_point * pnt, void * user);
 
 
 
+template <typename ExecPolicy, typename Container, typename Func1, typename...Args>
+std::vector<int> fusion_overlap_bounds_forall(ForAll<ExecPolicy,Container,Func1> forall1, Args&&... args) {
+  std::vector<int> bounds = std::vector<int>();
 
+  bounds.push_back(*forall1.segment.begin());
+  bounds.push_back(*forall1.segment.end());
+
+  return fusion_overlap_bounds_forall(bounds, std::forward<Args>(args)...);
+}
+
+template <typename ExecPolicy, typename Container, typename Func1, typename...Args>
+std::vector<int> fusion_overlap_bounds_forall(std::vector<int> bounds, ForAll<ExecPolicy,Container,Func1> forall1, Args&&... args) {
+  
+  auto lower = *forall1.segment.begin();
+  auto upper = *forall1.segment.end();
+  std::cout << "bounds: " << lower << ", " << upper << "\n";
+  if (lower > bounds[0]) {
+    bounds[0] = lower;
+  }
+  if(upper < bounds[1]) {
+    bounds[1] = upper;
+  }
+  return fusion_overlap_bounds_forall(bounds, std::forward<Args>(args)...);
+
+}
+template <typename ExecPolicy, typename Container, typename Func1, typename...Args>
+std::vector<int> fusion_overlap_bounds_forall(std::vector<int> bounds, ForAll<ExecPolicy,Container,Func1> lastKnl) {
+  auto lower = *lastKnl.segment.begin();
+  auto upper = *lastKnl.segment.end();
+
+  std::cout << "bounds: " << lower << ", " << upper << "\n";
+  if (lower > bounds[0]) {
+    bounds[0] = lower;
+  }
+  if(upper < bounds[1]) {
+    bounds[1] = upper;
+  }
+
+  return bounds;
+
+}
 template <typename ExecPol, typename Container, typename Func, typename ...Rest>
 std::vector<int> amount_to_shift_foralls(ForAll<ExecPol,Container,Func> forall1, Rest&&... rest){
 
@@ -666,6 +746,239 @@ std::vector<int> amount_to_shift_foralls(const std::vector<std::vector<SymAccess
   return shifts;
 
 }
+
+
+template <typename ExecPol, typename Container, typename Func, typename ...Rest>
+void shift_fuse_exec_foralls(ForAll<ExecPol, Container,Func> forall1, Rest&&...rest) {
+
+  std::vector<int> shiftAmounts = amount_to_shift_foralls(forall1, std::forward<Rest>(rest)...);
+  if(shiftAmounts.size() == 0) {
+    std::cout << "Cannot shift. Executing First kernel and trying again\n";
+    forall1();
+    //shift_fuse_exec_foralls(std::forward<Rest>(rest)...);
+  }
+
+  for(auto amount : shiftAmounts) {
+    std::cout << "shift: " << amount << "\n";
+  }
+
+  apply_shifts_fuse_exec_foralls(shiftAmounts, forall1, std::forward<Rest>(rest)..., 0);
+
+
+}
+
+
+template <typename ExecPol, typename Container, typename Func,  typename...Rest>
+void apply_shifts_fuse_exec_foralls(const std::vector<int> & shiftAmounts, ForAll<ExecPol, Container,Func> forall1, Rest&&... rest) {
+
+  std::cout << "applying shifts, " << shiftAmounts.size() << " remaining\n";
+  
+  std::vector<int> remainingShifts = std::vector<int>();
+  for(unsigned long i = 1; i < shiftAmounts.size(); i++ ){
+    remainingShifts.push_back(shiftAmounts[i]);
+  }
+
+  int shiftAmount = shiftAmounts.at(0);
+
+  auto shiftedKernel = shift_forall(forall1, shiftAmount);
+
+  apply_shifts_fuse_exec_foralls(remainingShifts, std::forward<Rest>(rest)..., shiftedKernel);
+
+}
+
+template < typename...Rest>
+void apply_shifts_fuse_exec_foralls(const std::vector<int> & shiftAmounts, int seperator, Rest&&... rest) {
+  
+  std::cout << "finished applying shifts, determining fusion overlap\n";
+
+  std::vector<int> fusionBounds = fusion_overlap_bounds_forall(std::forward<Rest>(rest)...);
+
+  std::cout << "fusion bounds: " << fusionBounds[0] << ", " << fusionBounds[1] << "\n";
+
+
+  std::cout << "\nEXECUTING\n\n";
+
+  exec_pre_bounds_foralls(fusionBounds, std::forward<Rest>(rest)...);
+  apply_fuse_exec_foralls(fusionBounds, std::forward<Rest>(rest)...);  
+  exec_post_bounds_foralls(fusionBounds, std::forward<Rest>(rest)...);
+
+}
+
+
+template <typename ExecPol, typename Container, typename Func,  typename...Rest>
+void exec_pre_bounds_foralls(std::vector<int> bounds, ForAll<ExecPol,Container,Func> knl, Rest&&... rest) {
+  std::cout << "executing prebounds\n";
+
+  auto knlLower = *knl.segment.begin();
+
+  if(knlLower < bounds[0]) {
+    RAJA::forall<ExecPol>(RAJA::RangeSegment(knlLower,bounds[0]), knl.func);
+  }
+  
+  exec_pre_bounds_foralls(bounds, std::forward<Rest>(rest)...);
+
+}
+
+template <typename ExecPol, typename Container, typename Func,  typename...Rest>
+void exec_pre_bounds_foralls(std::vector<int> bounds, ForAll<ExecPol,Container,Func> knl) {
+  std::cout << "executing last prebounds\n";
+
+  auto knlLower = *knl.segment.begin();
+
+  if(knlLower < bounds[0]) {
+    RAJA::forall<ExecPol>(RAJA::RangeSegment(knlLower,bounds[0]), knl.func);
+  }
+  
+
+}
+
+template <typename ExecPol, typename Container, typename Func,  typename...Rest>
+void exec_post_bounds_foralls(std::vector<int> bounds, ForAll<ExecPol,Container,Func> knl, Rest&&... rest) {
+  std::cout << "executing postbounds\n";
+
+
+  auto knlUpper = *knl.segment.end();
+
+  if(knlUpper > bounds[1]) {
+    RAJA::forall<ExecPol>(RAJA::RangeSegment(bounds[1], knlUpper), knl.func);
+  }
+  exec_post_bounds_foralls(bounds, std::forward<Rest>(rest)...);
+}
+
+template <typename ExecPol, typename Container, typename Func,  typename...Rest>
+void exec_post_bounds_foralls(std::vector<int> bounds, ForAll<ExecPol,Container,Func> knl) {
+  std::cout << "executing last postbounds\n";
+
+  auto knlUpper = *knl.segment.end();
+
+  if(knlUpper > bounds[1]) {
+    RAJA::forall<ExecPol>(RAJA::RangeSegment(bounds[1], knlUpper), knl.func);
+  }
+  
+
+}
+
+
+template <typename ExecPol, typename Container, typename Func, typename Func2, typename...Rest>
+void apply_fuse_exec_foralls(std::vector<int> fusionBounds, ForAll<ExecPol,Container,Func> knl1, ForAll<ExecPol,Container,Func2> knl2,  Rest&&... rest) {
+ 
+  std::cout << "fusing foralls\n"; 
+  auto fusedFunc = [=](auto i) {knl1.func(i); knl2.func(i);};
+
+  auto fusedKnl = makeForAll<ExecPol>(knl1.segment, fusedFunc);
+  apply_fuse_exec_foralls(fusionBounds, fusedKnl, std::forward<Rest>(rest)...);  
+}
+
+template <typename ExecPol, typename Container, typename Func, typename Func2>
+void apply_fuse_exec_foralls(std::vector<int> fusionBounds, ForAll<ExecPol,Container,Func> knl1, ForAll<ExecPol,Container,Func2> knl2 ){
+  std::cout << "fusing foralls\n"; 
+  auto fusedFunc = [=](auto i) {knl1.func(i); knl2.func(i);};
+
+  auto fusedKnl = makeForAll<ExecPol>(knl1.segment, fusedFunc);
+  apply_fuse_exec_foralls(fusionBounds, fusedKnl);  
+}
+
+
+
+
+
+template <typename ExecPol, typename Container, typename Func>
+void apply_fuse_exec_foralls(std::vector<int> fusionBounds, ForAll<ExecPol,Container,Func> knl1) {
+
+  std::cout << "done fusing, executing fused kernel on bounds " << fusionBounds[0] << "," << fusionBounds[1] << "\n";
+  auto newBounds = RAJA::RangeSegment(fusionBounds[0], fusionBounds[1]);
+
+  RAJA::forall<ExecPol>(newBounds, knl1.func); 
+}
+
+
+template <typename Tuple, std::size_t... Is>
+std::vector<int> fusion_bounds_foralls(Tuple knls, std::index_sequence<Is...>) {
+
+  std::cout << "Determining the fusion bounds using a tuple of foralls\n";
+  int lower = *std::get<0>(knls).segment.begin();
+  int upper = *std::get<0>(knls).segment.end();
+  
+  std::cout << "starting bounds " << lower << "," << upper << "\n";
+  ((lower = (*std::get<Is>(knls).segment.begin() > lower ? *std::get<Is>(knls).segment.begin() : lower)), ...);
+  ((upper = (*std::get<Is>(knls).segment.end() < upper ? *std::get<Is>(knls).segment.end() : upper)), ...);
+  return std::vector<int>{lower,upper};
+
+}
+
+template <typename ExecPol, typename Container, typename Func>
+int exec_forall_new_bounds(ForAll<ExecPol, Container, Func> knl, auto bnd1, auto bnd2) {
+  
+  RAJA::forall<ExecPol>(RAJA::RangeSegment(bnd1,bnd2), knl.func);
+  return 1;
+}
+
+
+template <typename Tuple, std::size_t... Is>
+auto pre_fuse_foralls(Tuple knls, std::index_sequence<Is...>, std::vector<int> bounds) {
+  
+  ((*std::get<Is>(knls).segment.begin() < bounds[0] ? exec_forall_new_bounds(std::get<Is>(knls), *std::get<Is>(knls).segment.begin(), bounds[0]) : 0), ...);
+
+
+}
+
+template <typename Tuple, std::size_t... Is>
+auto post_fuse_foralls(Tuple knls, std::index_sequence<Is...>, std::vector<int> bounds) {
+  
+  ((*std::get<Is>(knls).segment.end() > bounds[1] ? exec_forall_new_bounds(std::get<Is>(knls), bounds[1], *std::get<Is>(knls).segment.end()) : 0), ...);
+
+
+}
+
+
+
+template <typename ExecPol, typename Container, typename Func1, typename Func2, typename... ForAlls>
+auto fuse_and_exec_unpacked(std::vector<int> bounds, ForAll<ExecPol,Container, Func1> knl1, ForAll<ExecPol,Container,Func2> knl2, ForAlls&&... knls) {
+  std::cout << "fusing and executing unpacked tuple of foralls\n";
+
+  auto newKnl = makeForAll<ExecPol>(knl1.segment, [=](auto i){ knl1.func(i); knl2.func(i);});
+
+  return fuse_and_exec_unpacked(bounds, newKnl, std::forward<ForAlls>(knls)...);
+  
+}
+
+template <typename ExecPol, typename Container, typename Func>
+auto fuse_and_exec_unpacked(std::vector<int> bounds, ForAll<ExecPol,Container, Func> knl) {
+  return makeForAll<ExecPol>(RAJA::RangeSegment(bounds[0], bounds[1]), knl.func);
+}
+template <typename Tuple, std::size_t... Is>
+auto fuse_and_exec(Tuple knls, std::index_sequence<Is...>, std::vector<int>bounds) {
+  
+  return fuse_and_exec_unpacked(bounds, (std::get<Is>(knls))...);
+
+
+
+}
+
+//arguments are the kernels, transformations are template arguments
+template <typename ...ForAlls>
+void chain_foralls(ForAlls&&... knls) {
+  
+  
+  static std::vector<int> shiftAmounts = amount_to_shift_foralls(std::forward<ForAlls>(knls)...);
+
+  static auto shiftedForAlls = apply_shift(shiftAmounts, std::forward<ForAlls>(knls)...);
+ 
+  static auto seq = std::index_sequence_for<ForAlls...>{};
+
+
+
+  static auto bounds = fusion_bounds_foralls(shiftedForAlls, seq);
+  
+  pre_fuse_foralls(shiftedForAlls, seq, bounds);
+
+
+  static auto fusedKnl = fuse_and_exec(shiftedForAlls, seq, bounds);
+  fusedKnl();
+  
+  post_fuse_foralls(shiftedForAlls, seq, bounds);
+}
+
 
 
 template <typename ExecPol, typename Container, typename Func1, typename Func2>

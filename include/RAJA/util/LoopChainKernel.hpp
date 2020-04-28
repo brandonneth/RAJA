@@ -10,6 +10,86 @@ namespace RAJA
 {
 
 
+template <long int... Is, long int... Js>
+auto combine_sequences(const std::integer_sequence<long int, Is...>&, const std::integer_sequence<long int, Js...>&) {
+
+  return std::integer_sequence<long int, Is..., Js...>{};
+
+}
+
+
+template <long int N>
+auto extract_for_indices(const RAJA::KernelPolicy<RAJA::statement::Lambda<N>>&) {
+  return std::integer_sequence<long int>{};
+} 
+
+template <typename ExecPolicy, typename Statements, long int N >
+auto extract_for_indices(RAJA::KernelPolicy<RAJA::statement::For<N,ExecPolicy,Statements>>) {
+
+  using sub_policy_t = RAJA::KernelPolicy<Statements>;
+
+  auto subPolicy = sub_policy_t();
+  
+  auto subIndices = extract_for_indices(subPolicy);
+
+  auto thisIndex = std::integer_sequence<long int, N>{};
+
+  auto combinedIndices = combine_sequences(subIndices, thisIndex);
+  
+  return combinedIndices;
+}
+
+
+template <long int... Is>
+void print_sequence(std::integer_sequence<long int, Is...>) {
+
+  ((std::cout << Is << " "),...);
+ 
+  std::cout << "\n";
+
+}
+
+template <typename Statements>
+
+auto apply_wrap(RAJA::KernelPolicy<Statements>, std::integer_sequence<long int>) {
+  return RAJA::KernelPolicy<Statements>();
+}
+
+template <typename Statements, long int I, long int... Is>
+auto apply_wrap(RAJA::KernelPolicy<Statements>, std::integer_sequence<long int, I, Is...>) {
+
+  using wrapped_policy_t = RAJA::KernelPolicy<RAJA::statement::OverlappedTile<I, 0, RAJA::statement::tile_fixed<4>, RAJA::seq_exec, Statements>>;
+
+  return apply_wrap(wrapped_policy_t(), std::integer_sequence<long int, Is...>{});
+
+}
+
+template <typename ExecPolicy, typename Statements, long int N>
+auto wrap_for_with_overlapped_tile(RAJA::KernelPolicy<RAJA::statement::For<N, ExecPolicy, Statements>> p ) {
+
+  using sub_policy_t = RAJA::KernelPolicy<Statements>;
+
+  auto subPolicy = sub_policy_t();
+ 
+  auto forIndices = extract_for_indices(RAJA::KernelPolicy<RAJA::statement::For<N,ExecPolicy,Statements>>());
+
+  auto wrapped = apply_wrap(p, forIndices);
+ 
+  print_sequence(forIndices);
+  
+  return wrapped;
+
+
+  
+}
+
+
+
+
+
+
+
+
  
 
 template<std::size_t s>
@@ -23,11 +103,12 @@ SymIter makeSymIter() {
 
 template <typename PolicyType, typename SegmentTuple, typename... Bodies>
 struct KernelW {
-
+  std::vector<int> overlaps;
   const SegmentTuple &segments;
   std::tuple<Bodies...> bodies;
   static constexpr int numArgs = camp::tuple_size<SegmentTuple>::value;
   KernelW(SegmentTuple const & s, Bodies const &... b) : segments(s), bodies(b...) {
+    overlaps = std::vector<int>();
   }
 
   KernelW(const KernelW & k) = default;
@@ -99,15 +180,56 @@ struct KernelW {
 
   template <std::size_t... Is>
   void execute(std::index_sequence<Is...>) {
-    RAJA::kernel<PolicyType>(segments, std::get<Is>(bodies)...);
 
+
+    util::PluginContext context{util::make_context<PolicyType>()};
+    util::callPreLaunchPlugins(context);
+
+    using segment_tuple_t = typename IterableWrapperTuple<camp::decay<SegmentTuple>>::type;
+
+    auto params = RAJA::make_tuple();
+    using param_tuple_t = camp::decay<decltype(params)>;
+
+    if(overlaps.size() != 0){
+      using loop_data_t = internal::LoopData<PolicyType, segment_tuple_t, param_tuple_t, camp::decay<Bodies>...>;
+      loop_data_t loop_data(overlaps, make_wrapped_tuple(segments), params, std::get<Is>(bodies)...);
+      
+      RAJA_FORCEINLINE_RECURSIVE
+      internal::execute_statement_list<PolicyType>(loop_data);
+
+    } else {
+  
+      RAJA::kernel<PolicyType>(segments, std::get<Is>(bodies)...);
+    }
   }
+  
   void operator () () {
      auto seq = std::index_sequence_for<Bodies...>{};
     execute(seq);
   }
 
 };
+
+
+template <std::size_t... LoopNums > 
+struct Fuse {
+
+  Fuse()  {
+      }
+
+
+};
+
+
+/*
+template <std::size_t... LoopNums> 
+struct OverlappedTile {
+
+  OverlappedTile(){
+ }
+
+};
+*/
 
 template <typename PolicyType, typename SegmentTuple, typename... Bodies>
 KernelW<PolicyType,SegmentTuple,Bodies...> makeKernel(SegmentTuple const & segment, Bodies const &... bodies) {
@@ -170,9 +292,9 @@ isl_stat find_min_point_val(isl_point * pnt, void * user);
 template <typename ...Kernels>
 std::vector<std::vector<int>> amount_to_shift_kernels(int numArgs, const std::vector<std::vector<SymAccess>> &accessLists) {
 
-  std::cout << "Finished collecting access information, performing shift calculations\n";
+  std::cerr << "Finished collecting access information, performing shift calculations\n";
 
-  std::cout << "Gathered access information for " << accessLists.size() << " kernels, each with " << numArgs << " dims\n";
+  std::cerr << "Gathered access information for " << accessLists.size() << " kernels, each with " << numArgs << " dims\n";
 
   auto numKernels = accessLists.size();
 
@@ -183,8 +305,8 @@ std::vector<std::vector<int>> amount_to_shift_kernels(int numArgs, const std::ve
   auto writeString = write_string(accessLists, loopDims); 
 
 
-  std::cout << "read string: "<< readString << "\n";
-  std::cout << "write string: " << writeString << "\n";
+  std::cerr << "read string: "<< readString << "\n";
+  std::cerr << "write string: " << writeString << "\n";
 
   isl_ctx* ctx = isl_ctx_alloc();
   isl_printer * p = isl_printer_to_file(ctx, stdout);
@@ -200,11 +322,11 @@ std::vector<std::vector<int>> amount_to_shift_kernels(int numArgs, const std::ve
   isl_union_map * war = isl_union_map_apply_range(isl_union_map_copy(reads), isl_union_map_copy(writes_inverse));
 
   
-  std::cout << "\nwaw\n";
+  std::cerr << "\nwaw\n";
   p = isl_printer_print_union_map(p,waw);
-  std::cout << "\nraw\n";
+  std::cerr << "\nraw\n";
   p = isl_printer_print_union_map(p,raw);
-  std::cout << "\nwar\n";
+  std::cerr << "\nwar\n";
   p = isl_printer_print_union_map(p,war);
 
 
@@ -212,7 +334,7 @@ std::vector<std::vector<int>> amount_to_shift_kernels(int numArgs, const std::ve
   isl_union_map * deps = isl_union_map_union(raw, waw);
   deps = isl_union_map_union(deps, war);
   
-  std::cout << "\nDependences\n";
+  std::cerr << "\nDependences\n";
   p = isl_printer_print_union_map(p,deps);
 
   std::string shiftSet = "[";
@@ -234,13 +356,13 @@ std::vector<std::vector<int>> amount_to_shift_kernels(int numArgs, const std::ve
     }
   }
   shiftSet += "]";
-  std::cout << "\nshift set" << shiftSet << "\n";
+  std::cerr << "\nshift set" << shiftSet << "\n";
  
   std::string allPossibleShiftsString = "{" + shiftSet + ":" + nonNegConstraint + "}";
-  std::cout << "\nnonneg shift set string: " << allPossibleShiftsString << "\n";
+  std::cerr << "\nnonneg shift set string: " << allPossibleShiftsString << "\n";
   isl_union_set * allPossibleShifts = isl_union_set_read_from_str(ctx, allPossibleShiftsString.c_str());
 
-  std::cout << "\nallPossibleShifts\n";
+  std::cerr << "\nallPossibleShifts\n";
 
   isl_set * constrainedShifts = isl_set_from_union_set(allPossibleShifts);
 
@@ -261,24 +383,24 @@ std::vector<std::vector<int>> amount_to_shift_kernels(int numArgs, const std::ve
       }
       srcLoop += "] }";
       dstLoop += "] }";
-      std::cout << "\nsource loop: " << srcLoop << "\n";
-      std::cout << "dest loop: " << dstLoop << "\n";
+      std::cerr << "\nsource loop: " << srcLoop << "\n";
+      std::cerr << "dest loop: " << dstLoop << "\n";
     
       isl_union_set * srcSet = isl_union_set_read_from_str(ctx, srcLoop.c_str());
       isl_union_set * dstSet = isl_union_set_read_from_str(ctx, dstLoop.c_str());
-      std::cout << "srcSet\n";
+      std::cerr << "srcSet\n";
       p= isl_printer_print_union_set(p,srcSet);
 
-      std::cout << "\ndstSet\n";
+      std::clog << "\ndstSet\n";
       p = isl_printer_print_union_set(p,dstSet);
       isl_union_set * depsFromSrc = isl_union_set_apply(srcSet, isl_union_map_copy(deps));
       
-      std::cout << "\ndepsFromSrc\n";
+      std::clog << "\ndepsFromSrc\n";
       p = isl_printer_print_union_set(p,depsFromSrc);
 
 
       isl_union_set * src2dstUnionSet = isl_union_set_intersect(isl_union_set_copy(depsFromSrc), dstSet);
-      std::cout << "\nsrc2dstUnionSet\n";
+      std::clog << "\nsrc2dstUnionSet\n";
       p= isl_printer_print_union_set(p, src2dstUnionSet);
  
       int * minOffset = new int;
@@ -296,7 +418,7 @@ std::vector<std::vector<int>> amount_to_shift_kernels(int numArgs, const std::ve
         std::string shift2 = "S" + std::to_string(j) + "_" + "0";
 
         std::string constraint = shift2 + " - " + shift1 + ">=" + std::to_string(-1 * *minOffset);
-        std::cout << "shift constraint: " << constraint << "\n";
+        std::clog << "shift constraint: " << constraint << "\n";
         std::string constraintSetString = "{" + shiftSet + ": " + constraint + "}";
         isl_set * constraintSet = isl_set_read_from_str(ctx, constraintSetString.c_str());
         constrainedShifts = isl_set_intersect(isl_set_copy(constrainedShifts), constraintSet); 
@@ -336,24 +458,6 @@ std::cout << "\n";
 
 
 
-template <int tileDimension, typename ExecPol, typename Container, typename... Bodies>
-auto tile_kernel(KernelW<KernelPolicy<ExecPol>,Container,Bodies...> & knl, int numTiles) {
-  
-  std::cout << "tiling kernel with " << knl.numArgs <<"on dimension" << tileDimension <<  "\n"; 
-  using TiledPol = RAJA::KernelPolicy<
-    RAJA::statement::For<knl.numArgs, RAJA::seq_exec,ExecPol>
-  >;
-  
-  auto indices = camp::make_idx_seq_t<knl.numArgs>();
-  auto newLambda = [=] (auto i, auto j, auto iTile) {
-    std::cout << "tiling lambda call: "<< i << " "<< j << " " << iTile << "\n";
-  };
-
-  //auto newTuple = RAJA::make_tuple(iSegment,jSegment,tileSegment);
-
-  return knl;
-  //return makeKernel<TiledPol>(newTuple, newLambda);
-}
 
 
 template <typename ExecPol, typename Container, typename...Bodies, typename... Kernels> 
@@ -378,6 +482,303 @@ auto overlapped_tile_kernels(KernelW<ExecPol,Container,Bodies...> knl, Kernels&&
 
 
 
+template <typename...Kernels, std::size_t ...Is>
+auto overlapped_tiling_2d_kernels_indexset(const std::tuple<Kernels...> & knls, const auto & overlapVectors, const auto tileDimensions, std::index_sequence<Is...>) {
+
+  auto knl0 = std::get<0>(knls);
+  auto iterSpaceTuple = knl0.segments;
+
+  auto iterSpaceI = camp::get<0>(iterSpaceTuple);
+  auto iterSpaceJ = camp::get<1>(iterSpaceTuple);
+ 
+  auto iLength = (*iterSpaceI.end()) - (*iterSpaceI.begin());
+  auto jLength = (*iterSpaceJ.end()) - (*iterSpaceJ.begin());
+
+  auto iBegin = *iterSpaceI.begin();
+  auto jBegin = *iterSpaceJ.begin();
+
+  auto iTileCount = iLength / std::get<0>(tileDimensions);
+  auto jTileCount = jLength / std::get<1>(tileDimensions);
+
+
+  auto lambdas = std::tuple(std::get<0>(std::get<Is>(knls).bodies)...);
+  /*
+  for iTile in 0 to iTileCount
+    iStart = iTileCount * iTileSize + iBegin
+    iEnd = iStart + iTileSize
+    for jTile in 0 to jTileCount
+      jStart = jTileCount * jTileSize + jBegin
+      jEnd = jStart + jTileSize
+      for i in iStart to iEnd
+         for j in jStart to jEnd
+           blah
+  */  
+  
+  RAJA::TypedIndexSet<RAJA::RangeSegment> iSet;
+  RAJA::TypedIndexSet<RAJA::RangeSegment> jSet;
+
+
+  for(int i = 0; i < iTileCount; i++) {
+    int iStart = i * std::get<0>(tileDimensions) + iBegin;
+    int iEnd = iStart + std::get<0>(tileDimensions);
+    std::cout << "Adding i index set: " << iStart << ", " << iEnd << "\n";
+    iSet.push_back(RAJA::RangeSegment(iStart,iEnd));
+  }
+
+  for(int j = 0; j < jTileCount; j++) {
+    int jStart = j * std::get<1>(tileDimensions) + jBegin;
+    int jEnd = jStart + std::get<1>(tileDimensions);
+    std::cout << "Adding j index set: " << jStart << ", " << jEnd << "\n";
+    jSet.push_back(RAJA::RangeSegment(jStart,jEnd));
+  }
+
+  using ISET_EXECPOL = RAJA::ExecPolicy<RAJA::seq_segit, RAJA::seq_exec>;
+  using JSET_EXECPOL = RAJA::ExecPolicy<RAJA::seq_segit, RAJA::seq_exec>;
+
+  using TILED_POL = RAJA::KernelPolicy<
+    RAJA::statement::For<0, ISET_EXECPOL,
+      RAJA::statement::For<1, JSET_EXECPOL,
+        RAJA::statement::Lambda<0>
+      >
+    >
+  >;
+
+  //RAJA::forall<ISET_EXECPOL>(iSet, [=] (auto i) {std::cout << "forall with juts one index set, i = " << i << "\n";});
+  std::cout << "Executing with index set\n";
+  //RAJA::kernel<TILED_POL>(RAJA::make_tuple(iSet,jSet), std::get<0>(lambdas));
+  
+  return 0;
+
+
+}
+
+
+
+/*
+ * Creates the overlapped tiling, fused kernel for a tuple of 2d kernels. 
+ * Does not yet handle the edges of the tile (not running overlapped when the tile is the edge tile)
+ * 
+ * Assumptions: 
+ *  (1) The kernels have the same iteration spaces
+ *  (2) The tile dimensions evenly split up the iteration space
+ */
+template <typename... Kernels, std::size_t ...Is>
+auto overlapped_tiling_2d_kernels(const std::tuple<Kernels...> & knls, const auto & overlapVectors, const auto tileDimensions, std::index_sequence<Is...>) {
+
+  auto knl0 = std::get<0>(knls);
+  auto iterSpaceTuple = knl0.segments;
+
+  auto iterSpaceI = camp::get<0>(iterSpaceTuple);
+  auto iterSpaceJ = camp::get<1>(iterSpaceTuple);
+ 
+  auto iLength = (*iterSpaceI.end()) - (*iterSpaceI.begin());
+  auto jLength = (*iterSpaceJ.end()) - (*iterSpaceJ.begin());
+
+  
+
+
+
+  std::cout << "Overlapped tiling for " << sizeof...(Kernels) << " 2 dimensional kernels\n";
+
+
+
+  std::cout << "Tile size: \n";
+  std::cout << "  i dimension: " << std::get<0>(tileDimensions) << "\n";
+  std::cout << "  j dimension: " << std::get<1>(tileDimensions) << "\n";
+ 
+  std::cout << "Iteration Space Dimensions:\n";
+  std::cout << "  i dimension: " << iLength << "\n";
+  std::cout << "  j dimension: " << jLength << "\n";
+
+
+  std::cout << "Creating overlap for first knl\n";
+  std::cout << "Amount of overlap for first knl:\n";
+  
+  auto overlap0 = std::get<0>(overlapVectors);
+  auto overlap0i = std::get<0>(overlap0);
+  auto overlap0j = std::get<1>(overlap0);
+
+  std::cout << "i,j small square size: " << std::get<0>(overlap0) << "," << std::get<1>(overlap0) << "\n";
+  std::cout << "i side rectangle: " << std::get<0>(tileDimensions)<< "," << overlap0j << "\n";
+  std::cout << "j side rectangle: " << overlap0i << "," << std::get<1>(tileDimensions) << "\n";
+
+  
+  auto overlap0_rect1_low_i = 0 - std::get<0>(overlap0);  
+  auto overlap0_rect1_low_j = 0 - std::get<1>(overlap0);
+
+  auto overlap0_rect1_high_i = 0;
+  auto overlap0_rect1_high_j = std::get<1>(tileDimensions);
+
+  std::cout << "First Kernel's Overlap rectangle 1 bounds: " << overlap0_rect1_low_i << "," << overlap0_rect1_low_j << " to " << overlap0_rect1_high_i << "," << overlap0_rect1_high_j << "\n";
+  
+  auto overlap0_rect2_low_i = 0;
+  auto overlap0_rect2_low_j = 0 - std::get<1>(overlap0);
+
+  auto overlap0_rect2_high_i = std::get<0>(tileDimensions);
+  auto overlap0_rect2_high_j = 0;
+
+
+  std::cout << "First Kernel's Overlap rectangle 2 bounds: " << overlap0_rect2_low_i << "," << overlap0_rect2_low_j << " to " << overlap0_rect2_high_i << "," << overlap0_rect2_high_j << "\n";
+
+  auto overlap0SegmentTuple0 = RAJA::make_tuple(
+    RAJA::RangeSegment(overlap0_rect1_low_i, overlap0_rect1_high_i),
+    RAJA::RangeSegment(overlap0_rect1_low_j, overlap0_rect1_high_j));
+
+  auto overlap0SegmentTuple1 = RAJA::make_tuple(
+    RAJA::RangeSegment(overlap0_rect2_low_i, overlap0_rect2_high_i),
+    RAJA::RangeSegment(overlap0_rect2_low_j, overlap0_rect2_high_j));
+    
+
+  auto knl1 =  std::get<0>(knls);
+  auto overlap_knl1 = [=](auto i, auto j, auto iTile, auto jTile) {
+    std::get<0>(knl1.bodies)(iTile*std::get<0>(tileDimensions) + i,jTile * std::get<1>(tileDimensions) + j);
+  };
+
+  auto overlap_knls = std::tuple([=](auto i, auto j, auto iTile, auto jTile) {
+    std::get<0>(std::get<Is>(knls).bodies) (iTile * std::get<0>(tileDimensions) + i, jTile * std::get<1>(tileDimensions) + j);
+  }...);
+
+  int numTiles_i = 5;
+  int numTiles_j = 5;
+ 
+  using OVERLAP1POLICY = RAJA::KernelPolicy<
+    RAJA::statement::For<0, RAJA::seq_exec,
+      RAJA::statement::For<1, RAJA::seq_exec,
+        RAJA::statement::For<2, RAJA::seq_exec,
+          RAJA::statement::For<3, RAJA::seq_exec,
+            RAJA::statement::Lambda<0, RAJA::statement::Segs<2,3,0,1>>
+          >
+        >,
+        RAJA::statement::For<4, RAJA::seq_exec,
+          RAJA::statement::For<5, RAJA::seq_exec,
+            RAJA::statement::Lambda<0, RAJA::statement::Segs<4,5,0,1>>
+          >
+        >
+      >
+    >
+  >;
+  /*
+  std::cout << "Executing overlap for knl1\n";
+  RAJA::kernel<OVERLAP1POLICY>(
+    RAJA::make_tuple(
+      RAJA::RangeSegment(0,numTiles_i),
+      RAJA::RangeSegment(0,numTiles_j),
+      RAJA::RangeSegment(overlap0_rect1_low_i, overlap0_rect1_high_i),
+      RAJA::RangeSegment(overlap0_rect1_low_j, overlap0_rect1_high_j),
+      RAJA::RangeSegment(overlap0_rect2_low_i, overlap0_rect2_high_i),
+      RAJA::RangeSegment(overlap0_rect2_low_j, overlap0_rect2_high_j)),
+    overlap_knl1);
+  
+*/
+
+  
+
+
+
+  auto overlaps_i = std::tuple(std::get<0>(std::get<Is>(overlapVectors))...);
+  auto overlaps_j = std::tuple(std::get<1>(std::get<Is>(overlapVectors))...);
+  
+  auto overlaps_rect1_low_i = std::tuple((0 - std::get<Is>(overlaps_i))...);
+  auto overlaps_rect1_low_j = std::tuple((0 - std::get<Is>(overlaps_j))...);
+
+  auto overlaps_rect1_high_i = std::tuple((0 * std::get<Is>(overlaps_i))...); // need a tuple of zeros
+  auto overlaps_rect1_high_j = std::tuple((std::get<1>(tileDimensions) + std::get<Is>(overlaps_j) - std::get<Is>(overlaps_j))...); // need a tuple of std::get<1>(tileDimensions)
+
+  
+
+  auto overlaps_rect2_low_i = std::tuple((0 * std::get<Is>(overlaps_i))...); // need a tuple of zeros
+  auto overlaps_rect2_low_j = std::tuple((0 - std::get<Is>(overlaps_j))...);
+  
+  auto overlaps_rect2_high_i = std::tuple((std::get<0>(tileDimensions) + std::get<Is>(overlaps_i) - std::get<Is>(overlaps_i))...);
+
+ 
+  auto overlaps_rect2_high_j = std::tuple((0 * std::get<Is>(overlaps_j))...); // need a tuple of zeros
+
+
+  auto rect1_ibounds = std::tuple(RAJA::RangeSegment(std::get<Is>(overlaps_rect1_low_i), std::get<Is>(overlaps_rect1_high_i))...);
+  auto rect1_jbounds = std::tuple(RAJA::RangeSegment(std::get<Is>(overlaps_rect1_low_j), std::get<Is>(overlaps_rect1_high_j))...);
+
+  auto rect1_bounds = std::tuple(std::tuple(std::get<Is>(rect1_ibounds), std::get<Is>(rect1_jbounds))...);
+
+  auto rect1_segments = RAJA::make_tuple(
+    RAJA::RangeSegment(0,numTiles_i),
+    RAJA::RangeSegment(0,numTiles_j),
+    std::get<0>(std::get<Is>(rect1_bounds))...,
+    std::get<1>(std::get<Is>(rect1_bounds))...);
+
+  using RECT1POLICY = RAJA::KernelPolicy<
+    RAJA::statement::For<0, RAJA::seq_exec,
+      RAJA::statement::For<1, RAJA::seq_exec,
+        RAJA::statement::For<2+Is, RAJA::seq_exec,
+          RAJA::statement::For<2+sizeof...(Kernels)+Is, RAJA::seq_exec,
+            RAJA::statement::Lambda<Is, RAJA::statement::Segs<2+Is,2+sizeof...(Kernels)+Is,0,1>>
+          >
+        >...
+      >
+    >
+  >;
+       
+  
+  auto rect2_ibounds = std::tuple(RAJA::RangeSegment(std::get<Is>(overlaps_rect2_low_i), std::get<Is>(overlaps_rect2_high_i))...);
+
+  auto rect2_jbounds = std::tuple(RAJA::RangeSegment(std::get<Is>(overlaps_rect2_low_j), std::get<Is>(overlaps_rect2_high_j))...);
+
+  auto rect2_segments = RAJA::make_tuple(
+    RAJA::RangeSegment(0,numTiles_i),
+    RAJA::RangeSegment(0,numTiles_j),
+    std::get<Is>(rect2_ibounds)...,
+    std::get<Is>(rect2_jbounds)...);
+
+  using RECT2POLICY = RAJA::KernelPolicy<
+    RAJA::statement::For<0, RAJA::seq_exec,
+      RAJA::statement::For<1, RAJA::seq_exec,
+        RAJA::statement::For<2+Is, RAJA::seq_exec,
+          RAJA::statement::For<2+sizeof...(Kernels)+Is, RAJA::seq_exec,
+            RAJA::statement::Lambda<Is, RAJA::statement::Segs<2+Is,2+sizeof...(Kernels)+Is,0,1>>
+          >
+        >...
+      >
+    >
+  >;
+
+
+  auto overlapping_tile_segments = RAJA::make_tuple(
+    RAJA::RangeSegment(0,numTiles_i),
+    RAJA::RangeSegment(0,numTiles_j),
+    std::get<Is>(rect1_ibounds)...,
+    std::get<Is>(rect1_jbounds)...,
+    std::get<Is>(rect2_ibounds)...,
+    std::get<Is>(rect2_jbounds)...,
+    RAJA::RangeSegment(0,std::get<0>(tileDimensions)),
+    RAJA::RangeSegment(0,std::get<1>(tileDimensions)));
+
+  using OVERLAPPINGTILEPOLICY = RAJA::KernelPolicy<
+    RAJA::statement::For<0, RAJA::seq_exec,
+      RAJA::statement::For<1, RAJA::seq_exec,
+        RAJA::statement::For<2+Is, RAJA::seq_exec,
+          RAJA::statement::For<2+sizeof...(Kernels)+Is, RAJA::seq_exec,
+            RAJA::statement::Lambda<Is, RAJA::statement::Segs<2+Is,2+sizeof...(Kernels)+Is,0,1>>
+          >
+        >..., //overlap rectangle 1
+        RAJA::statement::For<2+ 2 * sizeof...(Kernels)+Is, RAJA::seq_exec,
+          RAJA::statement::For<2+3*sizeof...(Kernels)+Is, RAJA::seq_exec,
+            RAJA::statement::Lambda<Is, RAJA::statement::Segs<2+2*sizeof...(Kernels)+Is,2+3*sizeof...(Kernels)+Is,0,1>>
+          >
+        >..., //overlap rectangle 2
+        RAJA::statement::For<2+4*sizeof...(Kernels) + 0, RAJA::seq_exec,
+          RAJA::statement::For<2+4*sizeof...(Kernels) + 1, RAJA::seq_exec,
+            RAJA::statement::Lambda<Is, RAJA::statement::Segs<2+4*sizeof...(Kernels) + 0, 2+4*sizeof...(Kernels) + 1,0,1>>... // lambdas for tile
+          >
+        >
+      > // jTile
+    > // iTile
+  >;
+
+  auto overlappedKnl = RAJA::makeKernel<OVERLAPPINGTILEPOLICY>(overlapping_tile_segments, std::get<Is>(overlap_knls)...); 
+  
+  return overlappedKnl;
+}//overlapped_tiling_2d_kernels
+
 
 template <typename... Kernels, std::size_t ...Is, typename... ints> 
 auto overlapped_tiling_1d_kernels(const std::tuple<Kernels...> & knlTuple, const std::tuple<ints...> overlapAmounts, const int tileSize, std::index_sequence<Is...>) {
@@ -400,7 +801,7 @@ auto overlapped_tiling_1d_kernels(const std::tuple<Kernels...> & knlTuple, const
   auto tileSegment = RAJA::RangeSegment(0, numTiles);
  
 
-
+  auto overlappedSegments = std::tuple(RAJA::RangeSegment(std::get<Is>(overlapAmounts) * -1, 0)...);
   
   auto tiledSegment = RAJA::RangeSegment(0,tileSize);
 
@@ -408,8 +809,8 @@ auto overlapped_tiling_1d_kernels(const std::tuple<Kernels...> & knlTuple, const
     RAJA::statement::For<0, RAJA::seq_exec, //tile loop
       RAJA::statement::For<Is+1, RAJA::seq_exec, //overlap1 loop
         RAJA::statement::Lambda<Is, RAJA::statement::Segs<Is+1,0>>>...,
-      RAJA::statement::For<4, RAJA::seq_exec, // tiled loop part
-        RAJA::statement::Lambda<Is+sizeof...(Kernels), RAJA::statement::Segs<4,0>>...
+      RAJA::statement::For<sizeof...(Kernels)+1, RAJA::seq_exec, // tiled loop part
+        RAJA::statement::Lambda<Is+sizeof...(Kernels), RAJA::statement::Segs<sizeof...(Kernels)+1,0>>...
       >
     >
   >;
@@ -417,32 +818,166 @@ auto overlapped_tiling_1d_kernels(const std::tuple<Kernels...> & knlTuple, const
   auto totalTuple = RAJA::make_tuple(tileSegment,std::get<Is>(overlappedSegments)..., tiledSegment);
 
   auto tiledKnl = RAJA::makeKernel<OVERLAPPEDPOL>(totalTuple, std::get<Is>(overlapLambdas)...,std::get<Is>(overlapLambdas)...);
- 
+
+  std::cout << "Executing tiled kernel\n";
+  tiledKnl();
+  std::cout << "Returning tiled kernel\n"; 
   return tiledKnl; 
-}
+} //overlapped_tiling_1d_kernels
 
 
 
+template <typename...KernelTemplate, std::size_t... indices>
+auto shift_and_fuse_kernels(std::tuple<KernelTemplate...> knlTuple, std::index_sequence<indices...>) {
 
+  auto amountToShift = amount_to_shift_kernels(std::get<indices>(knlTuple)...);
 
-template <typename ...Kernels> 
-auto overlapped_tiling_lambda_nofirst(Kernels&&... knls) {
-
-  int numTiles = 4;
   
-  int upperBound = 16;
+  
+  return knlTuple;
+}
 
 
-  auto otl = [=] (auto t, auto i) {
-    auto new_i = t * upperBound / numTiles + i;
-  };
+
+
+template <typename...KernelTemplate, typename...Args> 
+auto chain_kernels(KernelW<KernelTemplate...> knl, Args&&... args) {
+
+  auto tuple = std::tuple(knl);
+
+  return chain_kernels(tuple, std::forward<Args>(args)...);
+
+}
+
+
+template <typename... TupleTemplate, typename...KernelTemplate> 
+auto chain_kernels(std::tuple<TupleTemplate...> tuple, KernelW<KernelTemplate...> knl) {
+
+  std::cout << "chain_kernel case with no user provided directives.\n";
+
+  std::cout << "TODO: Applying Default Trasnformation\n";
+
+  static auto knlTuple = std::tuple(knl);
+ 
+  static auto newTuple = std::tuple_cat(tuple, knlTuple);
+
+  return newTuple; 
+
+} 
+template <typename... TupleTemplate, typename...KernelTemplate, typename...Args> 
+auto chain_kernels(std::tuple<TupleTemplate...> tuple, KernelW<KernelTemplate...> knl, Args&&...args) {
+
+  static auto knlTuple = std::tuple(knl);
+ 
+  static auto newTuple = std::tuple_cat(tuple, knlTuple);
+
+  return chain_kernels(newTuple, std::forward<Args>(args)...);
+
+} 
+
+template <std::size_t... LoopNums>
+int is_in_sequence(std::size_t value) {
+
+  std::vector<int> equalVector = std::vector<int>{(value == LoopNums)...};
+
+  for(auto val : equalVector) {
+    if(val){return 1;}
+  }
+  
+  return 0;
+
+
+}
+
+//courtesy of https://stackoverflow.com/questions/53223910/how-to-access-n-th-value-of-an-integer-sequence
+template<class T, T... Ints>
+constexpr T get(std::integer_sequence<T, Ints...>, std::size_t i) {
+    constexpr T arr[] = {Ints...};
+    return arr[i];
+}
+
+
+template <std::size_t startNum, std::size_t... Length>
+auto add_to_sequence(std::index_sequence<Length...>) {
+  std::cout << "making preloop sequence. start num, number of numbers: " << startNum << "," << sizeof...(Length) << "\n";
+
+  
+  return std::index_sequence<(startNum + Length)...>{};
+
 
 
 
 }
 
 
+template <typename... TupleTemplate, std::size_t... indices>
+auto tuple_slice(std::tuple<TupleTemplate...> knlTuple, std::index_sequence<indices...>) {
 
+  auto newTuple = std::make_tuple(std::get<indices>(knlTuple)...);
+
+  return newTuple;
+
+
+}
+
+template <typename... TupleTemplate, std::size_t... LoopNums>
+auto chain_kernels(std::tuple<TupleTemplate...> knlTuple, Fuse<LoopNums...> fuseDirective) {
+ 
+  
+  std::cout << "Applying Fuse Transformation\n";
+
+  std::cout << "Loop nums: ";
+  ((std::cout << LoopNums << ", "), ...);
+  std::cout << "\n";
+
+
+  std::cout << "There are " << sizeof...(TupleTemplate) << " loops\n"; 
+  std::cout << "Fusing " << sizeof...(LoopNums) << " of the loops\n";
+  auto fuseNums = std::make_tuple(LoopNums...);
+
+  constexpr auto firstNum = get(std::index_sequence<LoopNums...>(), 0);
+  
+  constexpr auto lastNum = get(std::index_sequence<LoopNums...>(), sizeof...(LoopNums) - 1);
+
+  constexpr auto numPreLoop = firstNum;
+
+  constexpr auto numPostLoop = sizeof...(TupleTemplate) - lastNum - 1;
+
+  auto preFuseSequence = add_to_sequence<0>(std::make_index_sequence<numPreLoop>());
+  auto postFuseSequence = add_to_sequence<lastNum+1>(std::make_index_sequence<numPostLoop>());
+  std::cout << "firstNUm: " << firstNum << "\n";
+  std::cout << "lastNum: " << lastNum << "\n";
+
+
+  auto preFuseLoops = tuple_slice(knlTuple, preFuseSequence);
+  auto postFuseLoops = tuple_slice(knlTuple, postFuseSequence);
+  auto fuseLoops = std::make_tuple(std::get<LoopNums>(knlTuple)...);
+  auto fusedLoops = shift_and_fuse_kernels(fuseLoops, std::make_index_sequence<sizeof...(LoopNums)>());
+
+//  auto preFuseNums = 
+  //auto postFuseNums 
+  
+  return 0;//return chain_kernels(knlTuple);
+}
+
+
+/*
+template <typename... TupleTemplate, std::size_t... LoopNums>
+auto chain_kernels(std::tuple<TupleTemplate...> knlTuple, OverlappedTile<LoopNums...> fuseDirective) {
+  std::cout << "Applying Overlapped Tiling Transformation\n";
+ 
+  
+
+   
+  return chain_kernels(knlTuple);
+} 
+*/
+template <typename... TupleTemplate>
+auto chain_kernels(std::tuple<TupleTemplate...> knlTuple) {
+  std::cout << "Done applying transformations\n";
+
+  return knlTuple;
+} 
 
 
 //MARK: Default chain codes

@@ -139,11 +139,24 @@ struct LoopData {
   const BodiesTuple bodies;
   offset_tuple_t offset_tuple;
 
+  std::vector<int> overlaps;
+  
+  RAJA_INLINE
+  LoopData(std::vector<int> const& overlapAmounts, SegmentTuple const &s, ParamTuple const &p, Bodies const &... b)
+     : segment_tuple(s), param_tuple(p), bodies(b...), overlaps(overlapAmounts)
+  {
+    assign_begin_all();
+  }
+
+
+
+
   RAJA_INLINE
   LoopData(SegmentTuple const &s, ParamTuple const &p, Bodies const &... b)
       : segment_tuple(s), param_tuple(p), bodies(b...)
   {
     assign_begin_all();
+    overlaps = std::vector<int>();
   }
 
   template <typename PolicyType0,

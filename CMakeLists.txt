@@ -4,38 +4,16 @@
 #
 # SPDX-License-Identifier: (BSD-3-Clause)
 ###############################################################################
-cmake_policy(SET CMP0025 NEW)
+set  (CMAKE_CXX_STANDARD 17)
+
+
 cmake_policy(SET CMP0042 NEW)
 cmake_policy(SET CMP0048 NEW)
-if(APPLE)
-set(CMAKE_C_COMPILER "/usr/local/Cellar/llvm/9.0.1/bin/clang")
-set(CMAKE_CXX_COMPILER "/usr/local/Cellar/llvm/9.0.1/bin/clang++")
-set(OPENMP_LIBRARIES "/usr/local/Cellar/llvm/9.0.1/lib")
-set(OPENMP_INCLUDES "/usr/local/Cellar/llvm/9.0.1/include")
 
-OPTION (USE_OpenMP "Use OpenMP to enamble <omp.h>" ON)
+if (APPLE)
+ cmake_policy(SET CMP0025 NEW)
 endif()
-# Find OpenMP
-if(APPLE AND USE_OpenMP)
-    if(CMAKE_C_COMPILER_ID MATCHES "Clang")
-        set(OpenMP_C "${CMAKE_C_COMPILER}")
-        set(OpenMP_C_FLAGS "-fopenmp=libomp -L/usr/local/opt/libomp/lib")
-        set(OpenMP_C_LIB_NAMES "libomp" "libgomp" "libiomp5")
-        set(OpenMP_libomp_LIBRARY ${OpenMP_C_LIB_NAMES})
-        set(OpenMP_libgomp_LIBRARY ${OpenMP_C_LIB_NAMES})
-        set(OpenMP_libiomp5_LIBRARY ${OpenMP_C_LIB_NAMES})
-    endif()
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(OpenMP_CXX "${CMAKE_CXX_COMPILER}")
-        set(OpenMP_CXX_FLAGS "-L/usr/local/opt/libomp/lib -fopenmp=libomp")
-        set(OpenMP_CXX_LIB_NAMES "libomp" "libgomp" "libiomp5")
-        set(OpenMP_libomp_LIBRARY ${OpenMP_CXX_LIB_NAMES})
-        set(OpenMP_libgomp_LIBRARY ${OpenMP_CXX_LIB_NAMES})
-        set(OpenMP_libiomp5_LIBRARY ${OpenMP_CXX_LIB_NAMES})
-    endif()
-endif()
-
-# Set version number
+set  (CMAKE_CXX_STANDARD 17)
 set(RAJA_VERSION_MAJOR 0)
 set(RAJA_VERSION_MINOR 11)
 set(RAJA_VERSION_PATCHLEVEL 0)
@@ -129,9 +107,11 @@ if(RAJA_CXX_STANDARD_FLAG MATCHES default)
     #TODO set BLT_CXX_STANDARD
     set(CMAKE_CXX_STANDARD 17)
   elseif("cxx_std_14" IN_LIST CMAKE_CXX_KNOWN_FEATURES)
-    set(CMAKE_CXX_STANDARD 14)
+    message("setting to 17")
+    set(CMAKE_CXX_STANDARD 17)
   elseif("${CMAKE_CXX_COMPILER_ID}" IN_LIST COMPILERS_KNOWN_TO_CMAKE33)
-    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD 17)
+    message("setting to 17")
   else() #cmake has no idea what to do, do it ourselves...
     foreach(flag_var "-std=c++17" "-std=c++1z" "-std=c++14" "-std=c++1y" "-std=c++11")
       CHECK_CXX_COMPILER_FLAG(${flag_var} COMPILER_SUPPORTS_${flag_var})
@@ -276,7 +256,7 @@ endif (EXTERNAL_CAMP_SOURCE_DIR)
 blt_add_library(
   NAME RAJA
   SOURCES ${raja_sources}
-  DEPENDS_ON ${raja_depends} camp)
+  DEPENDS_ON ${raja_depends} camp isl)
 
 install(TARGETS RAJA
   EXPORT RAJA
@@ -333,4 +313,3 @@ if (ENABLE_BENCHMARKS)
   add_subdirectory(benchmark)
 endif ()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L/usr/local/opt/libomp/lib")

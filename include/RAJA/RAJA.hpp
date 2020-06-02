@@ -35,7 +35,6 @@
 #include "RAJA/util/types.hpp"
 #include "RAJA/util/plugins.hpp"
 #include "RAJA/util/Registry.hpp"
-#include "RAJA/util/LoopChain.hpp"
 
 
 
@@ -45,7 +44,7 @@
 //
 #include "RAJA/pattern/forall.hpp"
 #include "RAJA/pattern/kernel.hpp"
-
+#include "RAJA/pattern/kernel/OverlappedTile.hpp"
 
 //
 // All platforms must support sequential execution.
@@ -152,5 +151,9 @@
 #include "RAJA/index/IndexSetUtils.hpp"
 
 #include "RAJA/pattern/scan.hpp"
+
+
+
+#include "RAJA/util/LoopChain.hpp"
 
 #endif  // closing endif for header file include guard

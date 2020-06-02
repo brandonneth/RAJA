@@ -16,6 +16,7 @@
 #include <vector>
 #include <memory>
 
+
 namespace RAJA
 {
 struct SymAccess;
@@ -281,7 +282,7 @@ struct SymAccessList {
         return arith_assign();
     }
 };
-
+/*
 template <typename PolicyType, typename SegmentTuple, typename... Bodies> 
 struct KernelW {
   
@@ -362,7 +363,7 @@ auto fuse_kernels(
 
   return newKernel;
 }
-
+*/
 /*
  *
  *
@@ -450,9 +451,6 @@ auto fuse_unequal_bounds(RAJA::ForAll<ExecPolicy,Container,Func1> forall1, RAJA:
 }
 
 
-struct Default{};
-template <auto> struct Fuse {};
-template <auto> struct Shift {};
 
 
 
@@ -636,8 +634,8 @@ std::vector<int> amount_to_shift_foralls(const std::vector<std::vector<SymAccess
   deps = isl_union_map_union(deps, war);
 
   std::vector<std::vector<int>> depOffsetLists = std::vector<std::vector<int>>();
-  for(int i = 0; i < numKernels; i++) {
-    for(int j = i+1; j < numKernels; j++) {
+  for(long unsigned int i = 0; i < numKernels; i++) {
+    for(long unsigned int j = i+1; j < numKernels; j++) {
       std::string srcLoop = "{L" + std::to_string(i) + "[0]}";
       std::string dstLoop = "{L" + std::to_string(j) + "[n]}";
  
@@ -671,7 +669,7 @@ std::vector<int> amount_to_shift_foralls(const std::vector<std::vector<SymAccess
 
   std::string objFncDmn = "";
   std::string objFncRng = "";
-  for(int i = 0; i < numKernels; i++) {
+  for(long unsigned int i = 0; i < numKernels; i++) {
     objFncDmn += "S" + std::to_string(i);
     objFncRng += "S" + std::to_string(i);// + "*S" + std::to_string(i);
     if(i != numKernels-1) {
@@ -683,7 +681,7 @@ std::vector<int> amount_to_shift_foralls(const std::vector<std::vector<SymAccess
   
   std::cout << "\nobjective function string: " << objFncStr << "\n";
 
-  isl_aff * objFnc = isl_aff_read_from_str(ctx, objFncStr.c_str());
+  //isl_aff * objFnc = isl_aff_read_from_str(ctx, objFncStr.c_str());
   
   std::string startingSetStr = "{ [" + objFncDmn + "] }";
   
@@ -787,7 +785,7 @@ void apply_shifts_fuse_exec_foralls(const std::vector<int> & shiftAmounts, ForAl
 }
 
 template < typename...Rest>
-void apply_shifts_fuse_exec_foralls(const std::vector<int> & shiftAmounts, int seperator, Rest&&... rest) {
+void apply_shifts_fuse_exec_foralls(const std::vector<int> &, int seperator, Rest&&... rest) {
   
   std::cout << "finished applying shifts, determining fusion overlap\n";
 
@@ -997,8 +995,8 @@ std::vector<int> amount_to_shift_no_nesting(ForAll<ExecPol,Container,Func1> fora
   isl_ctx* ctx = isl_ctx_alloc();
   isl_printer * p = isl_printer_to_file(ctx, stdout);
 
-  const char * domainString = "[l0,u0] -> { L1[i] : i < u0 and i >= l0; L2[i] : i < u0 and i >= l0;}";
-  isl_union_set * domain = isl_union_set_read_from_str(ctx,domainString);
+  //const char * domainString = "[l0,u0] -> { L1[i] : i < u0 and i >= l0; L2[i] : i < u0 and i >= l0;}";
+  //isl_union_set * domain = isl_union_set_read_from_str(ctx,domainString);
 
   
   isl_union_map * reads = isl_union_map_read_from_str(ctx, readString.c_str());
@@ -1084,4 +1082,5 @@ std::vector<int> amount_to_shift_no_nesting(ForAll<ExecPol,Container,Func1> fora
 } //amount_to_shift_no_nesting
 } //namespace RAJA
 
+#include "RAJA/util/LoopChainKernel.hpp"
 #endif

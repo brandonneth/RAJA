@@ -14,7 +14,7 @@ namespace RAJA
 
 
 
-template <typename ExecPol, typename SegmentTuple, typename... Bodies>
+template <typename KernelPol, typename SegmentTuple, typename... Bodies>
 struct KernelWrapper {
 
   const SegmentTuple &segments;
@@ -100,13 +100,30 @@ struct KernelWrapper {
     }
     */
 
-    RAJA::kernel<ExecPol>(segments, camp::get<Is>(bodies)...);
+    RAJA::kernel<KernelPol>(segments, camp::get<Is>(bodies)...);
   }
 
   void operator() () {
     auto seq = camp::index_sequence_for<Bodies...>{};
     execute(seq);
   }
+}; // KernelWrapper
+
+template <typename KernelPol, typename SegmentTuple, typename... Bodies>
+KernelWrapper<KernelPol, SegmentTuple, Bodies...> 
+Kernel(const SegmentTuple & segment, const Bodies &... bodies) {
+  return KernelWrapper<KernelPol,SegmentTuple,Bodies...>(segment, bodies...);
+}
+
+
+template <typename ExecPol, typename Segment, typename Body> 
+KernelWrapper<statement::For<0, ExecPol, statement::Lambda<0>>, Segment, Body> 
+ForAll(const Segment & segment, const Body & body) {
+  using KernelPolicy = 
+    statement::For<0,ExecPol,
+       statement::Lambda<0>
+    >;         
+  return KernelWrapper<KernelPolicy,Segment,Body>(make_tuple(segment), body);
 }
 
 

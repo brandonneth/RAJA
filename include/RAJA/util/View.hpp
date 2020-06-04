@@ -26,9 +26,8 @@
 #include "RAJA/util/Layout.hpp"
 #include "RAJA/util/OffsetLayout.hpp"
 
+#include "RAJA/loopchain/SymExec.hpp"
 
-
-#include "RAJA/util/LoopChain.hpp"
 
 namespace RAJA
 {
@@ -120,8 +119,6 @@ struct View {
   template <typename... Args>
   void sym_eval(std::vector<SymIter>& allIters, SymIter sym_iter, Args... args) const
   {
-     //std::cout << "sym_eval(" << sym_iter.name << " , " <<sizeof...(args) << "args)\n";
-
      allIters.push_back(sym_iter);
      sym_eval(allIters, args...);
   }
@@ -129,31 +126,20 @@ struct View {
   template <typename... Args>
   void sym_eval(std::vector<SymIter>& allIters, int sym_int, Args... args) const {
     SymIter result = SymIter("0") + sym_int;
-
-    //std::cout << "sym_eval(" << result.name << " , " << sizeof...(args) << "args)\n";
     allIters.push_back(result);
     sym_eval(allIters, args...);
-
   }
 
+
+
   template <typename... Args>
-  SymAccessList operator () (SymIter sym_iter, Args... args) const
+  SymAccessList operator () (SymIterator symIter, Args... args) const
   {
-    std::vector<SymIter> allIters;
+    std::vector<SymIterators> allIters;
 
     sym_eval(allIters, sym_iter, args...);
-
-
     SymAccess thisAccess = SymAccess(data, allIters);
-
-
-
     SymAccessList l = SymAccessList(thisAccess);
-
-
-
-
-    //std::cout << "Done with View()(SymIter)\n";
     return l ;
   }
 

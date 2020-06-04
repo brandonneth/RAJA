@@ -5,10 +5,6 @@
 
 #include "RAJA/config.hpp"
 
-#include "RAJA/util/camp_aliases.hpp"
-#include "RAJA/pattern/kernel.hpp"
-#include "RAJA/pattern/forall.hpp"
-
 #include <string>
 #include <iostream>
 #include <sstream>

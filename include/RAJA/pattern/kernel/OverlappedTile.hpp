@@ -209,14 +209,17 @@ struct StatementExecutor<
   template <typename Data>
   static RAJA_INLINE void exec(Data &data)
   {
+    std::cout << "Executing statement executor for overlappedtile\n";
     // Get the segment we are going to tile
     auto const &segment = camp::get<ArgumentId>(data.segment_tuple);
 
     // Get the tiling policies chunk size
     auto chunk_size = TPol::chunk_size;
     
+    auto tileSizes = data.tileSizes;
     auto overlapAmounts = data.overlaps;
     int overlapAmount;
+    int tileSize;
     if(overlapAmounts.size() > ArgumentId) {
 
       std::cout << "overlap amount: " << overlapAmounts.at(ArgumentId) << "\n";
@@ -224,9 +227,16 @@ struct StatementExecutor<
     } else {
       overlapAmount = 0;
     }
+
+    if (tileSizes.size() > ArgumentId) {
+      std::cout << "tileSize: " << tileSizes.at(ArgumentId) << "\n";
+      tileSize = tileSizes.at(ArgumentId);
+    } else {
+      tileSize = chunk_size;
+    }
     // Create a tile iterator, needs to survive until the forall is
     // done executing.
-    IterableOverlappedTiler<decltype(segment)> tiled_iterable(segment, chunk_size, overlapAmount);
+    IterableOverlappedTiler<decltype(segment)> tiled_iterable(segment, tileSize, overlapAmount);
 
     // Wrap in case forall_impl needs to thread_privatize
     OverlappedTileWrapper<ArgumentId, Data,

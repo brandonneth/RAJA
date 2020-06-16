@@ -34,7 +34,7 @@
 
 #include <iterator>
 #include <type_traits>
-
+#include <vector>
 namespace RAJA
 {
 namespace internal
@@ -137,13 +137,14 @@ struct LoopData {
 
   using BodiesTuple = camp::tuple<Bodies...>;
   const BodiesTuple bodies;
+  
   offset_tuple_t offset_tuple;
 
-  std::vector<int> overlaps;
-  
+  std::vector<camp::idx_t> overlaps;
+  std::vector<camp::idx_t> tileSizes;
   RAJA_INLINE
-  LoopData(std::vector<int> const& overlapAmounts, SegmentTuple const &s, ParamTuple const &p, Bodies const &... b)
-     : segment_tuple(s), param_tuple(p), bodies(b...), overlaps(overlapAmounts)
+  LoopData(std::vector<camp::idx_t> const& overlapAmounts, std::vector<camp::idx_t> const& _tileSizes, SegmentTuple const &s, ParamTuple const &p, Bodies const &... b)
+     : segment_tuple(s), param_tuple(p), bodies(b...), overlaps(overlapAmounts), tileSizes(_tileSizes)
   {
     assign_begin_all();
   }
@@ -156,7 +157,8 @@ struct LoopData {
       : segment_tuple(s), param_tuple(p), bodies(b...)
   {
     assign_begin_all();
-    overlaps = std::vector<int>();
+    overlaps = std::vector<camp::idx_t>();
+    tileSizes = std::vector<camp::idx_t>();
   }
 
   template <typename PolicyType0,
@@ -322,7 +324,6 @@ struct StatementListExecutor {
   template <typename Data>
   static RAJA_INLINE void exec(Data &&data)
   {
-
     // Get the statement we're going to execute
     using statement = camp::at_v<StmtList, statement_index>;
 

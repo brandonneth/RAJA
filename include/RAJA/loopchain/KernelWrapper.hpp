@@ -1,11 +1,11 @@
-// Contains code for the kernel wrapper objects and the functions that create them.
+
 
 #ifndef RAJA_KernelWrapper_HPP
 #define RAJA_KernelWrapper_HPP
 
 #include "RAJA/config.hpp"
 #include "RAJA/loopchain/SymExec.hpp"
-
+#include "RAJA/pattern/kernel.hpp"
 
 #include <vector>
 #include <string>
@@ -17,19 +17,22 @@ namespace RAJA
 template <typename KernelPol, typename SegmentTuple, typename... Bodies>
 struct KernelWrapper {
 
-  const SegmentTuple &segments;
-  camp::tuple<Bodies...> bodies;
-  
+  const SegmentTuple segments;
+  const camp::tuple<Bodies...> bodies;
+ 
+  std::vector<camp::idx_t> overlapAmounts;
+  std::vector<camp::idx_t> tileSizes;
   static constexpr int numArgs = camp::tuple_size<SegmentTuple>::value;
 
-  KernelWrapper(SegmentTuple const & _segments, Bodies const &... _bodies) : 
+  KernelWrapper(SegmentTuple  _segments, const Bodies&... _bodies) : 
     segments(_segments), bodies(_bodies...) {
-     
+     overlapAmounts = std::vector<camp::idx_t>();
+     tileSizes = std::vector<camp::idx_t>();
   }
   
   KernelWrapper(const KernelWrapper &) = default;
   KernelWrapper(KernelWrapper &&) = default;
-  KernelW & operator=(const KernelWrapper &) = default;
+  KernelWrapper & operator=(const KernelWrapper &) = default;
   KernelWrapper & operator=(KernelWrapper &&) = default;
 
 
@@ -40,8 +43,8 @@ struct KernelWrapper {
   }
 
   template <std::size_t... Is>
-  auto make_iterator_tuple(camp::index_sequence<Is...>) {
-    auto iterators = camp::tuple((make_sym_iterator<Is>())...);
+  auto make_iterator_tuple(camp::idx_seq<Is...>) {
+    auto iterators = camp::make_tuple((make_sym_iterator<Is>())...);
     return iterators;
   }
   
@@ -51,34 +54,36 @@ struct KernelWrapper {
 
   template <typename... Iterators>
   std::vector<SymAccess> collect_accesses(SymIterator iterator, Iterators&&... rest) {
-    std::vector<SymAccess accesses = collect_accesses(std::forward<Iterators>(rest)...);
+    std::vector<SymAccess> accesses = collect_accesses(std::forward<Iterators>(rest)...);
 
     for(long unsigned int i = 0; i < iterator.accesses->size(); i++) {
       accesses.push_back(iterator.accesses->at(i));
     }
  
-    return allAccesses;
+    return accesses;
   }
 
   template <std::size_t... Is>
-  auto collect_accesses_from_iterators(auto iterators, camp::index_sequence<Is...>) {
+  auto collect_accesses_from_iterators(auto iterators, camp::idx_seq<Is...>) {
     return collect_accesses(camp::get<Is>(iterators)...);
   }
   
   std::vector<SymAccess> execute_symbolically() {
-    auto iterators = make_iterator_tuple(camp::make_index_sequence<numArgs>());
+    auto iterators = make_iterator_tuple(camp::make_idx_seq_t<numArgs>());
 
     auto func = camp::get<0>(bodies);
 
-    camp::apply(func, iterators);
+    camp::invoke(iterators, func);
 
-    auto accesses = collect_accesses_from_iterators(iterators, camp::make_index_sequence<numArgs>());
+    auto accesses = collect_accesses_from_iterators(iterators, camp::make_idx_seq_t<numArgs>());
+ 
+    return accesses;
   }
 
-  template <std::size_t... Is>
-  void execute(camp::index_sequence<Is...>) {
+  template <camp::idx_t... Is>
+  void execute(camp::idx_seq<Is...>) const { 
   
-    util::PluginContext context{util::make_context<PolicyType>()};
+    util::PluginContext context{util::make_context<KernelPol>()};
     util::callPreLaunchPlugins(context);
 
     using segment_tuple_t = typename IterableWrapperTuple<camp::decay<SegmentTuple>>::type;
@@ -86,44 +91,51 @@ struct KernelWrapper {
     auto params = RAJA::make_tuple();
     using param_tuple_t = camp::decay<decltype(params)>;
 
-    //For when i introduce overlapped tiling
-    /*
-    if(overlaps.size() != 0){
-      using loop_data_t = internal::LoopData<PolicyType, segment_tuple_t, param_tuple_t, camp::decay<Bodies>...>;
-      loop_data_t loop_data(overlaps, make_wrapped_tuple(segments), params, std::get<Is>(bodies)...);
+    if(overlapAmounts.size() != 0 && tileSizes.size() != 0) {
+      using loop_data_t = internal::LoopData<KernelPol, segment_tuple_t, param_tuple_t, camp::decay<Bodies>...>;
+
+      loop_data_t loop_data(overlapAmounts, tileSizes, make_wrapped_tuple(segments), params, camp::get<Is>(bodies)...);
 
       RAJA_FORCEINLINE_RECURSIVE
-      internal::execute_statement_list<PolicyType>(loop_data);
+      internal::execute_statement_list<KernelPol>(loop_data);
 
+      util::callPostLaunchPlugins(context);
     } else {
-      RAJA::kernel<PolicyType>(segments, std::get<Is>(bodies)...);
+      RAJA::kernel<KernelPol>(segments, camp::get<Is>(bodies)...);
     }
-    */
 
-    RAJA::kernel<KernelPol>(segments, camp::get<Is>(bodies)...);
-  }
 
-  void operator() () {
-    auto seq = camp::index_sequence_for<Bodies...>{};
+
+
+
+
+
+  } //execute
+
+  void operator() () const {
+    auto seq = camp::make_idx_seq_t<sizeof...(Bodies)>{};
     execute(seq);
   }
 }; // KernelWrapper
 
 template <typename KernelPol, typename SegmentTuple, typename... Bodies>
 KernelWrapper<KernelPol, SegmentTuple, Bodies...> 
-Kernel(const SegmentTuple & segment, const Bodies &... bodies) {
+make_kernel(const SegmentTuple & segment,   Bodies const &... bodies) {
+
   return KernelWrapper<KernelPol,SegmentTuple,Bodies...>(segment, bodies...);
 }
 
 
 template <typename ExecPol, typename Segment, typename Body> 
-KernelWrapper<statement::For<0, ExecPol, statement::Lambda<0>>, Segment, Body> 
-ForAll(const Segment & segment, const Body & body) {
-  using KernelPolicy = 
-    statement::For<0,ExecPol,
-       statement::Lambda<0>
-    >;         
-  return KernelWrapper<KernelPolicy,Segment,Body>(make_tuple(segment), body);
+auto make_forall(Segment segment, const Body & body) {
+  using KernPol = 
+    RAJA::KernelPolicy<
+      statement::For<0,ExecPol,
+        statement::Lambda<0>
+      >
+    >;     
+  
+  return KernelWrapper<KernPol, camp::tuple<Segment>, Body>(camp::make_tuple(segment), body);
 }
 
 

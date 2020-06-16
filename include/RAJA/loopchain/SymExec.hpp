@@ -48,7 +48,7 @@ struct SymIterator {
   }
 
   template <typename T>
-  SymIterator operator * (const T & other) {
+  SymIterator operator + (const T & other) {
     std::stringstream b;
 
     b << name << "+" << other;
@@ -138,7 +138,7 @@ struct SymAccess {
     return res;
   }
 
-  friend std::ostream& operator<< (std::ostraem& s, SymAccess a) {
+  friend std::ostream& operator<< (std::ostream& s, SymAccess a) {
     s << " " << a.view << " ";
     s << a.access_string();
     return s;
@@ -154,12 +154,16 @@ struct SymAccessList {
     accesses = std::vector<SymAccess>();
   }
 
-  SymAccessList(SymAccess & a) {
+  SymAccessList(const SymAccess & a) {
     accesses = std::vector<SymAccess>();
     accesses.push_back(a);
   }
 
   
+  void push_back(const SymAccess & a) {
+    accesses.push_back(a);
+  }
+
   //rhs operations 
 
   SymAccessList & arith_operator(const SymAccessList & other) {
@@ -209,12 +213,12 @@ struct SymAccessList {
   SymAccessList operator = (const SymAccessList & other) {
     SymAccessList newList = SymAccessList();
 
-    for(SymAccess& a : accesses) {
+    for(SymAccess & a : accesses) {
       a.set_write();
       newList.push_back(a);
     }
 
-    for(SymAccess& a : other.accesses) {
+    for(SymAccess a : other.accesses) {
       a.set_read();
       newList.push_back(a);
     }
@@ -235,7 +239,7 @@ struct SymAccessList {
       newList.push_back(a);
     }
 
-    for(SymAccess& a : other.accesses) {
+    for(SymAccess a : other.accesses) {
       a.set_read();
       newList.push_back(a);
     }

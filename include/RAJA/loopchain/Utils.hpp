@@ -95,9 +95,6 @@ auto slice_tuple(auto tuple) {
   }
 }
 
-} //namespace RAJA
-
-
 template <typename...Args>
 auto idx_seq_for(camp::tuple<Args...>) {
 
@@ -108,4 +105,23 @@ template <camp::idx_t...Is, camp::idx_t...Js>
 auto idx_seq_cat(camp::idx_seq<Is...>, camp::idx_seq<Js...>) {
   return camp::idx_seq<Is...,Js...>{};
 }//idx_seq_cat
+
+template <typename T>
+auto tuple_repeat(auto repeated) {
+  return make_tuple(repeated);
+}
+
+template <typename T, typename... Ts> 
+auto tuple_repeat(auto repeated) {
+  auto subTuple = tuple_repeat<Ts...>(repeated);
+
+  return tuple_cat(subTuple, make_tuple(repeated));
+}
+
+} //namespace RAJA
+
+
+
+
+
 #endif

@@ -332,6 +332,13 @@ auto overlapped_tile(OverlapTupleType overlapAmounts, TileSizeTupleType tileSize
 
 } //overlapped_tile()
 
+template <camp::idx_t LoopId, typename...TileSizeTypes>
+auto tile(camp::tuple<TileSizeTypes...> tileSizes) {
+  auto overlapAmounts = tuple_repeat<TileSizeTypes...>(0);
+
+  return overlapped_tile<LoopId>(overlapAmounts, tileSizes);
+}
+
 template <camp::idx_t...Is>
 std::vector<camp::idx_t> tuple_to_vector(auto tuple, camp::idx_seq<Is...>) {
 
@@ -398,6 +405,7 @@ auto overlapped_tile_kernel(KernelWrapper<KernelPol,Segment,Bodies...> knl, auto
   newKnl.tileSizes = tuple_to_vector(tileSizes, idx_seq_for(tileSizes));
   return newKnl;
 } // overlapped_tile_kernel
+
 
 } //namespace RAJA
 

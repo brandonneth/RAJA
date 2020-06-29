@@ -44,7 +44,6 @@
 //
 #include "RAJA/pattern/forall.hpp"
 #include "RAJA/pattern/kernel.hpp"
-#include "RAJA/pattern/kernel/OverlappedTile.hpp"
 
 //
 // All platforms must support sequential execution.
@@ -154,6 +153,6 @@
 
 
 
-#include "RAJA/util/LoopChain.hpp"
+#include "RAJA/loopchain/LoopChain.hpp"
 
 #endif  // closing endif for header file include guard

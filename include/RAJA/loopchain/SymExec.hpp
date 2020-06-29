@@ -202,6 +202,13 @@ struct SymAccessList {
     }
   }
 
+  //for "a(i) + i" like statements
+  SymAccessList & operator + (const SymIterator & i) {
+    for(SymAccess& a : accesses) {
+      a.set_read();
+    }
+    return *this;
+  } 
   operator int() {num_cast(); return 1;}
   operator long int() {num_cast(); return 1;}
   operator float() {num_cast(); return 1.0;}

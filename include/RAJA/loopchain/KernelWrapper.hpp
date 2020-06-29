@@ -36,13 +36,13 @@ struct KernelWrapper {
   KernelWrapper & operator=(KernelWrapper &&) = default;
 
 
-  template <std::size_t Idx>
+  template <camp::idx_t Idx>
   SymIterator make_sym_iterator() {
     std::string iteratorName = "i" + std::to_string(Idx);
     return SymIterator(iteratorName);
   }
 
-  template <std::size_t... Is>
+  template <camp::idx_t... Is>
   auto make_iterator_tuple(camp::idx_seq<Is...>) {
     auto iterators = camp::make_tuple((make_sym_iterator<Is>())...);
     return iterators;
@@ -63,7 +63,7 @@ struct KernelWrapper {
     return accesses;
   }
 
-  template <std::size_t... Is>
+  template <camp::idx_t... Is>
   auto collect_accesses_from_iterators(auto iterators, camp::idx_seq<Is...>) {
     return collect_accesses(camp::get<Is>(iterators)...);
   }

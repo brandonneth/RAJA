@@ -54,6 +54,8 @@ auto shift_bodies(auto bodies, auto shiftTuple, camp::idx_seq<Is...>) {
 }
 
 //hardcoding for 1 2 and 3 dimensional loops
+//Do_thing(something(get<Is>(thing1),get<Is>(thing2))...); 
+
 template <camp::idx_t I1>
 auto shift_body(const auto & body, auto shiftTuple, camp::idx_seq<I1>) {
 

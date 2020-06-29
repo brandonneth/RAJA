@@ -10,7 +10,7 @@
 #include "RAJA/loopchain/KernelWrapper.hpp"
 #include "RAJA/loopchain/Transformations.hpp"
 #include "RAJA/loopchain/ISLAnalysis.hpp"
-
+#include "RAJA/loopchain/KernelConversion.hpp"
 
 namespace RAJA 
 {

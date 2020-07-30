@@ -12,17 +12,98 @@
 #include "RAJA/loopchain/ISLAnalysis.hpp"
 #include "RAJA/loopchain/KernelConversion.hpp"
 
+
+//
+// API Definitions
+//
+namespace RAJA
+{
+
+template <typename...Ts>
+auto shift(auto knl, tuple<Ts...> shiftAmountTuple);
+
+template <typename...Ts>
+auto shift(auto knl, Ts... shiftAmounts);
+
+template <typename FusedKernelType, typename...Knls>
+FusedKernelType fuse(Knls...knls);
+
+template <typename FusedKernelType, typename...Knls>
+FusedKernelType shift_and_fuse(Knls...knls);
+
+template <typename...Knls>
+auto overlapped_tile_no_fuse(Knls...knls);
+
+template <typename...Knls>
+auto overlapped_tile_fuse(Knls...knls);
+
+template <typename...Knls>
+auto chain(Knls...knls);
+
+} //namespace RAJA
+
+
+//
+// Implementation
+//
 namespace RAJA 
 {
+
+template <camp::idx_t mainKnlIdx, typename... KernelTupleType>
+struct FusedKernels {
+
+  const camp::tuple<KernelTupleType...> knlTuple;
+
+  static constexpr  camp::idx_t numKnls = sizeof...(KernelTupleType);
+
+  FusedKernels(const auto & knlTuple_) : knlTuple(knlTuple_) {};
+  
+  auto pre_knls() {
+    return slice_tuple<0,mainKnlIdx>(knlTuple);
+  }
+
+  auto main_knl() {
+    return camp::get<mainKnlIdx>(knlTuple);
+  }
+
+  auto post_knls() {
+    return slice_tuple<mainKnlIdx+1, numKnls>(knlTuple);
+  }
+
+
+  template <camp::idx_t I>
+  RAJA_INLINE
+  void execute(camp::idx_seq<I>) {
+    camp::get<I>(knlTuple)();
+  }
+  template <camp::idx_t I, camp::idx_t... Is>
+  RAJA_INLINE
+  void execute(camp::idx_seq<I, Is...>) {
+    camp::get<I>(knlTuple)();
+    execute(camp::idx_seq<Is...>{});
+  }
+  
+  RAJA_INLINE
+  void operator() () {
+    auto seq = camp::make_idx_seq_t<sizeof...(KernelTupleType)>{};
+    execute(seq); 
+  }
+
+};
+
+template <camp::idx_t MainKnlIdx, typename...KnlTupleType>
+auto fused_kernels(camp::tuple<KnlTupleType...> knlTuple) {
+  return FusedKernels<MainKnlIdx,KnlTupleType...>(knlTuple);
+} //fused_kernels
+
 
 template <typename... KernelTupleType>
 struct LoopChain {
 
   const camp::tuple<KernelTupleType...> knlTuple;
- 
    
   LoopChain(const auto & knlTuple_) : knlTuple(knlTuple_) {}
-
+  
   
   template <camp::idx_t I>
   void execute(camp::idx_seq<I>) {
@@ -32,8 +113,7 @@ struct LoopChain {
   void execute(camp::idx_seq<I, Is...>) {
     camp::get<I>(knlTuple)();
     execute(camp::idx_seq<Is...>{});
-    
- }
+  }
   
   void operator() () {
     auto seq = camp::make_idx_seq_t<sizeof...(KernelTupleType)>{};
@@ -41,6 +121,20 @@ struct LoopChain {
   }
 
 }; //LoopChain
+
+
+template <typename...Knls>
+auto loop_chain(camp::tuple<Knls...> knlTuple) {
+  return LoopChain<Knls...>(knlTuple);
+}
+template <typename...Knls>
+auto loop_chain(Knls...knls) {
+  auto knlTuple = make_tuple(knls...);
+  return LoopChain<Knls...>(knlTuple);
+} //loop_chain
+
+
+/*
 
 template <typename... KernelTupleTemplate, 
           typename... TransformationTupleTemplate>
@@ -127,6 +221,8 @@ auto chain(const KernelWrapper<KernelTemplate...> & knl, Rest&&...  rest) {
 
   return chain(knlTuple, RAJA::make_tuple(), std::forward<Rest>(rest)...);
 }
+
+*/
 
 } //namespace RAJA
 

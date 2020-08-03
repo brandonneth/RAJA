@@ -286,14 +286,6 @@ template <typename...KnlTupleTypes, camp::idx_t...Is>
 auto post_fuse_knls(auto knlTuple, camp::idx_seq<Is...> seq) {
   
   auto fusedSegmentTuple = fused_segment_tuple(knlTuple, seq);
-  auto seg1 = camp::get<0>(fusedSegmentTuple);
-  std::cout << "fused segment tuple segment 1: " << *seg1.begin() << ", " << *seg1.end() << "\n";
-
-  if constexpr (camp::get<0>(knlTuple).numArgs > 1) {
-  auto seg2 = camp::get<1>(fusedSegmentTuple);
-  std::cout << "fused segment tuple segment 2: " << *seg2.begin() << ", " << *seg2.end() << "\n";
-
-  }
   return tuple_cat((post_fuse_knls_from_knl(camp::get<Is>(knlTuple), fusedSegmentTuple))...);
 }
 

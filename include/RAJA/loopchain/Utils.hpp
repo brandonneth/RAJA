@@ -106,6 +106,18 @@ auto idx_seq_cat(camp::idx_seq<Is...>, camp::idx_seq<Js...>) {
   return camp::idx_seq<Is...,Js...>{};
 }//idx_seq_cat
 
+
+template <camp::idx_t I>
+auto tuple_repeat(auto repeated) {
+  if constexpr (I <= 0) {
+
+    return make_tuple();
+  } else {
+    return tuple_cat(make_tuple(repeated), tuple_repeat<I-1>(repeated));
+  }
+}
+
+
 template <typename T>
 auto tuple_repeat(auto repeated) {
   return make_tuple(repeated);
@@ -118,10 +130,24 @@ auto tuple_repeat(auto repeated) {
   return tuple_cat(subTuple, make_tuple(repeated));
 }
 
+
+template <typename T>
+auto flatten_tuple(camp::tuple<T> tupleOfTuples) {
+  return camp::get<0>(tupleOfTuples);
+}
+
+template <typename T, typename...Ts>
+auto flatten_tuple(camp::tuple<T,Ts...> tupleOfTuples) {
+   
+   return tuple_cat(camp::get<0>(tupleOfTuples), flatten_tuple(remove_index<0>(tupleOfTuples)));
+  
+
+}
+
+template <typename...Ts>
+constexpr auto tuple_len(camp::tuple<Ts...>) {
+  return sizeof...(Ts);
+}
 } //namespace RAJA
-
-
-
-
 
 #endif

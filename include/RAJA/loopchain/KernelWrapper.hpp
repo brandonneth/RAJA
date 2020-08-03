@@ -17,6 +17,7 @@ namespace RAJA
 template <typename KernelPol, typename SegmentTuple, typename... Bodies>
 struct KernelWrapper {
 
+  using KPol = KernelPol;
   const SegmentTuple segments;
   const camp::tuple<Bodies...> bodies;
  

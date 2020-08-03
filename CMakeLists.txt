@@ -107,7 +107,7 @@ if(RAJA_CXX_STANDARD_FLAG MATCHES default)
     #TODO set BLT_CXX_STANDARD
     set(CMAKE_CXX_STANDARD 17)
   elseif("cxx_std_14" IN_LIST CMAKE_CXX_KNOWN_FEATURES)
-    message("setting to 17")
+    message("17 not supported setting to 17")
     set(CMAKE_CXX_STANDARD 17)
   elseif("${CMAKE_CXX_COMPILER_ID}" IN_LIST COMPILERS_KNOWN_TO_CMAKE33)
     set(CMAKE_CXX_STANDARD 17)
@@ -165,7 +165,8 @@ set (raja_sources
   src/LockFreeIndexSetBuilders.cpp
   src/MemUtils_CUDA.cpp
   src/MemUtils_HIP.cpp
-  src/PluginStrategy.cpp)
+  src/PluginStrategy.cpp
+  src/LoopChain.cpp)
 
 set (raja_depends)
 

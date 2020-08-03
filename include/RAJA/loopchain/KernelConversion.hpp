@@ -14,10 +14,61 @@ namespace RAJA {
 std::string get_array_name(SymAccess a);
 
 
+template <camp::idx_t Dim>
+auto points_to_segment(isl_point * minPoint, isl_point * maxPoint) {
 
+  auto _minVal = isl_point_get_coordinate_val(minPoint, isl_dim_set, Dim); 
+  auto _maxVal = isl_point_get_coordinate_val(maxPoint, isl_dim_set, Dim); 
+  
+  auto minVal = isl_val_get_num_si(_minVal);
+  auto maxVal = isl_val_get_num_si(_maxVal);
+  
+  std::cout << "Creating segment from " << minVal << "to " << maxVal << "\n";
+  return RangeSegment(minVal, maxVal);
+} //points_to_segment
 
+template <camp::idx_t...Dims>
+auto points_to_segments(isl_point * minPoint, isl_point * maxPoint, camp::idx_seq<Dims...>) {
 
+  return make_tuple((points_to_segment<Dims>(minPoint, maxPoint))...);
 
+}// points_to_segments
+template <camp::idx_t NumDims>
+auto iterspace_to_segments(isl_ctx * ctx, isl_union_set * iterspace) {
+  
+  
+  isl_printer * p = isl_printer_to_file(ctx, stdout);
+  
+  std::cout << "\nFinding segments for iterspace:";
+  p = isl_printer_print_union_set(p,iterspace);
+  std::cout << "\n";
+  isl_union_set * minSet = isl_union_set_lexmin(isl_union_set_copy(iterspace));
+
+  
+  std::cout << "\nLexicographical minimum of iterspace: ";
+  p = isl_printer_print_union_set(p, minSet);
+  std::cout << "\n";
+  
+  isl_union_set * maxSet = isl_union_set_lexmax(iterspace);
+
+  std::cout << "\nLex max of iterspace: ";
+  p = isl_printer_print_union_set(p,maxSet);
+  std::cout << "\n";
+
+  isl_point * minPoint = isl_union_set_sample_point(minSet);
+  isl_point * maxPoint = isl_union_set_sample_point(maxSet);
+
+  std::cout << "\nMin and Max /points/ of iterspace:\n";
+  p = isl_printer_print_point(p, minPoint);
+  std::cout << "\n";
+  p =  isl_printer_print_point(p, maxPoint);
+  std::cout << "\n";
+
+  auto segments = points_to_segments(minPoint, maxPoint, camp::make_idx_seq_t<NumDims>{});
+   
+  return segments;
+
+} //iterspace_to_segments
 
 template <camp::idx_t Idx>
 std::string bound_from_segment(auto segment) {
@@ -53,7 +104,8 @@ std::string bounds_from_segment(auto segmentTuple, camp::idx_seq<I, Is...>) {
 
 //returns the string for the range vector with numElements dimension. For example,
 // 2 return "[i0,i1]" and 4 returns "[i0,i1,i2,i3]"
-std::string range_vector(int numElements, int loopNum) {
+template <typename T>
+std::string range_vector(T numElements, camp::idx_t loopNum) {
 
   std::stringstream vec;
   vec << "L" << loopNum << "[";
@@ -96,7 +148,7 @@ isl_union_set * iterspace_from_knl(isl_ctx * ctx, auto knl) {
 template <camp::idx_t LoopNum>
 isl_union_map * read_relation_from_knl(isl_ctx * ctx, auto knl) {
 
-  isl_printer* p = isl_printer_to_file(ctx, stdout);
+  //isl_printer* p = isl_printer_to_file(ctx, stdout);
 
   auto accesses = knl.execute_symbolically();
  
@@ -128,7 +180,7 @@ isl_union_map * read_relation_from_knl(isl_ctx * ctx, auto knl) {
 template <camp::idx_t LoopNum>
 isl_union_map * write_relation_from_knl(isl_ctx * ctx, auto knl) {
 
-  isl_printer* p = isl_printer_to_file(ctx, stdout);
+  //isl_printer* p = isl_printer_to_file(ctx, stdout);
 
   auto accesses = knl.execute_symbolically();
  
@@ -232,7 +284,8 @@ isl_union_map * data_dep_relation_from_knls(isl_ctx * ctx,
 
 
 //returns the range string for normal execution of a loop with numdims that is loop loopNum in teh chain
-std::string original_schedule_range(int numDims, int loopNum) {
+template <typename T>
+std::string original_schedule_range(T numDims, T loopNum) {
 
   std::stringstream s;
 
@@ -266,21 +319,94 @@ isl_union_map * original_schedule(isl_ctx * ctx, auto knl) {
 
   isl_union_map * scheduleNoBounds = isl_union_map_read_from_str(ctx, scheduleRelation.c_str());
 
-  isl_printer * p = isl_printer_to_file(ctx, stdout);
-
-  std::cout << "\nSchedule relation no bounds:";
-  p = isl_printer_print_union_map(p, scheduleNoBounds);
-
   isl_union_map * scheduleWithBounds = isl_union_map_intersect_domain(scheduleNoBounds, iterspace);
 
-  std::cout << "\nSchedule with bounds:";
-  p = isl_printer_print_union_map(p, scheduleWithBounds);
-   
-  
   return scheduleWithBounds;
 } //original_schedule
 
 
+//returns the range string for normal execution of a loop with numdims that is loop loopNum in teh chain
+template <typename T>
+std::string fused_schedule_range(T numDims, T loopNum) {
+
+  std::stringstream s;
+
+  s << "[";
+ 
+  for(int i = 0; i < numDims; i++) {
+    s << "0, i" << i << ",";
+  }
+  
+  s << loopNum << "]";
+
+  return s.str();
+} // fused_schedule_domain
+
+
+// Returns the schedule for the loop executed sequentially. For example,
+// a double nested loop will give [i,j] -> [0, i, 0, j, loopNum]
+template <camp::idx_t LoopNum>
+isl_union_map * fused_schedule(isl_ctx * ctx, auto knl) {
+
+  isl_union_set * iterspace = iterspace_from_knl<LoopNum>(ctx, knl);
+
+  std::string scheduleRange = fused_schedule_range(knl.numArgs, LoopNum);
+
+  
+  
+  std::string scheduleRelation = "{" + range_vector(knl.numArgs, LoopNum) + " -> " + scheduleRange + "}";
+
+  isl_union_map * scheduleNoBounds = isl_union_map_read_from_str(ctx, scheduleRelation.c_str());
+
+  isl_union_map * scheduleWithBounds = isl_union_map_intersect_domain(scheduleNoBounds, iterspace);
+   
+  
+  return scheduleWithBounds;
+} //fused_schedule
+
+
+template <camp::idx_t CurrKnl1, camp::idx_t CurrKnl2, camp::idx_t NumKnls, typename...KnlTypes>
+isl_union_map * deprel_from_knls_helper(isl_ctx * ctx, camp::tuple<KnlTypes...> knlTuple) {
+  if constexpr (CurrKnl1 > NumKnls) {
+    return isl_union_map_read_from_str(ctx, "{}"); 
+  }
+
+  else if constexpr (CurrKnl2 > NumKnls) {
+    return deprel_from_knls_helper<CurrKnl1 + 1, CurrKnl1 + 1, NumKnls>(ctx, knlTuple);
+  } else {
+    isl_union_map * thisPair = data_dep_relation_from_knls<CurrKnl1, CurrKnl2>(
+      ctx, camp::get<CurrKnl1-1>(knlTuple), camp::get<CurrKnl2-1>(knlTuple));
+    
+    
+
+    return isl_union_map_union(thisPair, 
+      deprel_from_knls_helper<CurrKnl1, CurrKnl2 + 1, NumKnls>(ctx, knlTuple));
+  }
+}
+
+template <camp::idx_t...Is>
+auto dependence_relation_from_kernels(isl_ctx * ctx, auto knlTuple, camp::idx_seq<Is...> knl) {
+  constexpr auto NumKnls = sizeof...(Is); 
+  return deprel_from_knls_helper<1,1,NumKnls>(ctx, knlTuple);
+} //dependence_relation_from_kernels
+
+auto dependence_relation_from_kernels(isl_ctx * ctx, auto knlTuple) {
+  return dependence_relation_from_kernels(ctx, knlTuple, idx_seq_for(knlTuple));
+} //dependence_relation_from_kernels
+
+
+template <camp::idx_t...Is>
+auto original_schedule_from_kernels(isl_ctx * ctx, auto knlTuple, camp::idx_seq<Is...> knl) {
+
+  //First, collect all dependences among the kernels.  
+  
+  return NULL;
+}
+
+template <typename...KnlTypes>
+auto original_schedule_from_kernels(isl_ctx * ctx, camp::tuple<KnlTypes...> knlTuple) {
+  return original_schedule_from_kernels(ctx, knlTuple, idx_seq_for(knlTuple));
+}
 
 } //namespace RAJA
 #endif

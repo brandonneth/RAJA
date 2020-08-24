@@ -1,4 +1,4 @@
-
+//Contains class definitions and constructor functions for the kernel wrapper object
 
 #ifndef RAJA_KernelWrapper_HPP
 #define RAJA_KernelWrapper_HPP
@@ -13,16 +13,22 @@ namespace RAJA
 {
 
 
-
+//KernelWrapper wraps a kernel execution so it can be transformed before execution
+//The type and constructor parameters are the same as the kernel function.
 template <typename KernelPol, typename SegmentTuple, typename... Bodies>
 struct KernelWrapper {
-
   using KPol = KernelPol;
+  using BodyTuple = camp::tuple<Bodies...>;
+
+  //these fields come from the kernel function
   const SegmentTuple segments;
-  const camp::tuple<Bodies...> bodies;
+  const BodyTuple bodies;
  
+  //these fields are extra. they exist to enable runtime transformation
+  // instead of compile time, like tile sizes.
   std::vector<camp::idx_t> overlapAmounts;
   std::vector<camp::idx_t> tileSizes;
+
   static constexpr int numArgs = camp::tuple_size<SegmentTuple>::value;
 
   KernelWrapper(SegmentTuple  _segments, const Bodies&... _bodies) : 
@@ -85,6 +91,9 @@ struct KernelWrapper {
     return accesses;
   }
 
+  // Traditional execution. For normal kernels, this resolves to a call to kernel.
+  // If the tile sizes or overlap tile amounts are specified at runtime,
+  //  those values are added to the loop data before executing.
   template <camp::idx_t... Is>
   RAJA_INLINE
   void execute(camp::idx_seq<Is...>) const { 
@@ -100,7 +109,7 @@ struct KernelWrapper {
     if(overlapAmounts.size() != 0 && tileSizes.size() != 0) {
       using loop_data_t = internal::LoopData<KernelPol, segment_tuple_t, param_tuple_t, camp::decay<Bodies>...>;
 
-      loop_data_t loop_data(overlapAmounts, tileSizes, make_wrapped_tuple(segments), params, camp::get<Is>(bodies)...);
+      loop_data_t loop_data(overlapAmounts, tileSizes, make_wrapped_tuple(segments), params, camp::get<Is>(bodies)...)
 
       RAJA_FORCEINLINE_RECURSIVE
       internal::execute_statement_list<KernelPol>(loop_data);
@@ -110,29 +119,31 @@ struct KernelWrapper {
       RAJA::kernel<KernelPol>(segments, camp::get<Is>(bodies)...);
     }
 
-
-
-
-
-
-
   } //execute
-
+  
+  
+  
   RAJA_INLINE
   void operator() () const {
     auto seq = camp::make_idx_seq_t<sizeof...(Bodies)>{};
     execute(seq);
   }
+
+  RAJA_INLINE
+  void operator() (SegmentTuple segs) {
+    //TODO: Enable the kernel to be executed with a different segment
+  }
 }; // KernelWrapper
 
+//creates a kernel object using the same interface as the kernel function
 template <typename KernelPol, typename SegmentTuple, typename... Bodies>
 KernelWrapper<KernelPol, SegmentTuple, Bodies...> 
 make_kernel(const SegmentTuple & segment,   Bodies const &... bodies) {
-
   return KernelWrapper<KernelPol,SegmentTuple,Bodies...>(segment, bodies...);
 }
 
 
+//creates a kernel object using the same interface as the forall function
 template <typename ExecPol, typename Segment, typename Body> 
 auto make_forall(Segment segment, const Body & body) {
   using KernPol = 

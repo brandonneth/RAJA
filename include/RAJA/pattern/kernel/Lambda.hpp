@@ -33,6 +33,7 @@
 #include "RAJA/pattern/kernel/ArgHelper.hpp"
 #include "RAJA/pattern/kernel/internal.hpp"
 
+#include "RAJA/loopchain/Utils.hpp"
 namespace RAJA
 {
 
@@ -55,6 +56,10 @@ struct Lambda : internal::Statement<camp::nil> {
   const static camp::idx_t loop_body_index = BodyIdx;
 };
 
+template <camp::idx_t BodyIdx, typename... Args >
+struct TiledLambda : internal::Statement<camp::nil> {
+  const static camp::idx_t loop_body_index = BodyIdx;
+};
 }  // end namespace statement
 
 namespace internal
@@ -70,6 +75,15 @@ struct StatementExecutor<statement::Lambda<LambdaIndex>> {
   }
 };
 
+template <camp::idx_t LambdaIndex>
+struct StatementExecutor<statement::TiledLambda<LambdaIndex>> {
+  template <typename Data>
+  static RAJA_INLINE void exec(Data &&data)
+  {
+    auto lambda = camp::get<LambdaIndex>(data.bodies);
+    lambda(data.segment_tuple);
+  }
+};
 
 /*!
  * A RAJA::kernel statement that invokes a lambda function
@@ -88,6 +102,22 @@ struct StatementExecutor<statement::Lambda<LambdaIndex, Args...>> {
     invoke_lambda_with_args<LambdaIndex, targList>(std::forward<Data>(data));
   }
 };
+
+template <camp::idx_t LambdaIndex,typename... Args>
+struct StatementExecutor<statement::TiledLambda<LambdaIndex, Args...>> {
+
+  template <typename Data>
+  static RAJA_INLINE void exec(Data &&data)
+  {
+
+    //Convert SegList, ParamList into Seg, Param types, and store in a list
+    using targList = typename camp::flatten<camp::list<Args...>>::type;
+
+    invoke_lambda_with_args<LambdaIndex, targList>(std::forward<Data>(data));
+  }
+};
+
+
 
 }  // namespace internal
 

@@ -533,7 +533,7 @@ auto min(T t1, Ts...ts) {
 }
 
 template <camp::idx_t DimNum, camp::idx_t...Is>
-auto fused_iterspace_low_bound(isl_ctx * ctx, auto iterspaceTuple, camp::idx_seq<Is...>) {
+auto fused_iterspace_low_bound(isl_ctx *, auto iterspaceTuple, camp::idx_seq<Is...>) {
   return max((iterspace_min<DimNum>(camp::get<Is>(iterspaceTuple)))...);
 }
 
@@ -544,7 +544,7 @@ auto fused_iterspace_low_bounds(isl_ctx * ctx, auto iterspaceTuple, camp::idx_se
 }
 
 template <camp::idx_t DimNum, camp::idx_t...Is>
-auto fused_iterspace_upper_bound(isl_ctx * ctx, auto iterspaceTuple, camp::idx_seq<Is...>) {
+auto fused_iterspace_upper_bound(isl_ctx *, auto iterspaceTuple, camp::idx_seq<Is...>) {
   return min((iterspace_max<DimNum>(camp::get<Is>(iterspaceTuple)))...);
 }
 

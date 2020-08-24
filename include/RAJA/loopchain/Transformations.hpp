@@ -46,6 +46,7 @@ auto shift_segment(const auto segment, auto shiftAmount) {
 
 //returns a new segment tuple where each segment is shifted by the pairwise amount in shiftAmountTuple
 template <camp::idx_t...Is>
+RAJA_INLINE
 auto shift_segment_tuple(auto segmentTuple, auto shiftAmountTuple, camp::idx_seq<Is...> seq) {
   return make_tuple((shift_segment(camp::get<Is>(segmentTuple), camp::get<Is>(shiftAmountTuple)))...);
 } // shift_segment_tuple
@@ -66,6 +67,7 @@ auto shift_body(auto body, auto shiftAmountTuple, camp::idx_seq<Is...> seq) {
 
 
 template <typename KPol, typename SegmentTuple, typename...Bodies, camp::idx_t...Is>
+RAJA_INLINE
 auto shift(KernelWrapper<KPol,SegmentTuple,Bodies...> knl, auto shiftAmountTuple, camp::idx_seq<Is...> seq) 
 {
   
@@ -79,6 +81,7 @@ auto shift(KernelWrapper<KPol,SegmentTuple,Bodies...> knl, auto shiftAmountTuple
 
 
 template <typename...Ts>
+RAJA_INLINE
 auto shift(auto knl, tuple<Ts...> shiftAmountTuple) 
 {
   return shift(knl, shiftAmountTuple, idx_seq_for(shiftAmountTuple));
@@ -95,6 +98,7 @@ auto shift(auto knl, Ts... shiftAmounts) {
 
 
 template <camp::idx_t I>
+RAJA_INLINE
 auto pre_fuse_first_ith_dims_helper(auto originalSegments, auto overlapSegments) {
 
   auto fuseSegment = camp::get<I>(overlapSegments);
@@ -107,12 +111,14 @@ auto pre_fuse_first_ith_dims_helper(auto originalSegments, auto overlapSegments)
 }
 
 template <camp::idx_t... Is>
+RAJA_INLINE
 auto pre_fuse_first_ith_dims(auto originalSegments, auto overlapSegments, camp::idx_seq<Is...>) {
   
   return make_tuple((pre_fuse_first_ith_dims_helper<Is>(originalSegments, overlapSegments))...);  
 }
 
 template <camp::idx_t... Is>
+RAJA_INLINE
 auto pre_fuse_last_dims(auto originalSegments, camp::idx_seq<Is...>) {
   return make_tuple(camp::get<Is>(originalSegments)...);
 }
@@ -123,6 +129,7 @@ auto pre_fuse_last_dims(auto originalSegments, camp::idx_seq<Is...>) {
 //This function returns the segment tuple for the I-th one of these loops.
 //Is... is a sequence from 0 to d-1. Its size is the number of dimensions in the loop
 template <camp::idx_t I, camp::idx_t... Is>
+RAJA_INLINE
 auto pre_fuse_kernels_segments(auto originalSegments, auto overlapSegments, camp::idx_seq<Is...>) {
   
   //up to the I-th dimension, it is fuse.start to original.end
@@ -150,6 +157,7 @@ auto pre_fuse_kernels_segments(auto originalSegments, auto overlapSegments, camp
   
 }
 template<camp::idx_t I>
+RAJA_INLINE
 auto post_fuse_last_dims_helper(auto originalSegments, auto overlapSegments) {
   
   auto fuseSegment = camp::get<I>(overlapSegments);
@@ -163,6 +171,7 @@ auto post_fuse_last_dims_helper(auto originalSegments, auto overlapSegments) {
 }
 
 template <camp::idx_t...Is>
+RAJA_INLINE
 auto post_fuse_last_dims(auto originalSegments, auto overlapSegments, camp::idx_seq<Is...>) {
 
   
@@ -171,6 +180,7 @@ auto post_fuse_last_dims(auto originalSegments, auto overlapSegments, camp::idx_
 
 //returns the segment tuple for the I-th post-fuse kernel
 template <camp::idx_t I, camp::idx_t... Is>
+RAJA_INLINE
 auto post_fuse_kernels_segments(auto originalSegments, auto overlapSegments, camp::idx_seq<Is...>) {
   
   //up to the I-th dimension, it is fuse.start to fuse.end
@@ -194,20 +204,20 @@ auto post_fuse_kernels_segments(auto originalSegments, auto overlapSegments, cam
   
   auto postFuseSegments = tuple_cat(firstIthDims, make_tuple(ithDim), endDims);
   
-  auto size = camp::tuple_size<decltype(postFuseSegments)>().value;
   
   
   return postFuseSegments; 
 }
 
 template <camp::idx_t...Is>
+RAJA_INLINE
 auto zip_bounds(auto lows, auto highs, camp::idx_seq<Is...>) {
 
   return make_tuple((RangeSegment(camp::get<Is>(lows), camp::get<Is>(highs)+1))...);
 
 }
 template <camp::idx_t...Is>
-auto fused_segment_tuple(auto knlTuple, camp::idx_seq<Is...> seq) {
+auto fused_segment_tuple(auto knlTuple, camp::idx_seq<Is...>) {
 
   isl_ctx * ctx = isl_ctx_alloc();
 
@@ -225,6 +235,7 @@ auto fused_segment_tuple(auto knlTuple, camp::idx_seq<Is...> seq) {
 
 //for the kernel with segmentTuple and a fused segment tuple fusedSegmentTuple, returns the tuple of segment tuples for the kernels that will execute the pre-fuse computation
 template <camp::idx_t...Is>
+RAJA_INLINE
 auto pre_fuse_segment_tuples(auto segmentTuple, auto fusedSegmentTuple, camp::idx_seq<Is...> seq) {
   return make_tuple(pre_fuse_kernels_segments<Is>(segmentTuple, fusedSegmentTuple, seq)...);
 }
@@ -235,7 +246,8 @@ auto pre_fuse_segment_tuples(auto segmentTuple, auto fusedSegmentTuple) {
 
 //returns the pre-fuse kernels that are responsible for the pre-fuse iteration section of one kernel in the knlTuple
 template <typename KPol, typename SegmentTuple, typename...Bodies, camp::idx_t...Is>
-auto pre_fuse_knls_from_knl(KernelWrapper<KPol,SegmentTuple,Bodies...> knl, auto fuseSegmentTuple, camp::idx_seq<Is...> dimSeq) {
+RAJA_INLINE
+auto pre_fuse_knls_from_knl(KernelWrapper<KPol,SegmentTuple,Bodies...> knl, auto fuseSegmentTuple, camp::idx_seq<Is...>) {
   
    auto preFuseSegmentTuples = pre_fuse_segment_tuples(knl.segments, fuseSegmentTuple);
 
@@ -244,12 +256,14 @@ auto pre_fuse_knls_from_knl(KernelWrapper<KPol,SegmentTuple,Bodies...> knl, auto
 }//pre_fuse_knls_from_knl
 
 template <typename KernelPol, typename Segments, typename...Bodies>
+RAJA_INLINE
 auto pre_fuse_knls_from_knl(KernelWrapper<KernelPol,Segments,Bodies...> knl, auto fusedSegmentTuple) {
   return pre_fuse_knls_from_knl(knl, fusedSegmentTuple, camp::make_idx_seq_t<knl.numArgs>{});
 } //pre_fuse_knls_from_knl
 
 
 template <typename...KnlTupleTypes, camp::idx_t...Is>
+RAJA_INLINE
 auto pre_fuse_knls(auto knlTuple, camp::idx_seq<Is...> seq) {
 
   //std::cout << "This function needs to concat all the kernels created from each knl in the tuple\n";
@@ -260,6 +274,7 @@ auto pre_fuse_knls(auto knlTuple, camp::idx_seq<Is...> seq) {
 //given the segment tuple for an entire loop and the segment tuple for the fused area of that loop,
 //creates the segment tuples for the kernels that execute the parts of the kernel that are executed after the fused area
 template <camp::idx_t...Is>
+RAJA_INLINE
 auto post_fuse_segment_tuples(auto segmentTuple, auto fusedSegmentTuple, camp::idx_seq<Is...> seq) {
   return make_tuple(post_fuse_kernels_segments<Is>(segmentTuple, fusedSegmentTuple, seq)...);
 }
@@ -268,7 +283,8 @@ auto post_fuse_segment_tuples(auto segmentTuple, auto fusedSegmentTuple) {
 }
 
 template <typename KPol, typename SegmentTuple, typename...Bodies, camp::idx_t...Is>
-auto post_fuse_knls_from_knl(KernelWrapper<KPol,SegmentTuple,Bodies...> knl, auto fuseSegmentTuple, camp::idx_seq<Is...> dimSeq) {
+RAJA_INLINE
+auto post_fuse_knls_from_knl(KernelWrapper<KPol,SegmentTuple,Bodies...> knl, auto fuseSegmentTuple, camp::idx_seq<Is...>) {
    
    auto postFuseSegmentTuples = post_fuse_segment_tuples(knl.segments, fuseSegmentTuple);
 
@@ -276,6 +292,7 @@ auto post_fuse_knls_from_knl(KernelWrapper<KPol,SegmentTuple,Bodies...> knl, aut
 }//post_fuse_knls_from_knl
 
 template <typename KernelPol, typename Segments, typename...Bodies>
+RAJA_INLINE
 auto post_fuse_knls_from_knl(KernelWrapper<KernelPol,Segments,Bodies...> knl, auto fusedSegmentTuple) {
   return post_fuse_knls_from_knl(knl, fusedSegmentTuple, camp::make_idx_seq_t<knl.numArgs>{});
 } //post_fuse_knls_from_knl
@@ -283,15 +300,50 @@ auto post_fuse_knls_from_knl(KernelWrapper<KernelPol,Segments,Bodies...> knl, au
 
 
 template <typename...KnlTupleTypes, camp::idx_t...Is>
+RAJA_INLINE
 auto post_fuse_knls(auto knlTuple, camp::idx_seq<Is...> seq) {
   
   auto fusedSegmentTuple = fused_segment_tuple(knlTuple, seq);
   return tuple_cat((post_fuse_knls_from_knl(camp::get<Is>(knlTuple), fusedSegmentTuple))...);
 }
 
+
+template <camp::idx_t... Is>
+RAJA_INLINE
+auto fused_lambda(auto bodies, camp::idx_seq<Is...>) {
+  return [=](auto...is) {
+    camp::sink((camp::get<Is>(bodies)(is...), 0)...);
+  };
+
+}
+
+template <camp::idx_t I1, camp::idx_t I2, camp::idx_t I3,
+          camp::idx_t I4, camp::idx_t I5, camp::idx_t I6, 
+          camp::idx_t I7, camp::idx_t I8, camp::idx_t I9, 
+          camp::idx_t I10, camp::idx_t I11>
+RAJA_INLINE
+auto fused_lambda(auto bodies, camp::idx_seq<I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11>) {
+  return [=](auto...is) {
+    camp::get<0>(bodies)(is...);
+    camp::get<1>(bodies)(is...);
+    camp::get<2>(bodies)(is...);
+    camp::get<3>(bodies)(is...);
+    camp::get<4>(bodies)(is...);
+    camp::get<5>(bodies)(is...);
+    camp::get<6>(bodies)(is...);
+    camp::get<7>(bodies)(is...);
+    camp::get<8>(bodies)(is...);
+    camp::get<9>(bodies)(is...);
+    camp::get<10>(bodies)(is...);
+
+  };
+}
+
+
 template <camp::idx_t I1, camp::idx_t I2, camp::idx_t I3,
           camp::idx_t I4, camp::idx_t I5, camp::idx_t I6>
-auto fused_lambda(auto bodies, camp::idx_seq<I1,I2,I3,I4,I5,I6> seq) {
+RAJA_INLINE
+auto fused_lambda(auto bodies, camp::idx_seq<I1,I2,I3,I4,I5,I6>) {
   return [=](auto...is) {
     camp::get<0>(bodies)(is...);
     camp::get<1>(bodies)(is...);
@@ -303,7 +355,8 @@ auto fused_lambda(auto bodies, camp::idx_seq<I1,I2,I3,I4,I5,I6> seq) {
 }
 
 template <camp::idx_t I1, camp::idx_t I2, camp::idx_t I3>
-auto fused_lambda(auto bodies, camp::idx_seq<I1,I2,I3> seq) {
+RAJA_INLINE
+auto fused_lambda(auto bodies, camp::idx_seq<I1,I2,I3>) {
   return [=](auto...is) {
     camp::get<0>(bodies)(is...);
     camp::get<1>(bodies)(is...);
@@ -311,6 +364,7 @@ auto fused_lambda(auto bodies, camp::idx_seq<I1,I2,I3> seq) {
   };
 }
 template <camp::idx_t I1, camp::idx_t I2>
+RAJA_INLINE
 auto fused_lambda(auto bodies, camp::idx_seq<I1,I2> seq) {
   return [=](auto...is) {
     camp::get<0>(bodies)(is...);
@@ -320,6 +374,7 @@ auto fused_lambda(auto bodies, camp::idx_seq<I1,I2> seq) {
 
 
 template <camp::idx_t I>
+RAJA_INLINE
 auto fused_lambda(auto bodies, camp::idx_seq<I> seq) {
   return [=](auto...is) {
     camp::get<0>(bodies)(is...);
@@ -328,6 +383,7 @@ auto fused_lambda(auto bodies, camp::idx_seq<I> seq) {
 
 
 template <typename...KnlTupleTypes, camp::idx_t...Is>
+RAJA_INLINE
 auto fused_knl(auto knlTuple, camp::idx_seq<Is...> seq) {
   auto fusedSegmentTuple = fused_segment_tuple(knlTuple, seq);
   
@@ -341,8 +397,10 @@ auto fused_knl(auto knlTuple, camp::idx_seq<Is...> seq) {
 
 
 template <typename...KnlTupleTypes, camp::idx_t...Is>
+RAJA_INLINE
 auto fuse(camp::tuple<KnlTupleTypes...> knlTuple, camp::idx_seq<Is...> seq) {
   
+  //std::cout << "starting fuse\n" << std::flush; 
   auto preKnls = pre_fuse_knls(knlTuple, seq);
   auto postKnls = post_fuse_knls(knlTuple, seq);
   auto fusedKnl = fused_knl(knlTuple, seq);
@@ -352,6 +410,7 @@ auto fuse(camp::tuple<KnlTupleTypes...> knlTuple, camp::idx_seq<Is...> seq) {
   using preKnlType = decltype(preKnls);
 
   constexpr camp::idx_t knlIdx = camp::tuple_size<preKnlType>::value;
+  //std::cout << "done with fuse\n" << std::flush;
   return fused_kernels<knlIdx>(allFusedKnls);
   
 
@@ -359,11 +418,13 @@ auto fuse(camp::tuple<KnlTupleTypes...> knlTuple, camp::idx_seq<Is...> seq) {
 
 
 template < typename...KnlTupleTypes>
+RAJA_INLINE
 auto fuse(camp::tuple<KnlTupleTypes...> knlTuple) {
   return fuse(knlTuple, idx_seq_for(knlTuple));
 }
 
 template <typename...Knls>
+RAJA_INLINE
 auto fuse(Knls...knls) {
   return fuse(make_tuple(knls...), idx_seq_for(make_tuple(knls...)));
 }
@@ -380,7 +441,7 @@ std::string shift_constraint(auto knl1, auto knl2, auto id1, auto id2 ) {
   constexpr int numDims = knl1.numArgs;
 
   isl_ctx * ctx = isl_ctx_alloc();
-  isl_printer * p = isl_printer_to_file(ctx, stdout);
+  //isl_printer * p = isl_printer_to_file(ctx, stdout);
 
   isl_union_map * depRelation = data_dep_relation_from_knls<0,1>(ctx, knl1,knl2);
 
@@ -608,11 +669,11 @@ std::string overlap_constraint(auto knl1, auto knl2, auto id1, auto id2) {
   constexpr int numDims = knl1.numArgs;
 
   isl_ctx * ctx = isl_ctx_alloc();
-  isl_printer * p = isl_printer_to_file(ctx, stdout);
+  //isl_printer * p = isl_printer_to_file(ctx, stdout);
 
   isl_union_map * depRelation = data_dep_relation_from_knls<0,1>(ctx, knl1,knl2);
 
-  isl_union_set * ispace1 = iterspace_from_knl<0>(ctx, knl1);
+  //isl_union_set * ispace1 = iterspace_from_knl<0>(ctx, knl1);
 
   isl_union_set * minInput = isl_union_set_lexmin(iterspace_from_knl<0>(ctx, knl1));
 
@@ -775,7 +836,6 @@ auto add_overlap(auto segment, auto originalSegment, std::size_t overlapAmount) 
   //std::cout << "Adding overlap of " << overlapAmount << " to the range " << beg << "," << end << "getting " << newBeg << "," << end << "\n";
 
   auto originalBeg = *(originalSegment.begin());
-  auto originalEnd = *(originalSegment.end());
 
   if(newBeg < originalBeg) {
     return RangeSegment(originalBeg, end);
@@ -795,14 +855,14 @@ auto overlap_segment_tuple(auto segmentTuple, auto originalSegmentTuple, auto ov
   return overlap_segment_tuple(segmentTuple, originalSegmentTuple, overlap, idx_seq_for(overlap));
 }
 //creates a overlapped tiling kernel policy for loops with NumDims dimensions
-template <camp::idx_t CurrDim, camp::idx_t NumDims>
+template <camp::idx_t TileSize, camp::idx_t CurrDim, camp::idx_t NumDims>
 auto overlapped_tile_policy() {
   if constexpr (CurrDim == NumDims) {
     return statement::TiledLambda<0>{};
   } else {
-    auto subPolicy = overlapped_tile_policy<CurrDim+1, NumDims>();
+    auto subPolicy = overlapped_tile_policy<TileSize, CurrDim+1, NumDims>();
     using subPolicyType = decltype(subPolicy);
-    return statement::OverlappedTile<CurrDim, statement::tile_fixed<4>, RAJA::seq_exec, subPolicyType>{};
+    return statement::OverlappedTile<CurrDim, statement::tile_fixed<TileSize>, RAJA::omp_parallel_for_exec, subPolicyType>{};
   }
 }
 
@@ -831,11 +891,11 @@ auto overlapped_tile_no_fuse_executor(auto knlTuple, auto overlaps) {
 
 
 //creates the kernel which tiles the overlapping region of the kernels in the tuple
-template <camp::idx_t...Is>
+template <camp::idx_t TileSize, camp::idx_t...Is>
 auto overlap_tile_no_fuse_kernel(auto knlTuple, auto overlapAmountTuples, camp::idx_seq<Is...> knlSeq) {
   
   auto constexpr numDims = camp::get<0>(knlTuple).numArgs;
-  using InnerPol = decltype(overlapped_tile_policy<0,numDims>());
+  using InnerPol = decltype(overlapped_tile_policy<TileSize,0,numDims>());
   using KPol = KernelPolicy<InnerPol>;
 
   auto segmentTuple = fused_segment_tuple(knlTuple, knlSeq);
@@ -845,7 +905,8 @@ auto overlap_tile_no_fuse_kernel(auto knlTuple, auto overlapAmountTuples, camp::
 }//overlap_kernel
 
 
-template <camp::idx_t...Is>
+
+template <camp::idx_t TileSize, camp::idx_t...Is>
 auto overlapped_tile_no_fuse(auto knlTuple, camp::idx_seq<Is...> seq) {
   
   auto shiftAmountTuples = shift_amount_tuples(knlTuple, seq);
@@ -858,17 +919,29 @@ auto overlapped_tile_no_fuse(auto knlTuple, camp::idx_seq<Is...> seq) {
   
   auto overlapAmountTuples = overlap_amount_tuples(shiftedKnlTuple, seq);
 
-  auto overlappedKernel = overlap_tile_no_fuse_kernel(shiftedKnlTuple, overlapAmountTuples, seq);
+  auto overlappedKernel = overlap_tile_no_fuse_kernel<TileSize, Is...>(shiftedKnlTuple, overlapAmountTuples, seq);
 
   auto allKernelTuple = tuple_cat(preTilingKnls, make_tuple(overlappedKernel), postTilingKnls);
 
   return fused_kernels<1>(allKernelTuple);
 }//overlapped_tile_no_fuse
 
-template <typename...Knls>
+
+
+template <camp::idx_t TileSize, typename...Knls>
 auto overlapped_tile_no_fuse(Knls...knls) {
   auto knlTuple = make_tuple(knls...);
-  return overlapped_tile_no_fuse(knlTuple, idx_seq_for(knlTuple));
+  auto seq = idx_seq_for(knlTuple);
+  
+  return overlapped_tile_no_fuse<TileSize>(knlTuple, idx_seq_for(knlTuple));
+}
+
+
+template <typename...Knls>
+auto overlapped_tile_no_fuse(Knls...knls) {
+  constexpr auto TileSize = 16;
+  auto knlTuple = make_tuple(knls...);
+  return overlapped_tile_no_fuse<TileSize>(knlTuple, idx_seq_for(knlTuple));
 } //overlapped_tile_no_fuse
 
 
@@ -903,7 +976,7 @@ template <camp::idx_t...Is>
 auto overlap_tile_fuse_kernel(auto knlTuple, auto overlapAmountTuples, camp::idx_seq<Is...> knlSeq) {
   
   auto constexpr numDims = camp::get<0>(knlTuple).numArgs;
-  using InnerPol = decltype(overlapped_tile_policy<0,numDims>());
+  using InnerPol = decltype(overlapped_tile_policy<128,0,numDims>());
   using KPol = KernelPolicy<InnerPol>;
 
   auto segmentTuple = fused_segment_tuple(knlTuple, knlSeq);

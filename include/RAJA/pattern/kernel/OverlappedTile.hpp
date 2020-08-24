@@ -203,7 +203,7 @@ struct StatementExecutor<
   template <typename Data>
   static RAJA_INLINE void exec(Data &data)
   {
-    std::cout << "Executing statement executor for overlappedtile\n";
+    //std::cout << "Executing statement executor for overlappedtile\n";
     // Get the segment we are going to tile
     auto const &segment = camp::get<ArgumentId>(data.segment_tuple);
 
@@ -213,7 +213,7 @@ struct StatementExecutor<
     auto tileSizes = data.tileSizes;
     auto tileSize = chunk_size; 
     if (tileSizes.size() > ArgumentId) {
-      std::cout << "tileSize: " << tileSizes.at(ArgumentId) << "\n";
+      //std::cout << "tileSize: " << tileSizes.at(ArgumentId) << "\n";
       tileSize = tileSizes.at(ArgumentId);
     } else {
       tileSize = chunk_size;

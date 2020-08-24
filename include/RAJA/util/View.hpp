@@ -62,6 +62,7 @@ struct View {
   layout_type const layout;
   pointer_type data;
 
+  
   template <typename... Args>
   RAJA_INLINE constexpr View(pointer_type data_ptr, Args... dim_sizes)
       : layout(dim_sizes...), data(data_ptr)
@@ -89,6 +90,10 @@ struct View {
   {
   }
 
+  View operator=(const View & v) {
+    return View<ValueType,LayoutType>(v.data, v.layout); 
+  }
+
   RAJA_INLINE void set_data(pointer_type data_ptr) { data = data_ptr; }
 
   template <size_t n_dims=layout_type::n_dims, typename IdxLin = Index_type>
@@ -114,31 +119,31 @@ struct View {
 
 
   template <typename... Args>
-  void sym_eval(std::vector<SymIter>&) const {}
+  void sym_eval(std::vector<SymIterator>&) const {}
 
   template <typename... Args>
-  void sym_eval(std::vector<SymIter>& allIters, SymIter sym_iter, Args... args) const
+  void sym_eval(std::vector<SymIterator>& allIterators, SymIterator sym_iterator, Args... args) const
   {
-     allIters.push_back(sym_iter);
-     sym_eval(allIters, args...);
+     allIterators.push_back(sym_iterator);
+     sym_eval(allIterators, args...);
   }
 
   template <typename... Args>
-  void sym_eval(std::vector<SymIter>& allIters, int sym_int, Args... args) const {
-    SymIter result = SymIter("0") + sym_int;
-    allIters.push_back(result);
-    sym_eval(allIters, args...);
+  void sym_eval(std::vector<SymIterator>& allIterators, int sym_int, Args... args) const {
+    SymIterator result = SymIterator("0") + sym_int;
+    allIterators.push_back(result);
+    sym_eval(allIterators, args...);
   }
 
 
 
   template <typename... Args>
-  SymAccessList operator () (SymIterator symIter, Args... args) const
+  SymAccessList operator () (SymIterator symIterator, Args... args) const
   {
-    std::vector<SymIterators> allIters;
+    std::vector<SymIterator> allIterators;
 
-    sym_eval(allIters, sym_iter, args...);
-    SymAccess thisAccess = SymAccess(data, allIters);
+    sym_eval(allIterators, symIterator, args...);
+    SymAccess thisAccess = SymAccess(data, allIterators);
     SymAccessList l = SymAccessList(thisAccess);
     return l ;
   }
@@ -166,7 +171,7 @@ struct TypedViewBase {
       : base_(data_ptr, std::forward<CLayoutType>(layout))
   {
   }
-
+  
   RAJA_INLINE void set_data(PointerType data_ptr) { base_.set_data(data_ptr); }
 
   template <size_t n_dims=Base::layout_type::n_dims, typename IdxLin = Index_type>

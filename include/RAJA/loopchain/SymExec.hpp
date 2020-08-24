@@ -36,7 +36,7 @@ struct SymIterator {
   }
 
 
-  bool operator == (const int & i) {
+  bool operator == (const int) {
     return 0;
   }
   template <typename T>
@@ -162,7 +162,12 @@ struct SymAccessList {
     accesses.push_back(a);
   }
 
-  
+  SymAccessList(const SymAccessList& other) {
+    accesses = std::vector<SymAccess>();
+    for(SymAccess a : other.accesses) {
+      accesses.push_back(a);
+    }
+  } 
   void push_back(const SymAccess & a) {
     accesses.push_back(a);
   }

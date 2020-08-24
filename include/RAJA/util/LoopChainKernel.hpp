@@ -9,7 +9,7 @@
 namespace RAJA
 {
 
-
+/*
 template <long int... Is, long int... Js>
 auto combine_sequences(const std::integer_sequence<long int, Is...>&, const std::integer_sequence<long int, Js...>&) {
 
@@ -182,7 +182,7 @@ struct KernelW {
   void execute(std::index_sequence<Is...>) {
 
 
-    util::PluginContext context{util::make_context<PolicyType>()};
+     util::PluginContext context{util::make_context<PolicyType>()};
     util::callPreLaunchPlugins(context);
 
     using segment_tuple_t = typename IterableWrapperTuple<camp::decay<SegmentTuple>>::type;
@@ -221,7 +221,7 @@ struct Fuse {
 };
 
 
-/*
+
 template <std::size_t... LoopNums> 
 struct OverlappedTile {
 
@@ -229,7 +229,7 @@ struct OverlappedTile {
  }
 
 };
-*/
+
 
 template <typename PolicyType, typename SegmentTuple, typename... Bodies>
 KernelW<PolicyType,SegmentTuple,Bodies...> makeKernel(SegmentTuple const & segment, Bodies const &... bodies) {
@@ -480,8 +480,8 @@ auto overlapped_tile_kernels(KernelW<ExecPol,Container,Bodies...> knl, Kernels&&
 }
 
 
-
-
+*/
+/*
 template <typename...Kernels, std::size_t ...Is>
 auto overlapped_tiling_2d_kernels_indexset(const std::tuple<Kernels...> & knls, const auto & overlapVectors, const auto tileDimensions, std::index_sequence<Is...>) {
 
@@ -502,7 +502,7 @@ auto overlapped_tiling_2d_kernels_indexset(const std::tuple<Kernels...> & knls, 
 
 
   auto lambdas = std::tuple(std::get<0>(std::get<Is>(knls).bodies)...);
-  /*
+  
   for iTile in 0 to iTileCount
     iStart = iTileCount * iTileSize + iBegin
     iEnd = iStart + iTileSize
@@ -512,7 +512,7 @@ auto overlapped_tiling_2d_kernels_indexset(const std::tuple<Kernels...> & knls, 
       for i in iStart to iEnd
          for j in jStart to jEnd
            blah
-  */  
+  
   
   RAJA::TypedIndexSet<RAJA::RangeSegment> iSet;
   RAJA::TypedIndexSet<RAJA::RangeSegment> jSet;
@@ -553,7 +553,7 @@ auto overlapped_tiling_2d_kernels_indexset(const std::tuple<Kernels...> & knls, 
 }
 
 
-
+*/
 /*
  * Creates the overlapped tiling, fused kernel for a tuple of 2d kernels. 
  * Does not yet handle the edges of the tile (not running overlapped when the tile is the edge tile)
@@ -562,6 +562,7 @@ auto overlapped_tiling_2d_kernels_indexset(const std::tuple<Kernels...> & knls, 
  *  (1) The kernels have the same iteration spaces
  *  (2) The tile dimensions evenly split up the iteration space
  */
+/*
 template <typename... Kernels, std::size_t ...Is>
 auto overlapped_tiling_2d_kernels(const std::tuple<Kernels...> & knls, const auto & overlapVectors, const auto tileDimensions, std::index_sequence<Is...>) {
 
@@ -657,6 +658,7 @@ auto overlapped_tiling_2d_kernels(const std::tuple<Kernels...> & knls, const aut
       >
     >
   >;
+*/
   /*
   std::cout << "Executing overlap for knl1\n";
   RAJA::kernel<OVERLAP1POLICY>(
@@ -671,7 +673,7 @@ auto overlapped_tiling_2d_kernels(const std::tuple<Kernels...> & knls, const aut
   
 */
 
-  
+  /*
 
 
 
@@ -960,7 +962,7 @@ auto chain_kernels(std::tuple<TupleTemplate...> knlTuple, Fuse<LoopNums...> fuse
   return 0;//return chain_kernels(knlTuple);
 }
 
-
+*/
 /*
 template <typename... TupleTemplate, std::size_t... LoopNums>
 auto chain_kernels(std::tuple<TupleTemplate...> knlTuple, OverlappedTile<LoopNums...> fuseDirective) {
@@ -972,6 +974,7 @@ auto chain_kernels(std::tuple<TupleTemplate...> knlTuple, OverlappedTile<LoopNum
   return chain_kernels(knlTuple);
 } 
 */
+/*
 template <typename... TupleTemplate>
 auto chain_kernels(std::tuple<TupleTemplate...> knlTuple) {
   std::cout << "Done applying transformations\n";
@@ -1132,6 +1135,6 @@ void default_chain_par_check_kernels(const Tuple& knls, std::index_sequence<Is..
 
 
 }//default_chain_par_check_kernels
-
+*/
 } //namespace RAJA
 #endif

@@ -163,8 +163,9 @@ RAJA_INLINE void kernel(SegmentTuple &&segments, Bodies &&... bodies)
 #include "RAJA/pattern/kernel/Reduce.hpp"
 #include "RAJA/pattern/kernel/Region.hpp"
 #include "RAJA/pattern/kernel/Tile.hpp"
-#include "RAJA/pattern/kernel/OverlappedTile.hpp"
 #include "RAJA/pattern/kernel/TileTCount.hpp"
 
 
+#include "RAJA/pattern/kernel/OverlappedTile.hpp"
+#include "RAJA/pattern/kernel/TiledLambda.hpp"
 #endif /* RAJA_pattern_kernel_HPP */

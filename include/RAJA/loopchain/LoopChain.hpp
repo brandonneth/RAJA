@@ -58,14 +58,17 @@ struct FusedKernels {
 
   FusedKernels(const auto & knlTuple_) : knlTuple(knlTuple_) {};
   
+  RAJA_INLINE
   auto pre_knls() {
     return slice_tuple<0,mainKnlIdx>(knlTuple);
   }
 
+  RAJA_INLINE
   auto main_knl() {
     return camp::get<mainKnlIdx>(knlTuple);
   }
 
+  RAJA_INLINE
   auto post_knls() {
     return slice_tuple<mainKnlIdx+1, numKnls>(knlTuple);
   }
@@ -76,14 +79,18 @@ struct FusedKernels {
   void execute(camp::idx_seq<I>) {
     camp::get<I>(knlTuple)();
   }
+
+ 
   template <camp::idx_t I, camp::idx_t... Is>
   RAJA_INLINE
   void execute(camp::idx_seq<I, Is...>) {
     camp::get<I>(knlTuple)();
     execute(camp::idx_seq<Is...>{});
   }
-  
+
+
   RAJA_INLINE
+  __attribute__((flatten))
   void operator() () {
     auto seq = camp::make_idx_seq_t<sizeof...(KernelTupleType)>{};
     execute(seq); 
@@ -92,6 +99,7 @@ struct FusedKernels {
 };
 
 template <camp::idx_t MainKnlIdx, typename...KnlTupleType>
+  RAJA_INLINE
 auto fused_kernels(camp::tuple<KnlTupleType...> knlTuple) {
   return FusedKernels<MainKnlIdx,KnlTupleType...>(knlTuple);
 } //fused_kernels
@@ -106,15 +114,18 @@ struct LoopChain {
   
   
   template <camp::idx_t I>
+  RAJA_INLINE
   void execute(camp::idx_seq<I>) {
     camp::get<I>(knlTuple)();
   }
   template <camp::idx_t I, camp::idx_t... Is>
+  RAJA_INLINE
   void execute(camp::idx_seq<I, Is...>) {
     camp::get<I>(knlTuple)();
     execute(camp::idx_seq<Is...>{});
   }
   
+  RAJA_INLINE
   void operator() () {
     auto seq = camp::make_idx_seq_t<sizeof...(KernelTupleType)>{};
     execute(seq); 
@@ -124,10 +135,12 @@ struct LoopChain {
 
 
 template <typename...Knls>
+  RAJA_INLINE
 auto loop_chain(camp::tuple<Knls...> knlTuple) {
   return LoopChain<Knls...>(knlTuple);
 }
 template <typename...Knls>
+  RAJA_INLINE
 auto loop_chain(Knls...knls) {
   auto knlTuple = make_tuple(knls...);
   return LoopChain<Knls...>(knlTuple);

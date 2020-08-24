@@ -38,12 +38,14 @@ struct KernelWrapper {
 
 
   template <camp::idx_t Idx>
+  RAJA_INLINE
   SymIterator make_sym_iterator() {
     std::string iteratorName = "i" + std::to_string(Idx);
     return SymIterator(iteratorName);
   }
 
   template <camp::idx_t... Is>
+  RAJA_INLINE
   auto make_iterator_tuple(camp::idx_seq<Is...>) {
     auto iterators = camp::make_tuple((make_sym_iterator<Is>())...);
     return iterators;
@@ -54,6 +56,7 @@ struct KernelWrapper {
   }
 
   template <typename... Iterators>
+  RAJA_INLINE
   std::vector<SymAccess> collect_accesses(SymIterator iterator, Iterators&&... rest) {
     std::vector<SymAccess> accesses = collect_accesses(std::forward<Iterators>(rest)...);
 
@@ -65,6 +68,7 @@ struct KernelWrapper {
   }
 
   template <camp::idx_t... Is>
+  RAJA_INLINE
   auto collect_accesses_from_iterators(auto iterators, camp::idx_seq<Is...>) {
     return collect_accesses(camp::get<Is>(iterators)...);
   }
@@ -82,6 +86,7 @@ struct KernelWrapper {
   }
 
   template <camp::idx_t... Is>
+  RAJA_INLINE
   void execute(camp::idx_seq<Is...>) const { 
   
     util::PluginContext context{util::make_context<KernelPol>()};
@@ -113,6 +118,7 @@ struct KernelWrapper {
 
   } //execute
 
+  RAJA_INLINE
   void operator() () const {
     auto seq = camp::make_idx_seq_t<sizeof...(Bodies)>{};
     execute(seq);

@@ -1,4 +1,4 @@
-//Contains camp utilitisie mostly
+//Contains camp utilities mostly
 #ifndef RAJA_LoopChainUtils_HPP
 #define RAJA_LoopChainUtils_HPP
 
@@ -93,6 +93,31 @@ constexpr auto tuple_len(camp::tuple<Ts...>) {
   return sizeof...(Ts);
 }
 
+
+
+// Vararg utilities, implemented for both tuples and parameter packs
+//   - max
+//   - min
+
+template <typename T>
+auto max(T val) {
+  return val;
+}
+
+template <typename T, typename...Ts>
+auto max(T val, Ts...rest) {
+  return std::max(val, max(rest...));
+}
+
+template <typename T>
+auto min(T val) {
+  return val;
+}
+
+template <typename T, typename...Ts>
+auto min(T val, Ts...rest) {
+  return std::min(val, min(rest...));
+}
 
 
 } //namespace RAJA

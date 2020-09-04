@@ -57,6 +57,7 @@ auto idx_seq_from_to() {
 //  - tuple_slice
 //  - tuple_len 
 //  - tuple_reverse
+//  - tuple_zip
 
 // tuple_cat: Concatenates an arbitrary number of tuples
 
@@ -101,11 +102,45 @@ auto tuple_reverse(camp::tuple<T> t) {
 
 template <typename T, typename...Ts>
 auto tuple_reverse(camp::tuple<T,Ts...> t) {
+  ;
   auto endTuple = make_tuple(camp::get<0>(t));
-  auto subTuple = tuple_reverse(tuple_slice<1,tuple_len(t)>(t));
+  auto subTuple = tuple_reverse(tuple_slice<1,sizeof...(Ts) + 1>(t));
 
   return tuple_cat(subTuple, endTuple);
 }
+
+
+// tuple_zip : given a tuple of tuples that are all the same length,
+//  creates a new tuple of tuples where the first tuple is all the first
+//  elements of the original tuples, the second element is all the second
+//  elements of the original tuples, etc...
+
+
+//returns the DimNumth slice of the zip. This means, the DimNumth element of each of the original tuples
+template <camp::idx_t DimNum, typename...InnerTupleTypes, camp::idx_t...Is>
+auto tuple_zip_slice(camp::tuple<InnerTupleTypes...> t, camp::idx_seq<Is...>) {
+  return make_tuple(camp::get<DimNum>(camp::get<Is>(t))...);
+}
+
+template <typename...InnerTupleTypes, camp::idx_t...OuterDims, camp::idx_t... InnerDims>
+auto tuple_zip_helper(camp::tuple<InnerTupleTypes...> t, 
+                      camp::idx_seq<OuterDims...> oSeq,
+                      camp::idx_seq<InnerDims...>) {
+  return make_tuple(tuple_zip_slice<InnerDims>(t, oSeq)...);
+
+}
+template <typename InnerTupleType, typename...InnerTupleTypes, camp::idx_t...Is>
+auto tuple_zip(camp::tuple<InnerTupleType, InnerTupleTypes...> t, camp::idx_seq<Is...> seq) {
+  constexpr auto innerTupleLength = camp::tuple_size<InnerTupleType>::value;
+  
+  return tuple_zip_helper(t, seq, idx_seq_from_to<0,innerTupleLength>());
+}
+
+template <typename...InnerTupleTypes>
+auto tuple_zip(camp::tuple<InnerTupleTypes...> t) {
+  return tuple_zip(t, idx_seq_for(t));
+}
+
 
 // Vararg utilities, implemented for both tuples and parameter packs
 //   - max

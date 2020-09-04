@@ -75,7 +75,15 @@ auto grouped_kernels(KernelTypes... knls) {
   return grouped_kernels<MainKnlIdx>(camp::make_tuple(knls...));
 }
 
+template <typename...KernelTypes>
+auto grouped_kernels(KernelTypes... knls) {
+  constexpr auto numKnls = sizeof...(KernelTypes);
 
+  //numKnls = 2 *nd + 1;
+  constexpr auto mainIndex = (numKnls - 1) / 2;
+
+  return grouped_kernels<mainIndex>(knls...);
+}
 // Encodes a sequence of loops. Executing a LoopChain object executes each 
 //  kernel in the chain one at a time.
 template <typename... KernelTypes>
@@ -99,14 +107,14 @@ struct LoopChain {
 
 // LoopChain constructor function for kernel tuple
 template <typename... KernelTypes>
-auto loop_chain(camp::tuple<Knls...> knlTuple) {
+auto loop_chain(camp::tuple<KernelTypes...> knlTuple) {
   return LoopChain<KernelTypes...>(knlTuple);
 }
 
 // LoopChain constructor function for kernels
 template <typename...KernelTypes>
 auto loop_chain(KernelTypes...knls) {
-  return LoopChain(KernelTypes...>(camp::make_tuple(knls...));
+  return LoopChain<KernelTypes...>(camp::make_tuple(knls...));
 }
 
 } //namespace RAJA

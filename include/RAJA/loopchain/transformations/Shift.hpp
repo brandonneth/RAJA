@@ -25,7 +25,7 @@ auto shift_segment(RangeSegment segment, const ShiftAmountType shiftAmount) {
   auto low = *segment.begin();
   auto high = *segment.end();
 
-  return SegmentType(low+shiftAmount, high+shiftAmount);
+  return RangeSegment(low+shiftAmount, high+shiftAmount);
 }
 
 // shifts the segments in segmentTuple by the amounts in shiftAmountTuple
@@ -40,7 +40,7 @@ template <typename Body, typename...Amounts, camp::idx_t...Is>
 auto shift_body(Body body, camp::tuple<Amounts...> shiftAmountTuple, camp::idx_seq<Is...>) {
   auto newBody = [=](auto...args) {
     body((args - camp::get<Is>(shiftAmountTuple))...);
-  }
+  };
   return newBody;
 }
 
@@ -50,18 +50,20 @@ auto shift(KernelType knl, camp::tuple<Amounts...> shiftAmountTuple, camp::idx_s
   auto shiftedSegmentTuple = shift_segment_tuple(knl.segments, shiftAmountTuple, seq);
   auto shiftedBody = shift_body(camp::get<0>(knl.bodies), shiftAmountTuple, seq);
   
-  return make_kernel<KernelType::KPol>(shiftedSegmentTuple, shiftedBody);
+  using KPol = typename KernelType::KPol;
+  return make_kernel<KPol>(shiftedSegmentTuple, shiftedBody);
 }
 
 
-template <typename KernelType, typename...Amounts>
-auto shift(KernelType knl, camp::tuple<Amounts...> shiftAmountTuple) {
-  return shift(knl, shiftAmountTuple, idx_seq_for(shiftAmountTuple));
-}
+//template <typename KernelType, typename...Amounts>
+//auto shift(KernelType knl, camp::tuple<Amounts...> shiftAmountTuple) {
+//  return shift(knl, shiftAmountTuple, idx_seq_for(shiftAmountTuple));
+//}
 
 template <typename KernelType, typename...Amounts>
 auto shift(KernelType knl, Amounts&&...shiftAmounts) {
-  return shift(knl, camp::make_tuple(std::forward<Amounts>(shiftAmounts)...));
+  auto amountTuple = camp::make_tuple(std::forward<Amounts>(shiftAmounts)...);
+  return shift(knl, amountTuple, idx_seq_for(amountTuple));
 }
 
 

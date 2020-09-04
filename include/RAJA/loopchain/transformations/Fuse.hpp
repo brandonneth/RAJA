@@ -23,7 +23,7 @@ auto fuse(KernelTypes... knls);
 //Transformation Definitions
 
 
-template <typename SegmentTuple, camp::idx_t I>
+template <camp::idx_t I, typename SegmentTuple>
 RAJA_INLINE
 auto low_boundary_start_dims_helper(SegmentTuple knlSegments, SegmentTuple sharedSegments) {
   auto knlSegment = camp::get<I>(knlSegments);
@@ -41,13 +41,13 @@ auto low_boundary_start_dims(SegmentTuple knlSegments, SegmentTuple sharedSegmen
 
 // Creates one of the hyper-rectangles in the lower boundary 
 // iteration space decomposition for a single kernel
-<typename...SegmentTypes, camp::idx_t I, camp::idx_t...Is>
+template <camp::idx_t I, typename...SegmentTypes, camp::idx_t...Is>
 auto low_boundary_decomp_piece(camp::tuple<SegmentTypes...> knlSegments, 
                                camp::tuple<SegmentTypes...> sharedSegments,
                                camp::idx_seq<Is...> seq) {
   //For the dimensions up to the piece number, we start at the shared start and go to the original end
   auto startSeq = idx_seq_from_to<0,I>();
-  auto startDims = low_boundary_start_dims(knlSegments, sharedSegments, firstSeq);
+  auto startDims = low_boundary_start_dims(knlSegments, sharedSegments, startSeq);
 
   //For the dimension at the piece number, start at the original start and go to the start of the shared
   auto ithKnlSegment = camp::get<I>(knlSegments);
@@ -65,19 +65,19 @@ auto low_boundary_decomp_piece(camp::tuple<SegmentTypes...> knlSegments,
 // Decomposes the lower boundary iteration space of a single kernel into a 
 // tuple of hyper-rectangles. It does so by using the lower faces of the sharedSegment
 // as partition hyperplanes
-<typename...SegmentTypes, camp::idx_t...Is>
+template <typename...SegmentTypes, camp::idx_t...Is>
 auto low_boundary_decomp(camp::tuple<SegmentTypes...> knlSegments, 
                          camp::tuple<SegmentTypes...> sharedSegments,
                          camp::idx_seq<Is...> seq) {
-  return make_tuple(low_boundary_decomp_piece<Is>(knlSegments, sharedSegments, seq));
+  return make_tuple(low_boundary_decomp_piece<Is>(knlSegments, sharedSegments, seq)...);
 }
 
 
 // Returns the kernels that execute the lower boundary iterations for a single
 // loop in a loop chain. 
-template <typename KPol, typename SegmentTuple, typename Bodies..., typename...SegmentTypes, camp::idx_t...Is>
+template <typename KPol, typename SegmentTuple, typename... Bodies, typename...SegmentTypes, camp::idx_t...Is>
 auto low_boundary_knls_for_knl(KernelWrapper<KPol,SegmentTuple,Bodies...> knl,
-                               camp::tuple<SegmenTypes...> sharedSegmentTuple, 
+                               camp::tuple<SegmentTypes...> sharedSegmentTuple, 
                                camp::idx_seq<Is...> seq) {
   auto lowBoundaryIterSpaceDecomp = low_boundary_decomp(knl.segments, sharedSegmentTuple, seq);
 
@@ -95,7 +95,7 @@ auto low_boundary_knls(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...
   auto segmentTuples = make_tuple(camp::get<Is>(knlTuple).segments...);
   auto sharedIterSpaceTuple = intersect_segment_tuples(segmentTuples);
 
-  return tuple_cat(low_bondary_knls_for_knl(camp::get<Is>(knlTuple), 
+  return tuple_cat(low_boundary_knls_for_knl(camp::get<Is>(knlTuple), 
                                             sharedIterSpaceTuple, 
                                             idx_seq_for(sharedIterSpaceTuple))...);
 
@@ -105,14 +105,14 @@ auto low_boundary_knls(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...
 
 
 
-template <typename SegmentTuple, camp::idx_t I>
+template < camp::idx_t I, typename SegmentTuple>
 RAJA_INLINE
 auto high_boundary_end_dims_helper(SegmentTuple knlSegments, SegmentTuple sharedSegments) {
   auto knlSegment = camp::get<I>(knlSegments);
   auto sharedSegment = camp::get<I>(sharedSegments);
 
   using RangeType = decltype(knlSegment);
-  return RangeType(*sharedSegmetn.begin(), *knlSegment.end());
+  return RangeType(*sharedSegment.begin(), *knlSegment.end());
 }
 
 template <typename SegmentTuple, camp::idx_t... Is>
@@ -124,8 +124,8 @@ auto high_boundary_end_dims(SegmentTuple knlSegments, SegmentTuple sharedSegment
 
 // Creates one of the hyper-rectangles in the upper boundary 
 // iteration space decomposition for a single kernel
-<typename...SegmentTypes, camp::idx_t I, camp::idx_t...Is>
-auto low_boundary_decomp_piece(camp::tuple<SegmentTypes...> knlSegments, 
+template <camp::idx_t I,typename...SegmentTypes,  camp::idx_t...Is>
+auto high_boundary_decomp_piece(camp::tuple<SegmentTypes...> knlSegments, 
                                camp::tuple<SegmentTypes...> sharedSegments,
                                camp::idx_seq<Is...> seq) {
   //For the dimensions up to the piece number, we start at the shared start and go to the shared end
@@ -146,11 +146,11 @@ auto low_boundary_decomp_piece(camp::tuple<SegmentTypes...> knlSegments,
 // Decomposes the upper boundary iteration space of a single kernel into a
 // tuple of hyper-rectangles. It does so by using the upper faces of the sharedSegment
 // as partition hyperplanes
-<typename...SegmentTypes, camp::idx_t...Is>
+template <typename...SegmentTypes, camp::idx_t...Is>
 auto high_boundary_decomp(camp::tuple<SegmentTypes...> knlSegments,
                          camp::tuple<SegmentTypes...> sharedSegments,
                          camp::idx_seq<Is...> seq) {
-  return make_tuple(high_boundary_decomp_piece<Is>(knlSegments, sharedSegments, seq));
+  return make_tuple(high_boundary_decomp_piece<Is>(knlSegments, sharedSegments, seq)...);
 }
 
 
@@ -158,13 +158,13 @@ auto high_boundary_decomp(camp::tuple<SegmentTypes...> knlSegments,
 // Returns the kernels that execute the upper boundary iterations for a single
 // loop in a loop chain. The decomposition happens in the order of the iterations
 // but their execution happens in the reverse order
-template <typename KPol, typename SegmentTuple, typename Bodies..., typename...SegmentTypes, camp::idx_t...Is>
+template <typename KPol, typename SegmentTuple, typename... Bodies, typename...SegmentTypes, camp::idx_t...Is>
 auto high_boundary_knls_for_knl(KernelWrapper<KPol,SegmentTuple,Bodies...> knl,
-                                camp::tuple<SegmenTypes...> sharedSegmentTuple, 
+                                camp::tuple<SegmentTypes...> sharedSegmentTuple, 
                                 camp::idx_seq<Is...> seq) {
   auto highBoundaryIterSpaceDecomp = high_boundary_decomp(knl.segments, sharedSegmentTuple, seq);
 
-  auto knls =  make_tuple(make_kernel<KPol>(camp::get<Is>(lowBoundaryIterSpaceDecomp), camp::get<0>(knl.bodies))...);
+  auto knls =  make_tuple(make_kernel<KPol>(camp::get<Is>(highBoundaryIterSpaceDecomp), camp::get<0>(knl.bodies))...);
 
   return tuple_reverse(knls);
 }
@@ -177,7 +177,7 @@ auto high_boundary_knls(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is..
   auto segmentTuples = make_tuple(camp::get<Is>(knlTuple).segments...);
   auto sharedIterSpaceTuple = intersect_segment_tuples(segmentTuples);
 
-  return tuple_cat(low_bondary_knls_for_knl(camp::get<Is>(knlTuple),
+  return tuple_cat(high_boundary_knls_for_knl(camp::get<Is>(knlTuple),
                                             sharedIterSpaceTuple,
                                             idx_seq_for(sharedIterSpaceTuple))...);
 }
@@ -225,12 +225,12 @@ auto fuse(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> seq) {
 
 template <typename... KernelTypes>
 auto fuse(camp::tuple<KernelTypes...> knlTuple) {
-  return fuse(knlTuple, idx_seq_for(knlTuple);
+  return fuse(knlTuple, idx_seq_for(knlTuple));
 }
 
 template <typename...KernelTypes>
 auto fuse(KernelTypes... knls) {
-  return fuse(make_tuple(knls));
+  return fuse(make_tuple(knls...));
 }
 
 } //namespace RAJA

@@ -41,10 +41,9 @@ auto intersect_segment_tuples(camp::tuple<SegmentTupleTypes...> segmentTuples,
 
   //for n in numDims
     //nth of each
-  auto zeroethDims = make_tuple((camp::get<0>(camp::get<NumTuples>(segmentTuples))...));
+  auto zeroethDims = make_tuple(camp::get<0>(camp::get<NumTuples>(segmentTuples))...);
 
-  auto groupedByDim =  make_tuple((make_tuple((camp::get<NumDims>(camp::get<NumTuples>(segmentTuples))...)))...);
-
+  auto groupedByDim =  tuple_zip(segmentTuples);
   return make_tuple(intersect_segments(camp::get<NumDims>(groupedByDim))...);
 }
 
@@ -52,7 +51,6 @@ auto intersect_segment_tuples(camp::tuple<SegmentTupleTypes...> segmentTuples,
 
 template <typename...SegmentTupleTypes, camp::idx_t...Is>
 auto intersect_segment_tuples(camp::tuple<SegmentTupleTypes...> segmentTuples, camp::idx_seq<Is...> seq) {
-  constexpr numDims = tuple_len(camp::get<0>(segmentTuples));
 
   return intersect_segment_tuples(segmentTuples, seq, idx_seq_for(camp::get<0>(segmentTuples)));
 }

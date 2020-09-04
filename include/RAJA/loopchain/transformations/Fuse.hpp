@@ -98,16 +98,89 @@ auto low_boundary_knls(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...
   return tuple_cat(low_bondary_knls_for_knl(camp::get<Is>(knlTuple), 
                                             sharedIterSpaceTuple, 
                                             idx_seq_for(sharedIterSpaceTuple))...);
+
+  
 }
 
 
 
 
+template <typename SegmentTuple, camp::idx_t I>
+RAJA_INLINE
+auto high_boundary_end_dims_helper(SegmentTuple knlSegments, SegmentTuple sharedSegments) {
+  auto knlSegment = camp::get<I>(knlSegments);
+  auto sharedSegment = camp::get<I>(sharedSegments);
+
+  using RangeType = decltype(knlSegment);
+  return RangeType(*sharedSegmetn.begin(), *knlSegment.end());
+}
+
+template <typename SegmentTuple, camp::idx_t... Is>
+RAJA_INLINE
+auto high_boundary_end_dims(SegmentTuple knlSegments, SegmentTuple sharedSegments, camp::idx_seq<Is...>) {
+  return make_tuple((high_boundary_end_dims_helper<Is>(knlSegments, sharedSegments))...);
+}
+
+
+// Creates one of the hyper-rectangles in the upper boundary 
+// iteration space decomposition for a single kernel
+<typename...SegmentTypes, camp::idx_t I, camp::idx_t...Is>
+auto low_boundary_decomp_piece(camp::tuple<SegmentTypes...> knlSegments, 
+                               camp::tuple<SegmentTypes...> sharedSegments,
+                               camp::idx_seq<Is...> seq) {
+  //For the dimensions up to the piece number, we start at the shared start and go to the shared end
+  auto startDims = tuple_slice<0,I>(sharedSegments);
+
+  //For the dimension at the piece number, start at the shared end and go to the original end
+  auto ithKnlSegment = camp::get<I>(knlSegments);
+  auto ithSharedSegment = camp::get<I>(sharedSegments);
+  auto ithDim = make_tuple(RangeSegment(*ithSharedSegment.end(), *ithKnlSegment.end()));
+
+  //For the rest of the dimensions its start of shared to end of original
+  auto endSeq = idx_seq_from_to<I+1, sizeof...(Is)>();
+  auto endDims = high_boundary_end_dims(knlSegments, sharedSegments, endSeq);
+
+  return tuple_cat(startDims, ithDim, endDims);
+} 
+
+// Decomposes the upper boundary iteration space of a single kernel into a
+// tuple of hyper-rectangles. It does so by using the upper faces of the sharedSegment
+// as partition hyperplanes
+<typename...SegmentTypes, camp::idx_t...Is>
+auto high_boundary_decomp(camp::tuple<SegmentTypes...> knlSegments,
+                         camp::tuple<SegmentTypes...> sharedSegments,
+                         camp::idx_seq<Is...> seq) {
+  return make_tuple(high_boundary_decomp_piece<Is>(knlSegments, sharedSegments, seq));
+}
 
 
 
+// Returns the kernels that execute the upper boundary iterations for a single
+// loop in a loop chain. The decomposition happens in the order of the iterations
+// but their execution happens in the reverse order
+template <typename KPol, typename SegmentTuple, typename Bodies..., typename...SegmentTypes, camp::idx_t...Is>
+auto high_boundary_knls_for_knl(KernelWrapper<KPol,SegmentTuple,Bodies...> knl,
+                                camp::tuple<SegmenTypes...> sharedSegmentTuple, 
+                                camp::idx_seq<Is...> seq) {
+  auto highBoundaryIterSpaceDecomp = high_boundary_decomp(knl.segments, sharedSegmentTuple, seq);
+
+  auto knls =  make_tuple(make_kernel<KPol>(camp::get<Is>(lowBoundaryIterSpaceDecomp), camp::get<0>(knl.bodies))...);
+
+  return tuple_reverse(knls);
+}
 
 
+// returns the kernels that execute the upper boundary iterations for a loopchain
+template <typename...KernelTypes, camp::idx_t...Is>
+auto high_boundary_knls(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> seq) {
+
+  auto segmentTuples = make_tuple(camp::get<Is>(knlTuple).segments...);
+  auto sharedIterSpaceTuple = intersect_segment_tuples(segmentTuples);
+
+  return tuple_cat(low_bondary_knls_for_knl(camp::get<Is>(knlTuple),
+                                            sharedIterSpaceTuple,
+                                            idx_seq_for(sharedIterSpaceTuple))...);
+}
 
 // returns a lambda that executes the lambdas in lambdas one at a time, in order.
 template <typename...LambdaTypes, camp::idx_t...Is>

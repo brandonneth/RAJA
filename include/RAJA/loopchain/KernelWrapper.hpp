@@ -109,7 +109,7 @@ struct KernelWrapper {
     if(overlapAmounts.size() != 0 && tileSizes.size() != 0) {
       using loop_data_t = internal::LoopData<KernelPol, segment_tuple_t, param_tuple_t, camp::decay<Bodies>...>;
 
-      loop_data_t loop_data(overlapAmounts, tileSizes, make_wrapped_tuple(segments), params, camp::get<Is>(bodies)...)
+      loop_data_t loop_data(overlapAmounts, tileSizes, make_wrapped_tuple(segments), params, camp::get<Is>(bodies)...);
 
       RAJA_FORCEINLINE_RECURSIVE
       internal::execute_statement_list<KernelPol>(loop_data);

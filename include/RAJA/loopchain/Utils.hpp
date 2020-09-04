@@ -56,7 +56,7 @@ auto idx_seq_from_to() {
 //  - tuple_cat
 //  - tuple_slice
 //  - tuple_len 
-
+//  - tuple_reverse
 
 // tuple_cat: Concatenates an arbitrary number of tuples
 
@@ -94,6 +94,18 @@ constexpr auto tuple_len(camp::tuple<Ts...>) {
 }
 
 
+template <typename T>
+auto tuple_reverse(camp::tuple<T> t) {
+  return t;
+}
+
+template <typename T, typename...Ts>
+auto tuple_reverse(camp::tuple<T,Ts...> t) {
+  auto endTuple = make_tuple(camp::get<0>(t));
+  auto subTuple = tuple_reverse(tuple_slice<1,tuple_len(t)>(t));
+
+  return tuple_cat(subTuple, endTuple);
+}
 
 // Vararg utilities, implemented for both tuples and parameter packs
 //   - max

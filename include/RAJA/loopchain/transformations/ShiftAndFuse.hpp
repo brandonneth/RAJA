@@ -9,7 +9,6 @@
 #include "RAJA/loopchain/transformations/Common.hpp"
 #include "RAJA/loopchain/transformations/Shift.hpp"
 #include "RAJA/loopchain/transformations/Fuse.hpp"
-#include "RAJA/loopchain/transformations/BoundaryKernels.hpp"
 
 namespace RAJA {
 

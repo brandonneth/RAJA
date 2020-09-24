@@ -7,7 +7,9 @@
 #include "RAJA/loopchain/KernelWrapper.hpp"
 #include "RAJA/loopchain/Chain.hpp"
 #include "RAJA/loopchain/transformations/Common.hpp"
-
+#include "RAJA/loopchain/transformations/Shift.hpp"
+#include "RAJA/loopchain/transformations/Fuse.hpp"
+#include "RAJA/loopchain/transformations/BoundaryKernels.hpp"
 
 namespace RAJA {
 
@@ -42,15 +44,15 @@ std::string shift_constraints_for_pair(auto knl1, auto knl2, auto id1, auto id2 
 
   isl_ctx * ctx = isl_ctx_alloc();
 
-  isl_union_map * depRelation = data_dep_relation_from_knls(ctx, knl1, knl2, id1, id2);
+  isl_union_map * depRelation = data_dep_relation(ctx, knl1, knl2, id1, id2);
 
-  isl_union_set * ispace1 = iterspace_from_knl(ctx, knl1, id1);
+  isl_union_set * ispace1 = knl_iterspace(ctx, knl1, id1);
 
   //If there are no dependences from knl1 to knl2, there are no constraints between these two.
   auto maxInput = isl_union_set_sample_point(isl_union_set_lexmax(ispace1));
   auto image = isl_union_set_apply(isl_union_set_from_point(isl_point_copy(maxInput)), depRelation);
   if(isl_union_set_is_empty(image)) {
-    return "";
+    return "true";
   }
 
   //now we want to get the minimum value in each dimension of the image elements;
@@ -138,8 +140,8 @@ auto shift_constraints_helper(isl_ctx * ctx, auto knlTuple) {
 
 
 // Returns the string containing the constraints on shift amounts using the dependences between the kernels
-template <camp::idx_t...Is>
-auto shift_constraints(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> seq) {
+template <typename...KernelTypes, camp::idx_t...Is>
+auto shift_constraints(isl_ctx * ctx, camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> seq) {
   return shift_constraints_helper<0,1,sizeof...(Is)>(ctx, knlTuple);
 } //shift_constraint
 
@@ -202,12 +204,12 @@ auto can_fuse(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> seq) {
 template <typename... KernelTypes>
 auto can_fuse(camp::tuple<KernelTypes...> knlTuple) {
   
-  return can_fuse(knlTuple, index_seq_for(knlTuple));
+  return can_fuse(knlTuple, idx_seq_for(knlTuple));
 }
 
 template <typename... KernelTypes>
 auto can_fuse(KernelTypes... knls) {
-  auto knlTuple = make_tuple(knls);
+  auto knlTuple = make_tuple(knls...);
   return can_fuse(knlTuple, index_seq_for(knlTuple));
 }
 
@@ -242,8 +244,8 @@ auto shift_vector_to_shift_tuples(std::vector<int> shiftVector) {
 template <typename... KernelTypes, camp::idx_t...Is>
 auto shift_amount_tuples(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> seq) {
   
-  int numKernels = sizeof...(KernelTypes);
-  int numDims = camp::get<0>(knlTuple).numArgs;
+  constexpr int numKernels = sizeof...(KernelTypes);
+  constexpr int numDims = camp::get<0>(knlTuple).numArgs;
 
   auto validShifts = valid_shift_set(knlTuple, seq);
 
@@ -267,17 +269,24 @@ auto shift_amount_tuples(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is.
   return shift_vector_to_shift_tuples<numKernels,numDims>(shiftAmounts);
 }//shift_amount_tuples
 
+
+template <camp::idx_t...Is>
+auto zip_shift(auto knlTuple, auto shiftAmountTuple, camp::idx_seq<Is...>) {
+  return make_tuple(shift(camp::get<Is>(knlTuple), camp::get<Is>(shiftAmountTuple))...);
+}
+
 template <typename... KernelTypes, camp::idx_t...Is>
 auto shift_and_fuse(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> seq) {
   if( can_fuse(knlTuple) ) {
-    auto shiftAmountTuples = shift_amount_tuples(knlTuple, seq);
-    auto shiftedKnls = make_tuple(shift(camp::get<Is>(knlTuple), camp::get<Is>(shiftAmountTuples))...);
-    return fuse(shiftedKnls);
+    
   } else {
-    std::err << "Need to create the padding empty kernels\n";
-    return fuse(knlTuple);
+    std::cerr << "Need to create the padding empty kernels\n";
   }
-
+  auto shiftAmountTuples = shift_amount_tuples(knlTuple, seq);
+    auto shiftedKnls = make_tuple((shift(camp::get<Is>(knlTuple), camp::get<Is>(shiftAmountTuples)))...);
+    auto zipped = zip_shift(knlTuple, shiftAmountTuples, seq);
+    auto fused = fuse(shiftedKnls);
+    return fused;
 }
 template <typename... KernelTypes>
 auto shift_and_fuse(camp::tuple<KernelTypes...> knlTuple) {
@@ -286,8 +295,8 @@ auto shift_and_fuse(camp::tuple<KernelTypes...> knlTuple) {
 
 template <typename... KernelTypes>
 auto shift_and_fuse(KernelTypes... knls) {
-  auto knlTuple = make_tuple(knls);
-  return shift_and_fuse(knlTuple, index_seq_for(knlTuple));
+  auto knlTuple = make_tuple(knls...);
+  return shift_and_fuse(knlTuple, idx_seq_for(knlTuple));
 }
 
 

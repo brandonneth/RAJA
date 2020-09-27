@@ -26,7 +26,7 @@ std::string overlap_constraint(Knl1 knl1, Knl2 knl2, camp::idx_t id1, camp::idx_
   
   isl_union_set * minInput = isl_union_set_lexmin(knl_iterspace(ctx, knl1, id1));
 
-  isl_union_set * image = isl_union_set_appyl(isl_union_set_copy(minInput), dependences);
+  isl_union_set * image = isl_union_set_apply(isl_union_set_copy(minInput), dependences);
 
   if(isl_union_set_is_empty(image)) {
     return "true";
@@ -45,7 +45,7 @@ std::string overlap_constraint(Knl1 knl1, Knl2 knl2, camp::idx_t id1, camp::idx_
   // updates the maximum values of the dependence distances for each 
   // dimension of the dependences between the two kernels
   auto update_max_values = [] (isl_point * p, void * _currMax) {
-    int * currMax = (int *) (currMax_);
+    int * currMax = (int *) (_currMax);
     int numDims = currMax[0];
     for(int i = 0; i < numDims; i++) {
       isl_val * pointVal = isl_point_get_coordinate_val(p, isl_dim_set, i);
@@ -64,7 +64,7 @@ std::string overlap_constraint(Knl1 knl1, Knl2 knl2, camp::idx_t id1, camp::idx_
 
   int * maxDependenceDistances = new int[numDims];
   for(int i = 0; i < numDims; i++) {
-    maxDependenceDistance[i] = maxOut[i+1] - inputValues[i+1];
+    maxDependenceDistances[i] = maxOut[i+1] - inputValues[i+1];
   }
 
   //last, build up the constraint string
@@ -75,7 +75,7 @@ std::string overlap_constraint(Knl1 knl1, Knl2 knl2, camp::idx_t id1, camp::idx_
     constraint += " >= ";
     constraint += "O" + std::to_string(id2) + "_" + std::to_string(i);
     constraint += "+";
-    constraint += std::to_string(maxDependence[i]);
+    constraint += std::to_string(maxDependenceDistances[i]);
     constraints += constraint;
     if (i != numDims - 1) {constraints += " and ";}
   }
@@ -86,15 +86,15 @@ std::string overlap_constraint(Knl1 knl1, Knl2 knl2, camp::idx_t id1, camp::idx_
 
 template <camp::idx_t id1, camp::idx_t id2, camp::idx_t NumKnls, typename...KernelTypes>
 auto overlap_constraints_helper(isl_ctx * ctx, camp::tuple<KernelTypes...> knlTuple) {
-  if constexpr (KnlId1 > NumKnls) {
+  if constexpr (id1 >= NumKnls) {
     std::string terminal = "END";
     return terminal;
-  } else if constexpr (KnlId2 >= NumKnls) {
+  } else if constexpr (id2 >= NumKnls) {
     return overlap_constraints_helper<id1+1, id1+2, NumKnls>(ctx, knlTuple);
   } else {
-    auto constraintString = overlap_constraint(camp::get<id1>(knlTuple), camp::get<id2>(knlTuple), KnlId1, KnlId2);
+    auto constraintString = overlap_constraint(camp::get<id1>(knlTuple), camp::get<id2>(knlTuple), id1, id2);
     
-    auto rest = overlap_constraints_helper<KnlId1, KnlId2+1, NumKnls>(ctx, knlTuple);
+    auto rest = overlap_constraints_helper<id1, id2+1, NumKnls>(ctx, knlTuple);
 
     if(rest == "END") {
       return constraintString;
@@ -175,7 +175,8 @@ auto overlapped_tile_no_fuse_executor(camp::tuple<KernelTypes...> knlTuple,
                                       camp::idx_seq<Is...> seq) {
 
 
-  auto entireRangeSegment = fused_segment_tuple(knlTuple, seq);
+  auto segments = make_tuple(camp::get<Is>(knlTuple).segments...);
+  auto entireRangeSegment = intersect_segment_tuples(segments);
 
   auto f = [=](auto tileRangeSegments) {
 
@@ -191,7 +192,17 @@ auto overlapped_tile_no_fuse_executor(auto knlTuple, auto overlaps) {
   return overlapped_tile_no_fuse_executor(knlTuple, overlaps, idx_seq_for(knlTuple));
 } //overlap_executor
 
-
+//creates a overlapped tiling kernel policy for loops with NumDims dimensions
+template <camp::idx_t TileSize, camp::idx_t CurrDim, camp::idx_t NumDims>
+auto overlapped_tile_policy() {
+  if constexpr (CurrDim == NumDims) {
+    return statement::TiledLambda<0>{};
+  } else {
+    auto subPolicy = overlapped_tile_policy<TileSize, CurrDim+1, NumDims>();
+    using subPolicyType = decltype(subPolicy);
+    return statement::OverlappedTile<CurrDim, statement::tile_fixed<TileSize>, RAJA::seq_exec, subPolicyType>{};
+  }
+}
 //creates the kernel which tiles the overlapping region of the kernels in the tuple
 template <camp::idx_t TileSize, camp::idx_t...Is>
 auto overlap_tile_no_fuse_kernel(auto knlTuple, auto overlapAmountTuples, camp::idx_seq<Is...> knlSeq) {
@@ -200,7 +211,8 @@ auto overlap_tile_no_fuse_kernel(auto knlTuple, auto overlapAmountTuples, camp::
   using InnerPol = decltype(overlapped_tile_policy<TileSize,0,numDims>());
   using KPol = KernelPolicy<InnerPol>;
 
-  auto segmentTuple = fused_segment_tuple(knlTuple, knlSeq);
+  auto segments = make_tuple(camp::get<Is>(knlTuple).segments...);
+  auto segmentTuple = intersect_segment_tuples(segments);
   auto tiledExecutor = overlapped_tile_no_fuse_executor(knlTuple, overlapAmountTuples);
 
   return make_kernel<KPol>(segmentTuple, tiledExecutor);

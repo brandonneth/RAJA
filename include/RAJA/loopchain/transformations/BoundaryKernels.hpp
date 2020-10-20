@@ -104,7 +104,7 @@ auto low_boundary_start_dims_helper(SegmentTuple knlSegments, SegmentTuple share
   auto sharedSegment = camp::get<I>(sharedSegments);
 
   using RangeType = decltype(knlSegment);
-  return RangeType(*knlSegment.begin(), *sharedSegment.end());
+  return RangeType(*sharedSegment.begin(), *knlSegment.end());
 }
 
 template <typename SegmentTuple, camp::idx_t... Is>

@@ -72,6 +72,8 @@ struct StatementExecutor<statement::TiledLambda<LambdaIndex>> {
   template <typename Data>
   static RAJA_INLINE void exec(Data &&data)
   {
+    std::cout << "StatementExecutor<TiledLambda<LambdaIndex>>.exec\n";
+
     auto lambda = camp::get<LambdaIndex>(data.bodies);
     exec_helper(lambda, data.segment_tuple, idx_seq_for(data.segment_tuple));
   }
@@ -89,6 +91,7 @@ struct StatementExecutor<statement::TiledLambda<LambdaIndex, Args...>> {
   static RAJA_INLINE void exec(Data &&data)
   {
 
+    std::cout << "StatementExecutor<TiledLambda<LambdaIndex, Args...>>.exec\n";
     //Convert SegList, ParamList into Seg, Param types, and store in a list
     using targList = typename camp::flatten<camp::list<Args...>>::type;
 

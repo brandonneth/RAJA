@@ -76,6 +76,7 @@ std::string overlap_constraint(Knl1 knl1, Knl2 knl2, camp::idx_t id1, camp::idx_
     constraint += "O" + std::to_string(id2) + "_" + std::to_string(i);
     constraint += "+";
     constraint += std::to_string(maxDependenceDistances[i]);
+    std::cout << constraint << "\n";
     constraints += constraint;
     if (i != numDims - 1) {constraints += " and ";}
   }
@@ -109,7 +110,6 @@ template <typename...KernelTypes, camp::idx_t...Is>
 auto overlap_constraints(isl_ctx * ctx, camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> seq) {
   return overlap_constraints_helper<0,1,sizeof...(Is)>(ctx, knlTuple);
 }
-
 //performs the ISL calculation to determine the size of the overlaps for each tile.
 //first, the strings for the space of all overlaps is created, then contrained by 
 // a requirement of non-negativity and that the overlap amount between two loops 
@@ -122,10 +122,10 @@ auto overlap_amount_tuples(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<I
   auto constexpr numDims = camp::get<0>(knlTuple).numArgs;
 
   isl_ctx * ctx = isl_ctx_alloc();
-
+  isl_printer * p = isl_printer_to_file(ctx, stdout);
   std::string overlapSet = "[";
   std::string nonNegConstraint = "";
-    for(int loopNum = 1; loopNum <= numKernels; loopNum++) {
+    for(int loopNum = 0; loopNum < numKernels; loopNum++) {
     for(int dim = 0; dim < numDims; dim++) {
       std::string overlapString = "O" + std::to_string(loopNum) + "_" + std::to_string(dim);
       overlapSet += overlapString;
@@ -137,7 +137,7 @@ auto overlap_amount_tuples(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<I
        nonNegConstraint += " and ";
       }
     }//dim
-    if(loopNum != numKernels) {
+    if(loopNum != numKernels - 1) {
       overlapSet += ",";
       nonNegConstraint += " and ";
     }
@@ -146,11 +146,12 @@ auto overlap_amount_tuples(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<I
   overlapSet += "]";
 
   std::string legalOverlapsString = "{" + overlapSet + ": " + nonNegConstraint + " and " + overlap_constraints(ctx, knlTuple, seq) + "}";
-
   isl_union_set * legalOverlaps = isl_union_set_read_from_str(ctx, legalOverlapsString.c_str());
 
   isl_point * legalOverlap = isl_union_set_sample_point(isl_union_set_lexmin(legalOverlaps));
 
+  std::cout << "legal overlap\n";
+  p = isl_printer_print_point(p, legalOverlap);
   auto point_to_vector = [](isl_point * p, int numDims) {
     std::vector<int> vals = {};
 
@@ -163,26 +164,65 @@ auto overlap_amount_tuples(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<I
   };
 
   auto overlapAmounts = point_to_vector(legalOverlap, numKernels * numDims);
+  std::cout << "overlap amounts in vector\n";
+  for(auto i : overlapAmounts) {
+    std::cout << i << " ";
+  }
   return shift_vector_to_shift_tuples<numKernels,numDims>(overlapAmounts);
 
 }//overlap_amount_tuples
 
+//adds the overlap amonut to the begining of the segment
+auto add_overlap(auto segment, auto originalSegment, std::size_t overlapAmount) {
 
+  auto beg = *(segment.begin());
+  auto end = *(segment.end());
+  signed long int newBeg = beg - overlapAmount;
+
+
+  auto originalBeg = *(originalSegment.begin());
+
+  std::cout << "adding overlap: " << overlapAmount << " to " << beg << "," << end << "\n";
+  if(newBeg < originalBeg) {
+    return RangeSegment(originalBeg, end);
+  } else {
+    return RangeSegment(newBeg, end);
+  }
+}
+
+template <camp::idx_t...Is>
+auto overlap_segment_tuple(auto segmentTuple, auto originalSegmentTuple, auto overlap, camp::idx_seq<Is...>) {
+
+  return make_tuple((add_overlap(camp::get<Is>(segmentTuple), camp::get<Is>(originalSegmentTuple), camp::get<Is>(overlap)))...);
+
+
+}
+auto overlap_segment_tuple(auto segmentTuple, auto originalSegmentTuple, auto overlap ) {
+  return overlap_segment_tuple(segmentTuple, originalSegmentTuple, overlap, idx_seq_for(overlap));
+}
 
 template <typename...KernelTypes, typename OverlapTupleType, camp::idx_t...Is>
 auto overlapped_tile_no_fuse_executor(camp::tuple<KernelTypes...> knlTuple, 
                                       OverlapTupleType overlaps, 
                                       camp::idx_seq<Is...> seq) {
+std::cout << "old loop 1: " << camp::get<0>(knlTuple).segment_string() << "\n";
+     std::cout << "old loop 2: " << camp::get<1>(knlTuple).segment_string() << "\n";
+     std::cout << "old loop 3: " << camp::get<2>(knlTuple).segment_string() << "\n";
 
 
   auto segments = make_tuple(camp::get<Is>(knlTuple).segments...);
   auto entireRangeSegment = intersect_segment_tuples(segments);
-
+    
   auto f = [=](auto tileRangeSegments) {
+     
+     auto overlapTileSegmentTuples = make_tuple(overlap_segment_tuple(tileRangeSegments, camp::get<Is>(knlTuple).segments, camp::get<Is>(overlaps))...);
 
-     auto overlapTileSegmentTuples = make_tuple((overlap_segment_tuple(tileRangeSegments, entireRangeSegment, camp::get<Is>(overlaps)))...);
      auto newKnlTuple = make_tuple((change_segment_tuple(camp::get<Is>(knlTuple), camp::get<Is>(overlapTileSegmentTuples)))...);
-     auto overlappedTileChain = chain(camp::get<Is>(newKnlTuple)...);
+
+     std::cout << "new loop 1: " << camp::get<0>(newKnlTuple).segment_string() << "\n";
+     std::cout << "new loop 2: " << camp::get<1>(newKnlTuple).segment_string() << "\n";
+     std::cout << "new loop 3: " << camp::get<2>(newKnlTuple).segment_string() << "\n";
+          auto overlappedTileChain = grouped_kernels(camp::get<Is>(newKnlTuple)...);
      overlappedTileChain();
   };
 
@@ -196,8 +236,10 @@ auto overlapped_tile_no_fuse_executor(auto knlTuple, auto overlaps) {
 template <camp::idx_t TileSize, camp::idx_t CurrDim, camp::idx_t NumDims>
 auto overlapped_tile_policy() {
   if constexpr (CurrDim == NumDims) {
+    //std::cout << "returning tiled lambda policy\n";
     return statement::TiledLambda<0>{};
   } else {
+    //std::cout << "overlapped_tile_policy<" << TileSize << "," << CurrDim << "," << NumDims << ">\n";
     auto subPolicy = overlapped_tile_policy<TileSize, CurrDim+1, NumDims>();
     using subPolicyType = decltype(subPolicy);
     return statement::OverlappedTile<CurrDim, statement::tile_fixed<TileSize>, RAJA::seq_exec, subPolicyType>{};
@@ -205,9 +247,12 @@ auto overlapped_tile_policy() {
 }
 //creates the kernel which tiles the overlapping region of the kernels in the tuple
 template <camp::idx_t TileSize, camp::idx_t...Is>
-auto overlap_tile_no_fuse_kernel(auto knlTuple, auto overlapAmountTuples, camp::idx_seq<Is...> knlSeq) {
+auto overlapped_tile_no_fuse_kernel(auto knlTuple, auto overlapAmountTuples, camp::idx_seq<Is...> knlSeq) {
 
+  //std::cout << "overlapped_tile_no_fuse_kernel\n";
+  
   auto constexpr numDims = camp::get<0>(knlTuple).numArgs;
+  auto iPol = overlapped_tile_policy<TileSize,0,numDims>();
   using InnerPol = decltype(overlapped_tile_policy<TileSize,0,numDims>());
   using KPol = KernelPolicy<InnerPol>;
 
@@ -233,7 +278,9 @@ auto overlapped_tile_no_fuse(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq
 
   auto overlapAmountTuples = overlap_amount_tuples(shiftedKnlTuple, seq);
 
-  auto overlappedKernel = overlap_tile_no_fuse_kernel<TileSize, Is...>(shiftedKnlTuple, overlapAmountTuples, seq);
+  //std::cout << "tuple amount, l1: " << camp::get<0>(camp::get<0>(overlapAmountTuples)) << "\n";
+  //std::cout << "tuple amount, l2: " << camp::get<0>(camp::get<1>(overlapAmountTuples)) << "\n";
+  auto overlappedKernel = overlapped_tile_no_fuse_kernel<TileSize, Is...>(shiftedKnlTuple, overlapAmountTuples, seq);
 
   auto allKernelTuple = tuple_cat(preTilingKnls, make_tuple(overlappedKernel), postTilingKnls);
 

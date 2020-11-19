@@ -283,7 +283,6 @@ auto shift_and_fuse(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> s
   }
   auto shiftAmountTuples = shift_amount_tuples(knlTuple, seq);
     auto shiftedKnls = make_tuple((shift(camp::get<Is>(knlTuple), camp::get<Is>(shiftAmountTuples)))...);
-    auto zipped = zip_shift(knlTuple, shiftAmountTuples, seq);
     auto fused = fuse(shiftedKnls);
     return fused;
 }

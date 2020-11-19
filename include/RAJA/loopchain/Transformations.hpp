@@ -30,6 +30,9 @@ auto fused_iterspace_upper_bounds(isl_ctx * ctx, auto iterspaceTuple, camp::idx_
 
 template <typename...Knls>
 auto chain(Knls...knls); 
+
+/*
+
 //returns a new segment that is segment shifted by shiftAmount
 auto shift_segment(const auto segment, auto shiftAmount) {
 
@@ -429,12 +432,12 @@ auto fuse(Knls...knls) {
   return fuse(make_tuple(knls...), idx_seq_for(make_tuple(knls...)));
 }
 
-
+*/
 //
 // Shift and Fuse Functions
 //
 
-
+/*
 //returns the constraints on the shift values created from the dependences between the knls
 std::string shift_constraint(auto knl1, auto knl2, auto id1, auto id2 ) {
   
@@ -598,7 +601,7 @@ auto shift_amount_tuples(auto knlTuple, camp::idx_seq<Is...> seq) {
   }//loopNum
 
   shiftSet += "]";
- 
+e
   //std::cout << "Shift Set String: " << shiftSet << "\n";
   //std::cout << "Non Negative Constraint: " << nonNegConstraint << "\n";
 
@@ -651,11 +654,11 @@ template <typename...Knls>
 auto shift_and_fuse(Knls...knls) {
   return shift_and_fuse(make_tuple(knls...), idx_seq_for(make_tuple(knls...))); 
 }//shift_and_fuse
-
+*/
 //
 // Overlapped Tile Without Fusion Functions
 //
-
+/*
 
 //creates the constraints for the overlap amounts between two kernels
 //the overlap amount constraint is that for a particular dimension, 
@@ -1010,306 +1013,11 @@ auto overlapped_tile_fuse(Knls...knls) {
   return overlapped_tile_fuse(knlTuple, idx_seq_for(knlTuple));
 
 }
-
+*/
 template <typename...Knls>
 auto chain(Knls...knls) {
   return LoopChain<Knls...>(make_tuple(knls...));
 }
-
-/*
-template <camp::idx_t... LoopIds>
-struct Fusion {
-
-}; //Fusion
-
-template<camp::idx_t... LoopIds>
-auto fuse() {
-  return Fusion<LoopIds...>();
-}
-
-
-template <camp::idx_t I>
-auto calculate_overlap_segments_helper(auto seg1, auto seg2) {
-  
-  auto dim1 = camp::get<I>(seg1);
-  auto dim2 = camp::get<I>(seg2);
-
-  using RangeType = decltype(dim1);
-
-  auto low = std::max(*dim1.begin(), *dim2.begin());
-
-  auto high = std::min(*dim1.end(), *dim2.end());
-
- 
-  return RangeType(low,high); 
-}
-
-//takes two kernels and returns the segment tuple for their overlap
-template <camp::idx_t... Is>
-auto calculate_overlap_segments(auto seg1, auto seg2, camp::idx_seq<Is...>) {
-
-  auto tuple = make_tuple((calculate_overlap_segments_helper<Is>(seg1, seg2))...);  
-
-  return tuple;
-}
-
-template <typename KernelPol, camp::idx_t ...Is>
-auto kernel_helper(auto segmentTuple, auto bodiesTuple, camp::idx_seq<Is...>) {
-  return make_kernel<KernelPol>(segmentTuple, camp::get<Is>(bodiesTuple)...);
-}
-template<camp::idx_t I>
-auto post_fuse_last_dims_helper(auto originalSegments, auto overlapSegments) {
-  
-  auto fuseSegment = camp::get<I>(overlapSegments);
-  auto originalSegment = camp::get<I>(originalSegments);
-
-  using RangeType = decltype(fuseSegment);
-
-  return RangeType(*fuseSegment.begin(), *originalSegment.end());
-
-
-}
-
-template <camp::idx_t...Is>
-auto post_fuse_last_dims(auto originalSegments, auto overlapSegments, camp::idx_seq<Is...>) {
-
-  
-  return make_tuple((post_fuse_last_dims_helper<Is>(originalSegments, overlapSegments))...);  
-}
-
-//returns the segment tuple for the I-th post-fuse kernel
-template <camp::idx_t I, camp::idx_t... Is>
-auto post_fuse_kernels_segments(auto originalSegments, auto overlapSegments, camp::idx_seq<Is...>) {
-  
-  //up to the I-th dimension, it is fuse.start to fuse.end
-
-  auto firstIthDims = slice_tuple<0,I>(overlapSegments);
-
-
-  // for ith, it is fuse.end to original.end
-  auto ithOriginal = camp::get<I>(originalSegments);
-  auto ithFuse = camp::get<I>(overlapSegments);
-
-  using RangeType = decltype(ithOriginal);
-
-  auto ithDim = make_tuple(RangeType(*ithFuse.end(), *ithOriginal.end()));
-
-  // for ith to end, its fuse.start to original.end
-
-  auto endSeq = idx_seq_from_to<I,sizeof...(Is)-1>();
-  auto endDims = post_fuse_last_dims(originalSegments,overlapSegments, endSeq);
-
-  
-  auto postFuseSegments = camp::tuple_cat_pair(firstIthDims, camp::tuple_cat_pair(ithDim, endDims));
-  
-  auto size = camp::tuple_size<decltype(postFuseSegments)>().value;
-
-  return postFuseSegments; 
-}
-
-
-template <typename KernelPol, typename Segments, typename...Bodies, camp::idx_t... Is>
-auto post_fuse_kernels(KernelWrapper<KernelPol,Segments,Bodies...> knl, auto overlapSegments, camp::idx_seq<Is...> seq) {
-  auto bodies = knl.bodies;
-
-  auto seg = knl.segments;
-
-  auto segmentTuples = make_tuple(post_fuse_kernels_segments<Is>(seg, overlapSegments, seq)...);
-
-  return make_tuple(make_kernel<KernelPol>(camp::get<Is>(segmentTuples), camp::get<0>(bodies))...);
-
-
-}
-
-
-template <typename KernelPol, camp::idx_t I1>
-auto fused_kernel(auto body1, auto body2, auto overlapSegment, camp::idx_seq<I1>) {
-
-  auto lambda = [=](auto i) {
-    body1(i);
-    body2(i);
-  };
-  
-  
-  return make_kernel<KernelPol>(overlapSegment,lambda);
-}
-
-template <typename KernelPol, camp::idx_t I1, camp::idx_t I2>
-auto fused_kernel(auto body1, auto body2, auto overlapSegment, camp::idx_seq<I1, I2>) {
-
-  auto lambda = [=](auto i, auto j) {
-    body1(i,j);
-    body2(i,j);
-  };
-  
-  return make_kernel<KernelPol>(overlapSegment,lambda);
-}
-
-template <typename KernelPol1, typename Segment1, typename...Bodies1, 
-          typename KernelPol2, typename Segment2, typename...Bodies2>
-auto fuse_kernels(const KernelWrapper<KernelPol1,Segment1,Bodies1...> & knl1, 
-                  const KernelWrapper<KernelPol2,Segment2,Bodies2...> & knl2) {
-
-  
-  auto iterationSpaceTuple = knl1.segments;  
-  auto iterationSpaceSeq = camp::make_idx_seq_t<camp::tuple_size<decltype(iterationSpaceTuple)>::value>{};
-  auto overlapSegments = calculate_overlap_segments(knl1.segments, knl2.segments, iterationSpaceSeq);
-
-  auto knl1PreKnls = pre_fuse_kernels(knl1, overlapSegments, iterationSpaceSeq);
-  auto knl2PreKnls = pre_fuse_kernels(knl2, overlapSegments, iterationSpaceSeq);
-  auto knl1PostKnls = post_fuse_kernels(knl1, overlapSegments, iterationSpaceSeq);
-  auto knl2PostKnls = post_fuse_kernels(knl2, overlapSegments, iterationSpaceSeq);
-
-  //TODO: Support multi-lambda kernels
-  auto fusedKnl = fused_kernel<KernelPol1>(camp::get<0>(knl1.bodies), camp::get<0>(knl2.bodies), overlapSegments, iterationSpaceSeq);
-  
-  //return make_tuple(knl1,knl2);
-  //return knl1PreKnls; 
-  return tuple_cat(knl1PreKnls, knl2PreKnls, make_tuple(fusedKnl), knl1PostKnls, knl2PostKnls);
-  
-   
-
-} //fuse_kernels
-
-*/
-
-template <camp::idx_t LoopId, typename OverlapTupleType, typename TileSizeTupleType>
-struct OverlappedTile {
-  
-  OverlapTupleType overlapAmounts;
-  TileSizeTupleType tileSizes;
-
-  OverlappedTile(auto _overlapAmounts, 
-                 auto _tileSizes) : 
-    overlapAmounts(_overlapAmounts), tileSizes(_tileSizes) {}
-
-  //TODO: support different overlaps for different loops
-  
-
-}; //OverlappedTile
-
-template < camp::idx_t LoopId, typename OverlapTupleType, typename TileSizeTupleType>
-auto overlapped_tile(OverlapTupleType overlapAmounts, TileSizeTupleType tileSizes) {
-  return OverlappedTile<LoopId, OverlapTupleType, TileSizeTupleType>(overlapAmounts, tileSizes);
-
-
-} //overlapped_tile()
-/*
-template <camp::idx_t LoopId, typename...TileSizeTypes>
-auto tile(camp::tuple<TileSizeTypes...> tileSizes) {
-  auto overlapAmounts = tuple_repeat<TileSizeTypes...>(0);
-
-  return overlapped_tile<LoopId>(overlapAmounts, tileSizes);
-}
-
-template <camp::idx_t...Is>
-std::vector<camp::idx_t> tuple_to_vector(auto tuple, camp::idx_seq<Is...>) {
-
-  auto vector = std::vector<camp::idx_t>{camp::get<Is>(tuple)...};
-
-  return vector;
-
-}//tuple_to_vector
-
-template <long int N, long int M, typename ExecPolicy>
-auto extract_for_indices(RAJA::KernelPolicy<RAJA::statement::For<N,ExecPolicy,RAJA::statement::Lambda<M>>>) {
-  return camp::idx_seq<N>{};
-}
-template <typename ExecPolicy, typename Statements, long int N>
-auto extract_for_indices(RAJA::KernelPolicy<RAJA::statement::For<N,ExecPolicy,Statements>>) {
-
-  using sub_policy_t = RAJA::KernelPolicy<Statements>;
-  auto subPolicy = sub_policy_t();
-  auto subIndices = extract_for_indices(subPolicy);
-
-  auto thisIndex = camp::idx_seq<N>{};
-  
-  auto indices = idx_seq_cat(subIndices,thisIndex);
-
-  return indices;
-  
-} //extract_for_indices;
-
-template <typename Statements, camp::idx_t I>
-auto apply_wrap(RAJA::KernelPolicy<Statements>, camp::idx_seq<I>) {
-  using wrapped_policy_t = RAJA::KernelPolicy<RAJA::statement::OverlappedTile<I,0,RAJA::statement::tile_fixed<4>, RAJA::seq_exec, Statements>>;
-
-  return wrapped_policy_t();
-} //apply_wrap
-
-template <typename Statements, camp::idx_t I, camp::idx_t...Is>
-auto apply_wrap(RAJA::KernelPolicy<Statements>, camp::idx_seq<I,Is...>) {
-  using wrapped_policy_t = RAJA::KernelPolicy<RAJA::statement::OverlappedTile<I,0,RAJA::statement::tile_fixed<4>, RAJA::seq_exec, Statements>>;
-
-  return apply_wrap(wrapped_policy_t(), camp::idx_seq<Is...>{});
-} //apply_wrap
-
-template <typename ExecPolicy, typename Statements, long int N>
-auto wrap_fors_with_overlapped_tile(RAJA::KernelPolicy<RAJA::statement::For<N, ExecPolicy, Statements>> knlPolicy) {
- 
-  auto forIndices = extract_for_indices(knlPolicy);
-   
-  auto wrapped = apply_wrap(knlPolicy, forIndices);
-
-  return wrapped;
-}//wrap_for_with_overlapped_tile
-
-*/
-template <typename KernelPol, typename Segment, typename...Bodies>
-auto overlapped_tile_kernel(KernelWrapper<KernelPol,Segment,Bodies...> knl, auto overlapAmounts, auto tileSizes) {
-  return knl;
-
-} // overlapped_tile_kernel
-
-template <std::size_t NumDims, std::size_t StartingIndex, camp::idx_t LambdaIndex>
-auto for_nest_exec_pol() {
-  if constexpr (NumDims == 1) {
-    return statement::For<StartingIndex, seq_exec, statement::Lambda<LambdaIndex>>{};
-  } else {
-    auto subNest = for_nest_exec_pol<NumDims-1, StartingIndex+1, LambdaIndex>();
-    using subNestType = decltype(subNest);
-    return statement::For<StartingIndex,seq_exec, subNestType>{};
-  }
-}
-
-
-template <typename...P1, typename...P2>
-auto combine_kernel_policies(KernelPolicy<P1...> kp1, KernelPolicy<P2...> kp2) {
-  return KernelPolicy<P1...,P2...>{};
-}
-
-template <camp::idx_t NumLoops, camp::idx_t NumDims, camp::idx_t StartingLoopIndex, camp::idx_t LambdaIndex>
-auto overlapped_tiling_inner_exec_pol_helper() {
-  
-  if constexpr (NumLoops == 1) {
-    auto currentPolicy = for_nest_exec_pol<NumDims, StartingLoopIndex, LambdaIndex>();
-    return KernelPolicy<decltype(currentPolicy)>{};
-  } else {
-    auto currentPolicy = for_nest_exec_pol<NumDims, StartingLoopIndex, LambdaIndex>();
-
-  
-    auto remainingPolicyWrapped = overlapped_tiling_inner_exec_pol_helper<NumLoops-1, NumDims, StartingLoopIndex + NumDims, LambdaIndex + 1>();
-    return combine_kernel_policies(KernelPolicy<decltype(currentPolicy)>{}, remainingPolicyWrapped);
-  }
-
-}
-
-//Returns an instance of the execution policy that goes inside an overlapped tiling policy for NumLoops loops of dimension Dim
-template <std::size_t NumLoops, std::size_t Dim>
-auto overlapped_tiling_inner_exec_pol() {
-  return overlapped_tiling_inner_exec_pol_helper<NumLoops,Dim,0,0>(); 
-}
-
-
-
-
-template<typename KnlPol, typename SegmentTuple, typename...Bodies>
-auto change_segment_tuple(KernelWrapper<KnlPol,SegmentTuple,Bodies...> knl, auto newSegments) {
-  return make_kernel<KnlPol>(newSegments, camp::get<0>(knl.bodies));
-
-}
-
-
 
 
 

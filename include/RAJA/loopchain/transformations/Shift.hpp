@@ -15,7 +15,7 @@ template <typename KernelType, typename...Amounts>
 auto shift(KernelType knl, camp::tuple<Amounts...> shiftAmountTuple);
 
 template <typename KernelType, typename...Amounts>
-auto shift(KernelType knl, Amounts&&...shiftAmounts);
+auto shift(KernelType knl, Amounts...shiftAmounts);
 
 //Transformation Definitions
 
@@ -55,14 +55,14 @@ auto shift(KernelType knl, camp::tuple<Amounts...> shiftAmountTuple, camp::idx_s
 }
 
 
-//template <typename KernelType, typename...Amounts>
-//auto shift(KernelType knl, camp::tuple<Amounts...> shiftAmountTuple) {
-//  return shift(knl, shiftAmountTuple, idx_seq_for(shiftAmountTuple));
-//}
+template <typename KernelType, typename...Amounts>
+auto shift(KernelType knl, camp::tuple<Amounts...> shiftAmountTuple) {
+  return shift(knl, shiftAmountTuple, idx_seq_for(shiftAmountTuple));
+}
 
 template <typename KernelType, typename...Amounts>
-auto shift(KernelType knl, Amounts&&...shiftAmounts) {
-  auto amountTuple = camp::make_tuple(std::forward<Amounts>(shiftAmounts)...);
+auto shift(KernelType knl, Amounts...shiftAmounts) {
+  auto amountTuple = camp::make_tuple(shiftAmounts...);
   return shift(knl, amountTuple, idx_seq_for(amountTuple));
 }
 

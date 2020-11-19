@@ -202,6 +202,10 @@ struct SymAccessList {
     return arith_operator(other);
   }
 
+
+  SymAccessList & operator + (const SymIterator & other ) {
+    return *this;
+  }
   //for "a(i) + 2" like statements
   void num_cast() {
     for(SymAccess& a : accesses) {

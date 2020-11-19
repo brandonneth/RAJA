@@ -76,7 +76,7 @@ struct OverlappedTileWrapper : public GenericWrapper<Data, EnclosedStmts...> {
     camp::get<ArgumentId>(Base::data.segment_tuple) = si.s;
     //Base::data.template assign_offset<ArgumentId>(si);
     // Execute enclosed statements
-    //std::cout << "calling Base::exec()\n";
+    std::cout << "calling Base::exec()\n";
     Base::exec();
   }
 };
@@ -203,6 +203,7 @@ struct StatementExecutor<
   template <typename Data>
   static RAJA_INLINE void exec(Data &data)
   {
+    std::cout << "StatementExecutor<OverlappedTile>\n";
     //std::cout << "Executing statement executor for overlappedtile\n";
     // Get the segment we are going to tile
     auto const &segment = camp::get<ArgumentId>(data.segment_tuple);

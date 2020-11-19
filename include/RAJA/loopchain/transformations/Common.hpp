@@ -99,7 +99,8 @@ isl_union_map * data_dep_relation(isl_ctx * ctx,
 // Common ISL Code Definitions
 
 // gives each view a unique identifier for its use in access relations
-auto get_array_name(SymAccess access) {
+template <typename AccessType>
+auto get_array_name(AccessType access) {
   static std::map<void*, camp::idx_t> idMap = {};
   static camp::idx_t counter = 0;
   auto ptr = access.view;

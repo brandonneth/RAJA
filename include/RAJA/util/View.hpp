@@ -59,7 +59,7 @@ struct View {
       typename std::remove_pointer<pointer_type>::type>::type>::type;
   using NonConstView = View<nc_value_type, layout_type, nc_pointer_type>;
 
-  layout_type const layout;
+  layout_type  layout;
   pointer_type data;
 
   
@@ -90,9 +90,14 @@ struct View {
   {
   }
 
-  View operator=(const View & v) {
-    return View<ValueType,LayoutType>(v.data, v.layout); 
-  }
+  /*
+   View operator=(const View & v) {
+    std::cout << "initializer 2\n";
+    this->data = v.data;
+    this->layout = v.layout;
+    return v;
+  } */
+  View & operator=(const View &) = default;
 
   RAJA_INLINE void set_data(pointer_type data_ptr) { data = data_ptr; }
 

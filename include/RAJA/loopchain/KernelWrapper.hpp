@@ -133,6 +133,27 @@ struct KernelWrapper {
   void operator() (SegmentTuple segs) {
     //TODO: Enable the kernel to be executed with a different segment
   }
+
+
+  template <camp::idx_t I, camp::idx_t...Is>
+  std::string segment_string_helper(camp::idx_seq<I, Is...>) {
+    auto currSeg = camp::get<I>(segments);
+    std::stringstream s;
+    s << "(" << *currSeg.begin() << "," << *currSeg.end() << ") ";
+
+    if constexpr (sizeof...(Is) == 0) {
+      return s.str();
+    } else {
+      return s.str() + segment_string_helper(camp::idx_seq<Is...>{});
+    }
+  }
+
+  std::string segment_string() {
+
+    return segment_string_helper(idx_seq_for(segments));
+  }
+
+
 }; // KernelWrapper
 
 //creates a kernel object using the same interface as the kernel function
@@ -154,6 +175,12 @@ auto make_forall(Segment segment, const Body & body) {
     >;     
   
   return KernelWrapper<KernPol, camp::tuple<Segment>, Body>(camp::make_tuple(segment), body);
+}
+
+template <typename KernPol, typename SegmentTuple, typename...Bodies>
+auto change_segment_tuple(KernelWrapper<KernPol, SegmentTuple, Bodies...> knl, SegmentTuple newSeg) {
+  
+  return make_kernel<KernPol>(newSeg, camp::get<0>(knl.bodies));
 }
 
 

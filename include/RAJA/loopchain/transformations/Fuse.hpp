@@ -24,6 +24,41 @@ auto fuse(KernelTypes... knls);
 
 //Transformation Definitions
 
+
+//specialized lambdas for 4 and 11 kernel fusions
+template <typename...LambdaTypes, camp::idx_t I0, camp::idx_t I1, camp::idx_t I2, camp::idx_t I3>
+auto fused_lambda(camp::tuple<LambdaTypes...> lambdas, camp::idx_seq<I0,I1,I2,I3>) {
+
+  return [=](auto...is) {
+    camp::get<I0>(lambdas)(is...);
+    camp::get<I1>(lambdas)(is...);
+    camp::get<I2>(lambdas)(is...);
+    camp::get<I3>(lambdas)(is...);
+  };
+}
+
+template <typename...LambdaTypes, camp::idx_t I0, camp::idx_t I1, camp::idx_t I2, 
+          camp::idx_t I3, camp::idx_t I4, camp::idx_t I5, camp::idx_t I6, 
+          camp::idx_t I7, camp::idx_t I8, camp::idx_t I9, camp::idx_t I10>
+auto fused_lambda(camp::tuple<LambdaTypes...> lambdas, camp::idx_seq<I0,I1,I2,I3,I4,I5,I6,I7,I8,I9,I10>) {
+
+  return [=](auto...is) {
+    camp::get<I0>(lambdas)(is...);
+    camp::get<I1>(lambdas)(is...);
+    camp::get<I2>(lambdas)(is...);
+    camp::get<I3>(lambdas)(is...);
+    camp::get<I4>(lambdas)(is...);
+    camp::get<I5>(lambdas)(is...);
+    camp::get<I6>(lambdas)(is...);
+    camp::get<I7>(lambdas)(is...);
+    camp::get<I8>(lambdas)(is...);
+    camp::get<I9>(lambdas)(is...);
+    camp::get<I10>(lambdas)(is...);
+  };
+}
+
+
+
 // returns a lambda that executes the lambdas in lambdas one at a time, in order.
 template <typename...LambdaTypes, camp::idx_t...Is>
 auto fused_lambda(camp::tuple<LambdaTypes...> lambdas, camp::idx_seq<Is...>) {
@@ -60,7 +95,7 @@ auto fuse(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> seq) {
   auto fusedKnl = fused_knl(knlTuple, seq);
 
   auto allKnls = tuple_cat(lowBoundKnls, make_tuple(fusedKnl), highBoundKnls);
-  
+   
   return grouped_kernels(allKnls);
 }
 

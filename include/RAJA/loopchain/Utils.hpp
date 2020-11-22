@@ -61,6 +61,10 @@ auto idx_seq_from_to() {
 
 // tuple_cat: Concatenates an arbitrary number of tuples
 
+template <typename Tuple1>
+auto tuple_cat(Tuple1 t1) {
+  return t1;
+}
 template <typename Tuple1, typename Tuple2>
 auto tuple_cat(Tuple1 t1, Tuple2 t2) {
   return camp::tuple_cat_pair(t1,t2);

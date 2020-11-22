@@ -87,7 +87,7 @@ auto high_boundary_knls_for_knl(KernelWrapper<KPol,SegmentTuple,Bodies...> knl,
 
 // returns the kernels that execute the upper boundary iterations for a loopchain
 template <typename...KernelTypes, camp::idx_t...Is>
-auto high_boundary_knls(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> seq) {
+auto high_boundary_knls(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...>) {
 
   auto segmentTuples = make_tuple(camp::get<Is>(knlTuple).segments...);
   auto sharedIterSpaceTuple = intersect_segment_tuples(segmentTuples);

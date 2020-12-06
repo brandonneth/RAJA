@@ -17,6 +17,7 @@ struct SymIterator;
 struct SymAccess;
 struct SymAccessList;
 
+
 struct SymIterator {
   
   std::string name;
@@ -116,36 +117,16 @@ struct SymAccess {
     isWrite = false;
   }
 
-  void set_read() {
-    isRead = true;
-  }
+  void set_read(); 
+  
+  void set_write();
+  void link_to_iterators();
 
-  void set_write() {
-    isWrite = true;
-  }
+  std::string access_string();
+  operator SymAccessList();
 
-  void link_to_iterators() {
-    for(SymIterator i : iterators) {
-      i.accesses->push_back(*this);
-    }
-  }
+  friend std::ostream& operator<< (std::ostream& s, SymAccess a);
 
-  std::string access_string() {
-    std::stringstream s;
-    for(auto i : iterators) {
-      s << i.name << ",";
-    }
-    
-    std::string res = s.str();
-    res.pop_back();
-    return res;
-  }
-
-  friend std::ostream& operator<< (std::ostream& s, SymAccess a) {
-    s << " " << a.view << " ";
-    s << a.access_string();
-    return s;
-  }
 }; //SymAccess
   
 
@@ -174,39 +155,9 @@ struct SymAccessList {
 
   //rhs operations 
 
-  SymAccessList & arith_operator(const SymAccessList & other) {
-
-    for(SymAccess a : other.accesses) {
-      accesses.push_back(a);
-    }
-    return *this;
-  }
-
-  SymAccessList & operator + (const SymAccessList& other) {
-    return arith_operator(other);
-  }  
- 
-  SymAccessList & operator - (const SymAccessList & other) {
-    return arith_operator(other);
-  }
-
-  SymAccessList & operator * (const SymAccessList & other) {
-    return arith_operator(other);
-  }
-
-  SymAccessList & operator / (const SymAccessList & other) {
-    return arith_operator(other);
-  }
-
-  SymAccessList & operator % (const SymAccessList & other) {
-    return arith_operator(other);
-  }
 
 
-  SymAccessList & operator + (const SymIterator & other ) {
-    return *this;
-  }
-  //for "a(i) + 2" like statements
+   //for "a(i) + 2" like statements
   void num_cast() {
     for(SymAccess& a : accesses) {
       a.set_read();
@@ -333,6 +284,78 @@ struct SymAccessList {
 
 }; //SymAccessList
 
+
+SymAccessList list_op_int(const SymAccessList & l0, int scalar);
+SymAccessList list_op_double(const SymAccessList & l0, double scalar);
+SymAccessList list_op_iterator(const SymAccessList & l0, const SymIterator & i1);
+SymAccessList int_op_list(int scalar, const SymAccessList & l1);
+SymAccessList double_op_list(double scalar, const SymAccessList & l1);
+SymAccessList iterator_op_list(const SymIterator & i0, const SymAccessList & l1);
+
+// Code for expressions involving two symbolic access lists. 
+//This should include operations that involve a symoblic access bc it has a conversion function to symaccesslist.
+SymAccessList operator + (const SymAccessList & l0, const SymAccessList & l1);
+SymAccessList operator - (const SymAccessList & l0, const SymAccessList & l1);
+SymAccessList operator * (const SymAccessList & l0, const SymAccessList & l1);
+SymAccessList operator / (const SymAccessList & l0, const SymAccessList & l1);
+SymAccessList operator % (const SymAccessList & l0, const SymAccessList & l1);
+
+
+// functions for list op int
+SymAccessList operator + (const SymAccessList & l0, int scalar);
+SymAccessList operator - (const SymAccessList & l0, int scalar);
+SymAccessList operator * (const SymAccessList & l0, int scalar);
+SymAccessList operator / (const SymAccessList & l0, int scalar);
+SymAccessList operator % (const SymAccessList & l0, int scalar);
+
+//functions for list op double
+SymAccessList operator + (const SymAccessList & l0, double scalar);
+SymAccessList operator - (const SymAccessList & l0, double scalar);
+SymAccessList operator * (const SymAccessList & l0, double scalar);
+SymAccessList operator / (const SymAccessList & l0, double scalar);
+SymAccessList operator % (const SymAccessList & l0, double scalar);
+
+//functions for list op const SymIterator
+SymAccessList operator + (const SymAccessList & l0, const SymIterator & i1);
+SymAccessList operator - (const SymAccessList & l0, const SymIterator & i1);
+SymAccessList operator * (const SymAccessList & l0, const SymIterator & i1);
+SymAccessList operator / (const SymAccessList & l0, const SymIterator & i1);
+SymAccessList operator % (const SymAccessList & l0, const SymIterator & i1);
+
+
+//functions for int op list
+SymAccessList operator + (int scalar, const SymAccessList & l1);
+SymAccessList operator - (int scalar, const SymAccessList & l1);
+SymAccessList operator * (int scalar, const SymAccessList & l1);
+SymAccessList operator / (int scalar, const SymAccessList & l1);
+SymAccessList operator % (int scalar, const SymAccessList & l1);
+
+//functions for double op list
+SymAccessList operator + (double scalar, const SymAccessList & l1);
+SymAccessList operator - (double scalar, const SymAccessList & l1);
+SymAccessList operator * (double scalar, const SymAccessList & l1);
+SymAccessList operator / (double scalar, const SymAccessList & l1);
+
+
+//functions for SymIterator op list
+SymAccessList operator + (const SymIterator & i0, const SymAccessList & l1);
+SymAccessList operator - (const SymIterator & i0, const SymAccessList & l1);
+SymAccessList operator * (const SymIterator & i0, const SymAccessList & l1);
+SymAccessList operator / (const SymIterator & i0, const SymAccessList & l1);
+SymAccessList operator % (const SymIterator & i0, const SymAccessList & l1);
+
+
+// Assignments
+
+SymAccessList list_assign_list(const SymAccessList &l0, const SymAccessList & l1);
+SymAccessList list_assign_int(const SymAccessList & l0, int scalar);
+SymAccessList list_assign_double(const SymAccessList & l0, double scalar);
+SymAccessList list_assign_iterator(const SymAccessList & l0, const SymIterator & i1);
+
+SymAccessList list_update_list(const SymAccessList &l0, const SymAccessList & l1);
+SymAccessList list_update_int(const SymAccessList & l0, int scalar);
+SymAccessList list_update_double(const SymAccessList & l0, double scalar);
+SymAccessList list_update_iterator(const SymAccessList & l0, const SymIterator & i1);
 
 } // namespace RAJA
 

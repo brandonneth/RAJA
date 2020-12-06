@@ -57,6 +57,26 @@ auto fused_lambda(camp::tuple<LambdaTypes...> lambdas, camp::idx_seq<I0,I1,I2,I3
   };
 }
 
+template <typename...LambdaTypes, camp::idx_t I0, camp::idx_t I1, camp::idx_t I2,
+          camp::idx_t I3, camp::idx_t I4, camp::idx_t I5, camp::idx_t I6,
+          camp::idx_t I7, camp::idx_t I8, camp::idx_t I9, camp::idx_t I10, camp::idx_t I11>
+auto fused_lambda(camp::tuple<LambdaTypes...> lambdas, camp::idx_seq<I0,I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11>) {
+
+  return [=](auto...is) {
+    camp::get<I0>(lambdas)(is...);
+    camp::get<I1>(lambdas)(is...);
+    camp::get<I2>(lambdas)(is...);
+    camp::get<I3>(lambdas)(is...);
+    camp::get<I4>(lambdas)(is...);
+    camp::get<I5>(lambdas)(is...);
+    camp::get<I6>(lambdas)(is...);
+    camp::get<I7>(lambdas)(is...);
+    camp::get<I8>(lambdas)(is...);
+    camp::get<I9>(lambdas)(is...);
+    camp::get<I10>(lambdas)(is...);
+    camp::get<I11>(lambdas)(is...);
+  };
+}
 
 
 // returns a lambda that executes the lambdas in lambdas one at a time, in order.

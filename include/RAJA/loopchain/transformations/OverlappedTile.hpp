@@ -150,7 +150,7 @@ auto overlap_amount_tuples(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<I
 
   isl_point * legalOverlap = isl_union_set_sample_point(isl_union_set_lexmin(legalOverlaps));
 
-  std::cout << "legal overlap\n";
+ // std::cout << "legal overlap\n";
   p = isl_printer_print_point(p, legalOverlap);
   auto point_to_vector = [](isl_point * p, int numDims) {
     std::vector<int> vals = {};
@@ -164,10 +164,10 @@ auto overlap_amount_tuples(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<I
   };
 
   auto overlapAmounts = point_to_vector(legalOverlap, numKernels * numDims);
-  std::cout << "overlap amounts in vector\n";
+  /*std::cout << "overlap amounts in vector\n";
   for(auto i : overlapAmounts) {
     std::cout << i << " ";
-  }
+  }*/
   return shift_vector_to_shift_tuples<numKernels,numDims>(overlapAmounts);
 
 }//overlap_amount_tuples
@@ -182,7 +182,7 @@ auto add_overlap(auto segment, auto originalSegment, std::size_t overlapAmount) 
 
   auto originalBeg = *(originalSegment.begin());
 
-  std::cout << "adding overlap: " << overlapAmount << " to " << beg << "," << end << "\n";
+  //std::cout << "adding overlap: " << overlapAmount << " to " << beg << "," << end << "\n";
   if(newBeg < originalBeg) {
     return RangeSegment(originalBeg, end);
   } else {
@@ -205,10 +205,6 @@ template <typename...KernelTypes, typename OverlapTupleType, camp::idx_t...Is>
 auto overlapped_tile_no_fuse_executor(camp::tuple<KernelTypes...> knlTuple, 
                                       OverlapTupleType overlaps, 
                                       camp::idx_seq<Is...> seq) {
-std::cout << "old loop 1: " << camp::get<0>(knlTuple).segment_string() << "\n";
-     std::cout << "old loop 2: " << camp::get<1>(knlTuple).segment_string() << "\n";
-     std::cout << "old loop 3: " << camp::get<2>(knlTuple).segment_string() << "\n";
-
 
   auto segments = make_tuple(camp::get<Is>(knlTuple).segments...);
   auto entireRangeSegment = intersect_segment_tuples(segments);
@@ -219,10 +215,7 @@ std::cout << "old loop 1: " << camp::get<0>(knlTuple).segment_string() << "\n";
 
      auto newKnlTuple = make_tuple((change_segment_tuple(camp::get<Is>(knlTuple), camp::get<Is>(overlapTileSegmentTuples)))...);
 
-     std::cout << "new loop 1: " << camp::get<0>(newKnlTuple).segment_string() << "\n";
-     std::cout << "new loop 2: " << camp::get<1>(newKnlTuple).segment_string() << "\n";
-     std::cout << "new loop 3: " << camp::get<2>(newKnlTuple).segment_string() << "\n";
-          auto overlappedTileChain = grouped_kernels(camp::get<Is>(newKnlTuple)...);
+     auto overlappedTileChain = grouped_kernels(camp::get<Is>(newKnlTuple)...);
      overlappedTileChain();
   };
 

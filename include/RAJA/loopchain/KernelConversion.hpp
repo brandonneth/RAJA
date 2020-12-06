@@ -11,7 +11,8 @@
 #include "RAJA/loopchain/Utils.hpp"
 namespace RAJA {
 
-auto get_array_name(SymAccess a);
+template <typename T>
+T get_array_name(SymAccess a);
 
 
 template <camp::idx_t Dim>

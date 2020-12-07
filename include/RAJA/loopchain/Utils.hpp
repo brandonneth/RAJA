@@ -151,23 +151,23 @@ auto tuple_zip(camp::tuple<InnerTupleTypes...> t) {
 //   - min
 
 template <typename T>
-auto max(T val) {
+auto vmax(T val) {
   return val;
 }
 
 template <typename T, typename...Ts>
-auto max(T val, Ts...rest) {
-  return std::max(val, max(rest...));
+auto vmax(T val, Ts...rest) {
+  return std::max(val, vmax(rest...));
 }
 
 template <typename T>
-auto min(T val) {
+auto vmin(T val) {
   return val;
 }
 
 template <typename T, typename...Ts>
-auto min(T val, Ts...rest) {
-  return std::min(val, min(rest...));
+auto vmin(T val, Ts...rest) {
+  return std::min(val, vmin(rest...));
 }
 
 

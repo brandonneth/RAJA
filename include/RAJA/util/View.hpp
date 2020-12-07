@@ -23,12 +23,10 @@
 #include "RAJA/config.hpp"
 
 #include "RAJA/pattern/atomic.hpp"
+
 #include "RAJA/util/Layout.hpp"
 #include "RAJA/util/OffsetLayout.hpp"
 #include "RAJA/util/TypedViewBase.hpp"
-
-#include "RAJA/loopchain/SymExec.hpp"
-
 
 namespace RAJA
 {
@@ -53,6 +51,7 @@ template <typename ValueType,
           typename PointerType = ValueType *>
 using View =
     internal::ViewBase<ValueType, ValueType *, LayoutType>;
+
 
 
 template <typename ValueType, typename LayoutType, typename... IndexTypes>
@@ -144,7 +143,6 @@ RAJA_HOST_DEVICE RAJA_INLINE auto removenth( Lay lyout, Tup&& tup ) ->
 }
 
 
->>>>>>> develop
 
 
 // P2Pidx represents the array-of-pointers index. This allows the position of the
@@ -200,7 +198,6 @@ struct MultiView {
         data(rhs.data)
   {
   }
-
 
   RAJA_INLINE void set_data(pointer_type data_ptr) { data = data_ptr; }
 

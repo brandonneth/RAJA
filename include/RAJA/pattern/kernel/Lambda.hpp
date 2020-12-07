@@ -234,8 +234,8 @@ struct LambdaArgExtractor<Types, LambdaArg<lambda_arg_seg_t, id>>
 
 };
 
-template <camp::idx_t LambdaIndex>
-struct StatementExecutor<statement::TiledLambda<LambdaIndex>> {
+template <camp::idx_t LambdaIndex, typename Types>
+struct StatementExecutor<statement::TiledLambda<LambdaIndex>, Types> {
   template <typename Data>
   static RAJA_INLINE void exec(Data &&data)
   {
@@ -303,8 +303,8 @@ struct StatementExecutor<statement::Lambda<LambdaIndex, Args...>, Types> {
   }
 };
 
-template <camp::idx_t LambdaIndex,typename... Args>
-struct StatementExecutor<statement::TiledLambda<LambdaIndex, Args...>> {
+template <camp::idx_t LambdaIndex,typename... Args, typename Types>
+struct StatementExecutor<statement::TiledLambda<LambdaIndex, Args...>, Types> {
 
   template <typename Data>
   static RAJA_INLINE void exec(Data &&data)
@@ -313,7 +313,7 @@ struct StatementExecutor<statement::TiledLambda<LambdaIndex, Args...>> {
     //Convert SegList, ParamList into Seg, Param types, and store in a list
     using targList = typename camp::flatten<camp::list<Args...>>::type;
 
-    invoke_lambda_with_args<LambdaIndex, targList>(std::forward<Data>(data));
+    invoke_lambda_with_args<LambdaIndex, Types>(std::forward<Data>(data), targList{});
   }
 };
 

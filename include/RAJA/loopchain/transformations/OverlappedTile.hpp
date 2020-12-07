@@ -235,7 +235,7 @@ auto overlapped_tile_policy() {
     //std::cout << "overlapped_tile_policy<" << TileSize << "," << CurrDim << "," << NumDims << ">\n";
     auto subPolicy = overlapped_tile_policy<TileSize, CurrDim+1, NumDims>();
     using subPolicyType = decltype(subPolicy);
-    return statement::OverlappedTile<CurrDim, statement::tile_fixed<TileSize>, RAJA::seq_exec, subPolicyType>{};
+    return statement::OverlappedTile<CurrDim, RAJA::tile_fixed<TileSize>, RAJA::seq_exec, subPolicyType>{};
   }
 }
 //creates the kernel which tiles the overlapping region of the kernels in the tuple

@@ -130,7 +130,7 @@ template <typename...InnerTupleTypes, camp::idx_t...OuterDims, camp::idx_t... In
 auto tuple_zip_helper(camp::tuple<InnerTupleTypes...> t, 
                       camp::idx_seq<OuterDims...> oSeq,
                       camp::idx_seq<InnerDims...>) {
-  return make_tuple(tuple_zip_slice<InnerDims>(t, oSeq)...);
+  return make_tuple((tuple_zip_slice<InnerDims>(t, oSeq))...);
 
 }
 template <typename InnerTupleType, typename...InnerTupleTypes, camp::idx_t...Is>

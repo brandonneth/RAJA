@@ -24,6 +24,14 @@ auto fuse(KernelTypes... knls);
 
 //Transformation Definitions
 
+template <typename...LambdaTypes, camp::idx_t I0, camp::idx_t I1>
+auto fused_lambda(camp::tuple<LambdaTypes...> lambdas, camp::idx_seq<I0,I1>) {
+
+  return [=](auto...is) {
+    camp::get<I0>(lambdas)(is...);
+    camp::get<I1>(lambdas)(is...);
+    };
+}
 
 //specialized lambdas for 4 and 11 kernel fusions
 template <typename...LambdaTypes, camp::idx_t I0, camp::idx_t I1, camp::idx_t I2, camp::idx_t I3>
@@ -78,14 +86,24 @@ auto fused_lambda(camp::tuple<LambdaTypes...> lambdas, camp::idx_seq<I0,I1,I2,I3
   };
 }
 
-
-// returns a lambda that executes the lambdas in lambdas one at a time, in order.
+// Terminal case for recursion, 0 left
+template <typename Args, camp::idx_t...Is>
+void fl_helper(Args&&, camp::idx_seq<Is...>) {
+    // Yup, done
+}
+template <typename Args, camp::idx_t...Is, typename L1, typename...LambdaTypes>
+void fl_helper(Args&& args_tuple, camp::idx_seq<Is...> seq, L1&& l1, LambdaTypes&&... lrest) {
+      l1(camp::get<Is>(args_tuple)...);
+      fl_helper(std::forward<Args>(args_tuple), seq, std::forward<LambdaTypes>(lrest)...);
+}
 template <typename...LambdaTypes, camp::idx_t...Is>
 auto fused_lambda(camp::tuple<LambdaTypes...> lambdas, camp::idx_seq<Is...>) {
   return [=](auto...is) {
-    camp::sink((camp::get<Is>(lambdas)(is...), 0)...);
+      fl_helper(camp::forward_as_tuple(is...), idx_seq_from_to<0,sizeof...(is)>(), camp::get<Is>(lambdas)...);
   };
+
 }
+
 
 // returns a kernel object that executes the kernels in knlTuple in a fused schedule for the 
 // parts of their iteration spaces that they all share. For each iteration point in the 

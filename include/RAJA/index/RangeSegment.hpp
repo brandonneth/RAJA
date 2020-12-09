@@ -99,7 +99,7 @@ struct TypedRangeSegment {
   }
 
   //! disable compiler generated constructor
-  RAJA_HOST_DEVICE TypedRangeSegment() = delete;
+  RAJA_HOST_DEVICE TypedRangeSegment() = default;
 
   //! move constructor
   constexpr TypedRangeSegment(TypedRangeSegment&&) = default;

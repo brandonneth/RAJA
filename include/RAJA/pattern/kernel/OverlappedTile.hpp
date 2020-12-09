@@ -228,8 +228,9 @@ struct StatementExecutor<
     OverlappedTileWrapper<ArgumentId, Data, Types,
                 EnclosedStmts...> tile_wrapper(data);
 
+    auto r = resources::get_resource<EPol>::type::get_default();
     // Loop over tiles, executing enclosed statement list
-    forall_impl(EPol{}, tiled_iterable, tile_wrapper);
+    forall_impl(r, EPol{}, tiled_iterable, tile_wrapper);
 
     // Set range back to original values
     camp::get<ArgumentId>(data.segment_tuple) = tiled_iterable.it;

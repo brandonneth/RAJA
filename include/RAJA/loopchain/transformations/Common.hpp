@@ -24,8 +24,8 @@ auto intersect_segment_tuples(SegmentTupleTypes... segmentTuples);
 // given a tuple of segments, returns one segment that contained by all the segments within the tuple
 template <typename...SegmentTypes, camp::idx_t...Is>
 auto intersect_segments(camp::tuple<SegmentTypes...> segments, camp::idx_seq<Is...> seq) {
-  auto highestLow = max((*((camp::get<Is>(segments)).begin()))...);
-  auto lowestHigh = min((*((camp::get<Is>(segments)).end()))...);
+  auto highestLow = vmax((*((camp::get<Is>(segments)).begin()))...);
+  auto lowestHigh = vmin((*((camp::get<Is>(segments)).end()))...);
 
   return RangeSegment(highestLow, lowestHigh);
 }

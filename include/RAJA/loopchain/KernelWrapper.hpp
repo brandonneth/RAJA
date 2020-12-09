@@ -78,13 +78,17 @@ struct KernelWrapper {
   auto collect_accesses_from_iterators(auto iterators, camp::idx_seq<Is...>) {
     return collect_accesses(camp::get<Is>(iterators)...);
   }
-  
+
+  template <camp::idx_t...Is>
+  void es_helper(auto function, auto iterators, camp::idx_seq<Is...>) {
+    function(camp::get<Is>(iterators)...);
+  }  
   std::vector<SymAccess> execute_symbolically() {
     auto iterators = make_iterator_tuple(camp::make_idx_seq_t<numArgs>());
 
     auto func = camp::get<0>(bodies);
 
-    camp::invoke(iterators, func);
+    es_helper(func, iterators, camp::make_idx_seq_t<numArgs>());
 
     auto accesses = collect_accesses_from_iterators(iterators, camp::make_idx_seq_t<numArgs>());
  
@@ -98,21 +102,27 @@ struct KernelWrapper {
   RAJA_INLINE
   void execute(camp::idx_seq<Is...>) const { 
   
-    util::PluginContext context{util::make_context<KernelPol>()};
-    util::callPreLaunchPlugins(context);
-
-    using segment_tuple_t = typename IterableWrapperTuple<camp::decay<SegmentTuple>>::type;
-
-    auto params = RAJA::make_tuple();
-    using param_tuple_t = camp::decay<decltype(params)>;
-
     if(overlapAmounts.size() != 0 && tileSizes.size() != 0) {
-      using loop_data_t = internal::LoopData<KernelPol, segment_tuple_t, param_tuple_t, camp::decay<Bodies>...>;
+      util::PluginContext context{util::make_context<KernelPol>()};
+     
+      using segment_tuple_t = typename IterableWrapperTuple<camp::decay<SegmentTuple>>::type;
 
-      loop_data_t loop_data(overlapAmounts, tileSizes, make_wrapped_tuple(segments), params, camp::get<Is>(bodies)...);
+      auto params = RAJA::make_tuple();
+      using param_tuple_t = camp::decay<decltype(params)>;
+
+      using loop_data_t = internal::LoopData<segment_tuple_t, param_tuple_t, camp::decay<Bodies>...>;
+   
+      loop_data_t loop_data(overlapAmounts, tileSizes, 
+                            make_wrapped_tuple(segments), params, camp::get<Is>(bodies)...);
+
+      util::callPostCapturePlugins(context);
+
+      using loop_types_t = internal::makeInitialLoopTypes<loop_data_t>;
+
+      util::callPreLaunchPlugins(context);
 
       RAJA_FORCEINLINE_RECURSIVE
-      internal::execute_statement_list<KernelPol>(loop_data);
+      internal::execute_statement_list<KernelPol, loop_types_t>(loop_data);
 
       util::callPostLaunchPlugins(context);
     } else {

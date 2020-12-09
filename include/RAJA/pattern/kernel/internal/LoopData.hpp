@@ -119,6 +119,20 @@ struct LoopData {
   const BodiesTuple bodies;
   offset_tuple_t offset_tuple;
 
+
+  //RAJALC
+  std::vector<camp::idx_t> overlapAmounts;
+  std::vector<camp::idx_t> tileSizes;
+
+  RAJA_INLINE RAJA_HOST_DEVICE constexpr
+  LoopData(std::vector<camp::idx_t> overlaps, std::vector<camp::idx_t> tiles, SegmentTuple const &s, ParamTuple const &p, Bodies const &... b)
+      : segment_tuple(s), param_tuple(p), bodies(b...), overlapAmounts(overlaps), tileSizes(tiles)
+  {
+    //assign_begin_all();
+  }
+
+  //END RAJALC
+
   RAJA_INLINE RAJA_HOST_DEVICE constexpr
   LoopData(SegmentTuple const &s, ParamTuple const &p, Bodies const &... b)
       : segment_tuple(s), param_tuple(p), bodies(b...)

@@ -23,9 +23,9 @@ struct GroupedKernels {
   using KernelTuple = camp::tuple<KernelTypes...>;
 
   const KernelTuple knlTuple;
-
+  
   static constexpr camp::idx_t numKnls = sizeof...(KernelTypes);
-
+  
   GroupedKernels(const KernelTuple & knlTuple_) : knlTuple(knlTuple_) {};
 
   // returns a tuple of kernels that would execute before the main kernel
@@ -59,6 +59,11 @@ struct GroupedKernels {
   void operator() () {
     auto seq = camp::make_idx_seq_t<numKnls>{};
     execute(seq);
+  }
+
+  RAJA_INLINE
+  void execute_main_knl() {
+       camp::get<MainKnlIdx>(knlTuple)();
   }
 
 }; //GroupedKernels

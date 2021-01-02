@@ -142,8 +142,14 @@ auto fuse(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> seq) {
   auto fusedKnl = fused_knl(knlTuple, seq);
 
   auto allKnls = tuple_cat(lowBoundKnls, make_tuple(fusedKnl), highBoundKnls);
-   
-  return grouped_kernels(allKnls);
+  
+  
+  if(equal_iterspaces(knlTuple)) {
+    return grouped_kernels(allKnls,1);
+  } else {
+    return grouped_kernels(allKnls,0);
+  }
+
 }
 
 

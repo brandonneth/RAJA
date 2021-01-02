@@ -25,8 +25,9 @@ struct GroupedKernels {
   const KernelTuple knlTuple;
   
   static constexpr camp::idx_t numKnls = sizeof...(KernelTypes);
-  
-  GroupedKernels(const KernelTuple & knlTuple_) : knlTuple(knlTuple_) {};
+  bool allSame;
+  GroupedKernels(const KernelTuple & knlTuple_, bool allSame_) : knlTuple(knlTuple_), allSame(allSame_) {};
+  GroupedKernels(const KernelTuple & knlTuple_) : knlTuple(knlTuple_), allSame(0) {};
 
   // returns a tuple of kernels that would execute before the main kernel
   auto pre_knls() {
@@ -57,8 +58,12 @@ struct GroupedKernels {
 
   RAJA_INLINE
   void operator() () {
-    auto seq = camp::make_idx_seq_t<numKnls>{};
-    execute(seq);
+    if(allSame) {
+      execute_main_knl();
+    } else {
+      auto seq = camp::make_idx_seq_t<numKnls>{};
+      execute(seq);
+    }
   }
 
   RAJA_INLINE
@@ -70,10 +75,18 @@ struct GroupedKernels {
 
 
 // constructor function for GroupedKernels that takes a tuple of kernels
+template <typename...KernelTypes>
+RAJA_INLINE
+auto grouped_kernels(camp::tuple<KernelTypes...> knlTuple, int allSame) {
+  constexpr auto numKnls = sizeof...(KernelTypes);
+  constexpr camp::idx_t MainKnlIdx = (numKnls - 1) / 2;
+
+  return GroupedKernels<MainKnlIdx, KernelTypes...>(knlTuple, allSame);
+}
 template <camp::idx_t MainKnlIdx, typename...KernelTypes>
 RAJA_INLINE
 auto grouped_kernels(camp::tuple<KernelTypes...> knlTuple) {
-  return GroupedKernels<MainKnlIdx, KernelTypes...>(knlTuple);
+  return GroupedKernels<MainKnlIdx, KernelTypes...>(knlTuple, 0);
 }
 
 // constructor function for GroupedKernels that takes kernels

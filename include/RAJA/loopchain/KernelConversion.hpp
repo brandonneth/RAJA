@@ -409,5 +409,21 @@ auto original_schedule_from_kernels(isl_ctx * ctx, camp::tuple<KnlTypes...> knlT
   return original_schedule_from_kernels(ctx, knlTuple, idx_seq_for(knlTuple));
 }
 
+template <typename...KnlTypes, camp::idx_t...Is>
+auto equal_iterspaces(camp::tuple<KnlTypes...> knlTuple, camp::idx_seq<Is...>) {
+  isl_ctx * ctx = isl_ctx_alloc();
+  auto iterspaces = make_tuple(iterspace_from_knl<0>(ctx,camp::get<Is>(knlTuple))...);
+  
+  auto areEqualToFirst = make_tuple(isl_union_set_is_equal(camp::get<0>(iterspaces), camp::get<Is>(iterspaces))...);
+
+  auto areAllEqualToFirst = (camp::get<Is>(areEqualToFirst) && ...);
+
+  return areAllEqualToFirst;
+  
+}
+template <typename...KnlTypes>
+auto equal_iterspaces(camp::tuple<KnlTypes...> knlTuple) {
+  return equal_iterspaces(knlTuple, idx_seq_for(knlTuple));
+}
 } //namespace RAJA
 #endif

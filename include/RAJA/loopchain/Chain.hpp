@@ -44,8 +44,8 @@ struct GroupedKernels {
   }
 
   // executes each kernel in the object one at a time
-  RAJA_INLINE
   template <camp::idx_t I, camp::idx_t...Is>  
+  RAJA_INLINE
   void execute(camp::idx_seq<I, Is...>) {
     camp::get<I>(knlTuple)();
     if constexpr (sizeof...(Is) == 0) {
@@ -70,15 +70,15 @@ struct GroupedKernels {
 
 
 // constructor function for GroupedKernels that takes a tuple of kernels
-RAJA_INLINE
 template <camp::idx_t MainKnlIdx, typename...KernelTypes>
+RAJA_INLINE
 auto grouped_kernels(camp::tuple<KernelTypes...> knlTuple) {
   return GroupedKernels<MainKnlIdx, KernelTypes...>(knlTuple);
 }
 
 // constructor function for GroupedKernels that takes kernels
-RAJA_INLINE
 template <camp::idx_t MainKnlIdx, typename...KernelTypes>
+RAJA_INLINE
 auto grouped_kernels(KernelTypes... knls) {
   return grouped_kernels<MainKnlIdx>(camp::make_tuple(knls...));
 }

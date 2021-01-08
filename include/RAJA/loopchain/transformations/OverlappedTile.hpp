@@ -26,9 +26,22 @@ std::string overlap_constraint(Knl1 knl1, Knl2 knl2, camp::idx_t id1, camp::idx_
   
   isl_union_set * minInput = isl_union_set_lexmin(knl_iterspace(ctx, knl1, id1));
 
-  isl_union_set * image = isl_union_set_apply(isl_union_set_copy(minInput), dependences);
+  isl_union_set * image = isl_union_set_apply(isl_union_set_copy(minInput), isl_union_map_copy(dependences));
 
-  if(isl_union_set_is_empty(image)) {
+  //isl_printer * p = isl_printer_to_file(ctx, stdout);
+
+  //std::cout << "minInput set:\n";
+  //p = isl_printer_print_union_set(p,minInput);
+  //std::cout << "\n";
+
+  //std::cout << "dependences map:\n";
+  //p = isl_printer_print_union_map(p, dependences);
+  //std::cout << "\n";
+  
+  //std::cout << "image of mininput and dependencs\n";
+  //p = isl_printer_print_union_set(p,image);
+  //std::cout << "\n";
+  if(isl_union_set_is_empty(isl_union_set_copy(image))) {
     return "true";
   }
   
@@ -37,7 +50,7 @@ std::string overlap_constraint(Knl1 knl1, Knl2 knl2, camp::idx_t id1, camp::idx_
   
   maxOut[0] = numDims;
   inputValues[0] = numDims;
-  for(int i = 1; i < numDims; i++) {
+  for(int i = 1; i <= numDims; i++) {
     maxOut[i] = std::numeric_limits<int>::min();
     inputValues[i] = std::numeric_limits<int>::min();
   }
@@ -50,6 +63,8 @@ std::string overlap_constraint(Knl1 knl1, Knl2 knl2, camp::idx_t id1, camp::idx_
     for(int i = 0; i < numDims; i++) {
       isl_val * pointVal = isl_point_get_coordinate_val(p, isl_dim_set, i);
       int value = isl_val_get_num_si(pointVal);
+      //std::cout << "value in update_max-values for dim " << i << " is " << value << "\n";
+      //std::cout << "currmax: " << currMax[i+1] << "\n";
       if(currMax[i+1] < value) {
         currMax[i+1] = value;
       }
@@ -65,8 +80,9 @@ std::string overlap_constraint(Knl1 knl1, Knl2 knl2, camp::idx_t id1, camp::idx_
   int * maxDependenceDistances = new int[numDims];
   for(int i = 0; i < numDims; i++) {
     maxDependenceDistances[i] = maxOut[i+1] - inputValues[i+1];
+    //std::cout << "dim " << i << "maxOut, inputValue: " << maxOut[i+1] << ", " << inputValues[i+1] << "\n";
   }
-
+  
   //last, build up the constraint string
   std::string constraints = "";
   for(int i = 0; i < numDims; i++) {
@@ -76,7 +92,7 @@ std::string overlap_constraint(Knl1 knl1, Knl2 knl2, camp::idx_t id1, camp::idx_
     constraint += "O" + std::to_string(id2) + "_" + std::to_string(i);
     constraint += "+";
     constraint += std::to_string(maxDependenceDistances[i]);
-    std::cout << constraint << "\n";
+    //std::cout << constraint << "\n";
     constraints += constraint;
     if (i != numDims - 1) {constraints += " and ";}
   }

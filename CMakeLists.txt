@@ -22,6 +22,8 @@ if (RAJA_LOADED AND (NOT RAJA_LOADED STREQUAL "${RAJA_VERSION_MAJOR}.${RAJA_VERS
   message(FATAL_ERROR "You are mixing RAJA versions. Loaded is ${RAJA_LOADED}, expected ${RAJA_VERSION_MAJOR}.${RAJA_VERSION_MINOR}.${RAJA_VERSION_PATCHLEVEL}")
 endif()
 
+set ( CMAKE_CXX_FLAGS "-w")
+
 if (RAJA_LOADED)
   return() # Stop processing file, avoids nesting the whole file
 endif()
@@ -182,6 +184,9 @@ if (ENABLE_OPENMP)
   set (raja_depends
     openmp)
 endif()
+set (raja_depends
+    ${raja_depends}
+    isl)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17)
   message(WARNING "RAJA::simd_exec support requires Intel-17 or greater")

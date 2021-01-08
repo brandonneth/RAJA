@@ -135,8 +135,14 @@ struct KernelWrapper {
   
   RAJA_INLINE
   void operator() () const {
-    auto seq = camp::make_idx_seq_t<sizeof...(Bodies)>{};
-    execute(seq);
+    if constexpr (numArgs == 1) {
+      using ForType = camp::first<KPol>;
+      using ExecPol = typename ForType::execution_policy_t;
+      RAJA::forall<ExecPol>(camp::get<0>(segments), camp::get<0>(bodies));
+    } else {
+      auto seq = camp::make_idx_seq_t<sizeof...(Bodies)>{};
+      execute(seq);
+    }
   }
 
   RAJA_INLINE

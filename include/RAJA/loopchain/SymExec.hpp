@@ -22,20 +22,18 @@ struct SymIterator {
   
   std::string name;
   long int idx;
-  std::shared_ptr<std::vector<SymAccess>> accesses; // accesses that use this iterator
 
+  static std::vector<SymAccess> accesses;
   SymIterator(std::string str) : name(str), idx(0) {
-    accesses = std::make_shared<std::vector<SymAccess>>();
   }
 
   SymIterator(long int num) : name("placeholder"), idx(num) {
-    accesses = std::make_shared<std::vector<SymAccess>>();
   }
 
   SymIterator(const SymIterator & other) : name(other.name), idx(other.idx) {
-    accesses = other.accesses;
   }
 
+  std::vector<SymAccess> copy_accesses();
 
   bool operator == (const int) {
     return 0;
@@ -46,7 +44,6 @@ struct SymIterator {
 
     b << name << "*" << other;
     SymIterator newIterator = SymIterator(b.str());
-    newIterator.accesses = this->accesses;
 
     return newIterator;
   }
@@ -57,7 +54,6 @@ struct SymIterator {
 
     b << name << "+" << other;
     SymIterator newIterator = SymIterator(b.str());
-    newIterator.accesses = this->accesses;
 
     return newIterator;
   }
@@ -68,7 +64,6 @@ struct SymIterator {
 
     b << name << "-" << other;
     SymIterator newIterator = SymIterator(b.str());
-    newIterator.accesses = this->accesses;
 
     return newIterator;
   }  
@@ -79,7 +74,6 @@ struct SymIterator {
 
     b << name << "/" << other;
     SymIterator newIterator = SymIterator(b.str());
-    newIterator.accesses = this->accesses;
 
     return newIterator;
   }
@@ -90,7 +84,6 @@ struct SymIterator {
 
     b << name << "%" << other;
     SymIterator newIterator = SymIterator(b.str());
-    newIterator.accesses = this->accesses;
 
     return newIterator;
   }

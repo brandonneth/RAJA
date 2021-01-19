@@ -61,37 +61,20 @@ struct KernelWrapper {
     return std::vector<SymAccess>();
   }
 
-  template <typename... Iterators>
-  RAJA_INLINE
-  std::vector<SymAccess> collect_accesses(SymIterator iterator, Iterators&&... rest) {
-    std::vector<SymAccess> accesses = collect_accesses(std::forward<Iterators>(rest)...);
-
-    for(long unsigned int i = 0; i < iterator.accesses->size(); i++) {
-      accesses.push_back(iterator.accesses->at(i));
-    }
  
-    return accesses;
-  }
-
-  template <camp::idx_t... Is>
-  RAJA_INLINE
-  auto collect_accesses_from_iterators(auto iterators, camp::idx_seq<Is...>) {
-    return collect_accesses(camp::get<Is>(iterators)...);
-  }
-
   template <camp::idx_t...Is>
   void es_helper(auto function, auto iterators, camp::idx_seq<Is...>) {
     function(camp::get<Is>(iterators)...);
   }  
   std::vector<SymAccess> execute_symbolically() {
     auto iterators = make_iterator_tuple(camp::make_idx_seq_t<numArgs>());
+    camp::get<0>(iterators).accesses.clear();
 
     auto func = camp::get<0>(bodies);
 
     es_helper(func, iterators, camp::make_idx_seq_t<numArgs>());
 
-    auto accesses = collect_accesses_from_iterators(iterators, camp::make_idx_seq_t<numArgs>());
- 
+    auto accesses = camp::get<0>(iterators).copy_accesses(); 
     return accesses;
   }
 

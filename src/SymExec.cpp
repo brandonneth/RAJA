@@ -4,6 +4,17 @@
 namespace RAJA {
 
 
+std::vector<SymAccess> SymIterator::accesses;
+std::vector<SymAccess> SymIterator::copy_accesses() {
+    std::vector<SymAccess> copy;
+    for(auto access : this->accesses) {
+      copy.push_back(access);
+    }
+
+    return copy;
+  }
+
+
 void SymAccess::set_read() {
     isRead = true;
   }
@@ -14,7 +25,7 @@ void SymAccess::set_write() {
 
   void SymAccess::link_to_iterators() {
     for(SymIterator i : iterators) {
-      i.accesses->push_back(*this);
+      i.accesses.push_back(*this);
     }
   }
 

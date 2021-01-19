@@ -137,8 +137,17 @@ struct KernelWrapper {
   void operator() () const {
     if constexpr (numArgs == 1) {
       using ForType = camp::first<KPol>;
-      using ExecPol = typename ForType::execution_policy_t;
-      RAJA::forall<ExecPol>(camp::get<0>(segments), camp::get<0>(bodies));
+      using StatementTypes = typename ForType::enclosed_statements_t;
+      using StatementType = camp::first<StatementTypes>;
+      
+      if constexpr (std::is_same<StatementType,statement::TiledLambda<0>>::value) {
+        auto seq = camp::make_idx_seq_t<sizeof...(Bodies)>{};
+        execute(seq);
+      } else {
+
+        using ExecPol = typename ForType::execution_policy_t;
+        RAJA::forall<ExecPol>(camp::get<0>(segments), camp::get<0>(bodies));
+      }
     } else {
       auto seq = camp::make_idx_seq_t<sizeof...(Bodies)>{};
       execute(seq);

@@ -83,7 +83,7 @@ class TypedIndexSet<T0, TREST...> : public TypedIndexSet<TREST...>
 public:
   // Adopt the value type of the first segment type
   using value_type = typename T0::value_type;
-
+  using IndexType = typename T0::value_type;
   // Ensure that all value types in all segments are the same
   static_assert(std::is_same<value_type, typename PARENT::value_type>::value ||
                     T0_TypeId == 0,

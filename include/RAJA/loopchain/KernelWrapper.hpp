@@ -28,13 +28,14 @@ struct KernelWrapper {
   // instead of compile time, like tile sizes.
   std::vector<camp::idx_t> overlapAmounts;
   std::vector<camp::idx_t> tileSizes;
-
+  std::vector<SymAccess> accesses;
   static constexpr int numArgs = camp::tuple_size<SegmentTuple>::value;
 
   KernelWrapper(SegmentTuple  _segments, const Bodies&... _bodies) : 
     segments(_segments), bodies(_bodies...) {
      overlapAmounts = std::vector<camp::idx_t>();
      tileSizes = std::vector<camp::idx_t>();
+     accesses = _execute_symbolically();
   }
   
   KernelWrapper(const KernelWrapper &) = default;
@@ -84,15 +85,18 @@ struct KernelWrapper {
     function(camp::get<Is>(iterators)...);
   }  
   std::vector<SymAccess> execute_symbolically() {
+    return accesses;
+  }
+  std::vector<SymAccess> _execute_symbolically() {
     auto iterators = make_iterator_tuple(camp::make_idx_seq_t<numArgs>());
 
     auto func = camp::get<0>(bodies);
 
     es_helper(func, iterators, camp::make_idx_seq_t<numArgs>());
 
-    auto accesses = collect_accesses_from_iterators(iterators, camp::make_idx_seq_t<numArgs>());
+    auto _accesses = collect_accesses_from_iterators(iterators, camp::make_idx_seq_t<numArgs>());
  
-    return accesses;
+    return _accesses;
   }
 
   // Traditional execution. For normal kernels, this resolves to a call to kernel.

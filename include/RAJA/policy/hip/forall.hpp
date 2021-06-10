@@ -13,7 +13,7 @@
  */
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-// Copyright (c) 2016-20, Lawrence Livermore National Security, LLC
+// Copyright (c) 2016-21, Lawrence Livermore National Security, LLC
 // and RAJA project contributors. See the RAJA/COPYRIGHT file for details.
 //
 // SPDX-License-Identifier: (BSD-3-Clause)
@@ -156,7 +156,7 @@ __launch_bounds__(BlockSize, 1) __global__
 //
 
 template <typename Iterable, typename LoopBody, size_t BlockSize, bool Async>
-RAJA_INLINE resources::EventProxy<resources::Hip> forall_impl(resources::Hip &hip_res,
+RAJA_INLINE resources::EventProxy<resources::Hip> forall_impl(resources::Hip hip_res,
                                                     hip_exec<BlockSize, Async>,
                                                     Iterable&& iter,
                                                     LoopBody&& loop_body)
@@ -207,12 +207,8 @@ RAJA_INLINE resources::EventProxy<resources::Hip> forall_impl(resources::Hip &hi
       //
       // Launch the kernels
       //
-      hipLaunchKernelGGL(func,
-                         dim3(gridSize), dim3(BlockSize), shmem, stream,
-                         body,
-                         std::move(begin),
-                         len);
-      RAJA::hip::launch(stream);
+      void *args[] = {(void*)&body, (void*)&begin, (void*)&len};
+      RAJA::hip::launch((const void*)func, gridSize, BlockSize, args, shmem, stream);
     }
 
     if (!Async) { RAJA::hip::synchronize(stream); }
@@ -220,7 +216,7 @@ RAJA_INLINE resources::EventProxy<resources::Hip> forall_impl(resources::Hip &hi
     RAJA_FT_END;
   }
 
-  return resources::EventProxy<resources::Hip>(&hip_res);
+  return resources::EventProxy<resources::Hip>(hip_res);
 }
 
 //

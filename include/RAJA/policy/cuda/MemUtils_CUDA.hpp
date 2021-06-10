@@ -10,7 +10,7 @@
  */
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-// Copyright (c) 2016-20, Lawrence Livermore National Security, LLC
+// Copyright (c) 2016-21, Lawrence Livermore National Security, LLC
 // and RAJA project contributors. See the RAJA/COPYRIGHT file for details.
 //
 // SPDX-License-Identifier: (BSD-3-Clause)
@@ -28,6 +28,8 @@
 #include <cstdio>
 #include <type_traits>
 #include <unordered_map>
+
+#include "nvToolsExt.h"
 
 #include "RAJA/util/basic_mempool.hpp"
 #include "RAJA/util/mutex.hpp"
@@ -205,9 +207,16 @@ void launch(cudaStream_t stream)
 
 //! Launch kernel and indicate stream is asynchronous
 RAJA_INLINE
-void launch(const void* func, cuda_dim_t gridDim, cuda_dim_t blockDim, void** args, size_t shmem, cudaStream_t stream)
+void launch(const void* func, cuda_dim_t gridDim, cuda_dim_t blockDim, void** args, size_t shmem,
+            cudaStream_t stream, const char *name = nullptr)
 {
+#if defined(RAJA_ENABLE_NV_TOOLS_EXT)
+  if(name) nvtxRangePushA(name);
+#endif
   cudaErrchk(cudaLaunchKernel(func, gridDim, blockDim, args, shmem, stream));
+#if defined(RAJA_ENABLE_NV_TOOLS_EXT)
+  if(name) nvtxRangePop();
+#endif
   launch(stream);
 }
 

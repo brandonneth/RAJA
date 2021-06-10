@@ -22,7 +22,7 @@
 
 #include "RAJA/config.hpp"
 
-#if (defined(__NVCC__) || (defined(__clang__) && defined(__CUDA__))) && defined(RAJA_ENABLE_CUDA)
+#if defined(RAJA_CUDA_ACTIVE)
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -32,8 +32,10 @@
 #include "RAJA/policy/cuda/policy.hpp"
 #include "RAJA/policy/cuda/reduce.hpp"
 #include "RAJA/policy/cuda/scan.hpp"
+#include "RAJA/policy/cuda/sort.hpp"
 #include "RAJA/policy/cuda/kernel.hpp"
 #include "RAJA/policy/cuda/synchronize.hpp"
+#include "RAJA/policy/cuda/WorkGroup.hpp"
 
 #endif  // closing endif for if defined(RAJA_ENABLE_CUDA)
 

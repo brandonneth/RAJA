@@ -44,7 +44,8 @@
 //
 #include "RAJA/pattern/forall.hpp"
 #include "RAJA/pattern/kernel.hpp"
-#include "RAJA/pattern/kernel/OverlappedTile.hpp"
+#include "RAJA/pattern/teams.hpp"
+
 
 //
 // All platforms must support sequential execution.
@@ -110,6 +111,16 @@
 
 
 //
+// View for sequences of objects
+//
+#include "RAJA/util/Span.hpp"
+
+//
+// zip iterator to iterator over sequences simultaneously
+//
+#include "RAJA/util/zip.hpp"
+
+//
 // Atomic operations support
 //
 #include "RAJA/pattern/atomic.hpp"
@@ -123,6 +134,17 @@
 // Bit masking operators
 //
 #include "RAJA/util/BitMask.hpp"
+
+//
+// sort algorithms
+//
+#include "RAJA/util/sort.hpp"
+
+//
+// WorkPool, WorkGroup, WorkSite objects
+//
+#include "RAJA/policy/WorkGroup.hpp"
+#include "RAJA/pattern/WorkGroup.hpp"
 
 //
 // Reduction objects
@@ -149,11 +171,20 @@
 //
 
 #include "RAJA/index/IndexSetUtils.hpp"
+#include "RAJA/index/IndexSetBuilders.hpp"
 
 #include "RAJA/pattern/scan.hpp"
 
+<<<<<<< HEAD
 
 
 #include "RAJA/util/LoopChain.hpp"
+=======
+#if defined(RAJA_ENABLE_RUNTIME_PLUGINS)
+#include "RAJA/util/PluginLinker.hpp"
+#endif
+
+#include "RAJA/pattern/sort.hpp"
+>>>>>>> 20811d1f4dee2a014a3e2a44d7e17bf4dc9f560f
 
 #endif  // closing endif for header file include guard

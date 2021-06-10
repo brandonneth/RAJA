@@ -247,11 +247,16 @@ auto overlapped_tile_policy() {
   if constexpr (CurrDim == NumDims) {
     //std::cout << "returning tiled lambda policy\n";
     return statement::TiledLambda<0>{};
-  } else {
+  } else if constexpr (CurrDim == 0) {
     //std::cout << "overlapped_tile_policy<" << TileSize << "," << CurrDim << "," << NumDims << ">\n";
     auto subPolicy = overlapped_tile_policy<TileSize, CurrDim+1, NumDims>();
     using subPolicyType = decltype(subPolicy);
-    return statement::OverlappedTile<CurrDim, RAJA::tile_fixed<TileSize>, RAJA::seq_exec, subPolicyType>{};
+    return statement::OverlappedTile<CurrDim, RAJA::tile_fixed<TileSize>, RAJA::omp_parallel_for_exec, subPolicyType>{};
+  } else {
+    auto subPolicy = overlapped_tile_policy<TileSize, CurrDim+1, NumDims>();
+    using subPolicyType = decltype(subPolicy);
+    return statement::OverlappedTile<CurrDim, RAJA::tile_fixed<TileSize>, RAJA::loop_exec, subPolicyType>{};
+
   }
 }
 //creates the kernel which tiles the overlapping region of the kernels in the tuple

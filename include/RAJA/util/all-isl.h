@@ -6,7 +6,6 @@
 #include <isl/ast_build.h>
 #include <isl/ast.h>
 #include <isl/ast_type.h>
-#include <isl/band.h>
 #include <isl/constraint.h>
 #include <isl/ctx.h>
 #include <isl/flow.h>

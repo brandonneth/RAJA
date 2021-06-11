@@ -32,7 +32,7 @@
 
 #include <iterator>
 #include <type_traits>
-
+#include <vector>
 namespace RAJA
 {
 namespace internal

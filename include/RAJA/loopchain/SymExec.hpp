@@ -102,6 +102,25 @@ struct SymIterator {
 
 }; //SymIterator
 
+template <typename T>
+SymIterator operator + (const T & other, const SymIterator & iterator);
+template <typename T>
+SymIterator operator - (const T & other, const SymIterator & iterator);
+template <typename T>
+SymIterator operator / (const T & other, const SymIterator & iterator);
+template <typename T>
+SymIterator operator % (const T & other, const SymIterator & iterator);
+
+template <typename T>
+SymIterator operator * (const T & other, const SymIterator & iterator) {
+  std::stringstream b;
+
+  b << other << "*" << iterator.name;
+  SymIterator newIterator = SymIterator(b.str());
+  newIterator.accesses = iterator.accesses;
+
+  return newIterator;
+}
 
 struct SymAccess {
   
@@ -128,7 +147,8 @@ struct SymAccess {
   friend std::ostream& operator<< (std::ostream& s, SymAccess a);
 
 }; //SymAccess
-  
+
+void print_access_list(std::ostream&s, std::vector<SymAccess> accesses, int indent); 
 
 struct SymAccessList {
 
@@ -238,7 +258,7 @@ struct SymAccessList {
   SymAccessList operator = (long int) { return num_assign(); }
   SymAccessList operator = (float) { return num_assign(); }
   SymAccessList operator = (double) { return num_assign(); }
-  
+  SymAccessList operator = (SymIterator) { return num_assign(); }
   
   SymAccessList num_update_equals() {
     SymAccessList newList = SymAccessList();

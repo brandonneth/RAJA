@@ -41,7 +41,12 @@ void SymAccess::set_write() {
     return s;
   }
 
-
+void print_access_list(std::ostream&s, std::vector<SymAccess> accesses, int indent) {
+  for (auto a : accesses) {
+    for(int i = 0; i < indent; i++) {s << " ";}
+    s << a << "\n";
+  }
+}
 
 
 

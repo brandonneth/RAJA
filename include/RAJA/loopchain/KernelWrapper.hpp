@@ -46,16 +46,21 @@ struct KernelWrapper {
 
   template <camp::idx_t Idx>
   RAJA_INLINE
-  SymIterator make_sym_iterator() {
-    std::string iteratorName = "i" + std::to_string(Idx);
+  SymIterator make_sym_iterator(std::vector<camp::idx_t> iteratorOrder) {
+    std::string iteratorName = "i" + std::to_string(iteratorOrder[Id]]);
     return SymIterator(iteratorName);
   }
+
+
+  
 
   template <camp::idx_t... Is>
   RAJA_INLINE
   auto make_iterator_tuple(camp::idx_seq<Is...>) {
-    //TODO: Match the iterator numbers to the order of iterators in the kernel policy
-    auto iterators = camp::make_tuple((make_sym_iterator<Is>())...);
+   
+    auto iteratorOrderVector = policy_to_argument_order(KPol{});
+     
+    auto iterators = camp::make_tuple((make_sym_iterator<Is>(iteratorOrderVector))...);
     return iterators;
   }
   
@@ -212,6 +217,27 @@ auto change_segment_tuple(KernelWrapper<KernPol, SegmentTuple, Bodies...> knl, S
   
   return make_kernel<KernPol>(newSeg, camp::get<0>(knl.bodies));
 }
+
+template <camp::idx_t N>
+auto policy_to_argument_order(statement::Lambda<N>) {
+  auto order = std::vector<camp::idx_t>();
+
+  return order;
+}
+
+template <camp::idx_t I, typename E, typename Enclosed>
+auto policy_to_argument_order(statement::For<I,E,Enclosed>) {
+  auto lowerOrder = policy_to_argument_order(Enclosed{});
+
+  lowerOrder.insert(lowerOrder.begin(), I);
+
+  return lowerOrder;
+}
+
+template <typename InnerPolicy>
+auto policy_to_argument_order(KernelPolicy<InnerPolicy>){
+  return policy_to_argument_order(InnerPolicy{});
+} 
 
 
 } //namespace RAJA

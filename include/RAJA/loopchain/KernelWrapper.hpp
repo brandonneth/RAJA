@@ -47,7 +47,7 @@ struct KernelWrapper {
   template <camp::idx_t Idx>
   RAJA_INLINE
   SymIterator make_sym_iterator(std::vector<camp::idx_t> iteratorOrder) {
-    std::string iteratorName = "i" + std::to_string(iteratorOrder[Id]]);
+    std::string iteratorName = "i" + std::to_string(iteratorOrder[Idx]);
     return SymIterator(iteratorName);
   }
 

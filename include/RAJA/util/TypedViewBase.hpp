@@ -397,6 +397,7 @@ class ViewBase {
   template <typename... Args>
   SymAccessList operator () (SymIterator symIterator, Args... args) const
   {
+    //TODO: accesses should be ordered by the layout permutation.
     std::vector<SymIterator> allIterators;
 
     sym_eval(allIterators, symIterator, args...);

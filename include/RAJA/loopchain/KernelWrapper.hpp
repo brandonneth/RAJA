@@ -54,6 +54,7 @@ struct KernelWrapper {
   template <camp::idx_t... Is>
   RAJA_INLINE
   auto make_iterator_tuple(camp::idx_seq<Is...>) {
+    //TODO: Match the iterator numbers to the order of iterators in the kernel policy
     auto iterators = camp::make_tuple((make_sym_iterator<Is>())...);
     return iterators;
   }

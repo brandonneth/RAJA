@@ -4,12 +4,14 @@
 #define RAJA_SymExec_HPP
 
 #include "RAJA/config.hpp"
-
+#include "RAJA/util/Operators.hpp"
+#include "RAJA/util/Layout.hpp"
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <vector>
 #include <memory>
+#include <set>
 
 namespace RAJA
 {
@@ -158,6 +160,31 @@ struct SymAccess {
 
 bool operator < (const SymAccess a, const SymAccess b);
 void print_access_list(std::ostream&s, std::vector<SymAccess> accesses, int indent); 
+
+template <size_t Rank, typename IdxLin = Index_type>
+auto layout_to_perm(const Layout<Rank,IdxLin> & layout) {
+
+  std::array<int, Rank> perm;
+
+  auto strides = layout.strides;
+  std::set<int> strided = std::set<int>();
+  for(int i = 0; i < Rank; i++) {
+    int biggestIndex = -1;
+    int biggestStride = -1;
+    for(int j = 0; j < Rank; j++) {
+      if(strided.find(strides[j]) != strided.end()) { continue; }
+      if(strides[j] > biggestStride) {
+        biggestIndex = j;
+        biggestStride = strides[j];
+      }
+    }
+    strided.insert(biggestStride);
+    perm[i] = biggestIndex;
+  }
+
+  return perm;
+
+}
 
 struct SymAccessList {
 

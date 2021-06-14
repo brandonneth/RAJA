@@ -145,9 +145,18 @@ struct SymAccess {
   operator SymAccessList();
 
   friend std::ostream& operator<< (std::ostream& s, SymAccess a);
-
+  
+  int operator < (const SymAccess other) {
+    std::stringstream a, b;
+    a << this;
+    b << other;
+   
+    return a.str().compare(b.str());
+  }
 }; //SymAccess
 
+
+bool operator < (const SymAccess a, const SymAccess b);
 void print_access_list(std::ostream&s, std::vector<SymAccess> accesses, int indent); 
 
 struct SymAccessList {

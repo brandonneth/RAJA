@@ -1,6 +1,6 @@
 
 #include "RAJA/loopchain/SymExec.hpp"
-
+#include <set>
 namespace RAJA {
 
 
@@ -41,10 +41,25 @@ void SymAccess::set_write() {
     return s;
   }
 
+bool operator < (const SymAccess a, const SymAccess b) {
+  std::stringstream i,j;
+  i << a;
+  j << b;
+  return (i.str().compare(j.str()) < 0);
+}
 void print_access_list(std::ostream&s, std::vector<SymAccess> accesses, int indent) {
+  
+  std::set<SymAccess> printed = std::set<SymAccess>();
+
   for (auto a : accesses) {
-    for(int i = 0; i < indent; i++) {s << " ";}
-    s << a << "\n";
+    if(printed.find(a) == printed.end()) {
+
+      for(int i = 0; i < indent; i++) {s << " ";}
+      s << (a.isRead ? "R" : " ");   
+      s << (a.isWrite ? "W" : " ");      
+      s << a << "\n";
+      printed.insert(a);
+    }
   }
 }
 

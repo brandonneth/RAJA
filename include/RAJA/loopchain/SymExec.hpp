@@ -16,7 +16,10 @@
 namespace RAJA
 {
 struct SymIterator;
+
 struct SymAccess;
+
+
 struct SymAccessList;
 
 
@@ -26,6 +29,7 @@ struct SymIterator {
   long int idx;
   std::shared_ptr<std::vector<SymAccess>> accesses; // accesses that use this iterator
 
+  SymIterator() = default;
   SymIterator(std::string str) : name(str), idx(0) {
     accesses = std::make_shared<std::vector<SymAccess>>();
   }
@@ -124,15 +128,21 @@ SymIterator operator * (const T & other, const SymIterator & iterator) {
   return newIterator;
 }
 
+
+
 struct SymAccess {
   
   void * view;
   std::vector<SymIterator> iterators;
+  std::vector<size_t> layout_permutation;
+
   bool isRead;
   bool isWrite;
 
-  SymAccess(void * _view, std::vector<SymIterator>& _iterators) {
+  
+  SymAccess(void * _view, std::vector<size_t> perm, std::vector<SymIterator>& _iterators) {
     view = _view;
+    layout_permutation = perm;
     iterators = _iterators;
     isRead = false;
     isWrite = false;
@@ -144,6 +154,7 @@ struct SymAccess {
   void link_to_iterators();
 
   std::string access_string();
+  std::string permuted_access_string();
   operator SymAccessList();
 
   friend std::ostream& operator<< (std::ostream& s, SymAccess a);
@@ -158,33 +169,13 @@ struct SymAccess {
 }; //SymAccess
 
 
+
 bool operator < (const SymAccess a, const SymAccess b);
 void print_access_list(std::ostream&s, std::vector<SymAccess> accesses, int indent); 
+void print_permuted_access_list(std::ostream&s, std::vector<SymAccess> accesses, int indent); 
 
-template <size_t Rank, typename IdxLin = Index_type>
-auto layout_to_perm(const Layout<Rank,IdxLin> & layout) {
 
-  std::array<int, Rank> perm;
 
-  auto strides = layout.strides;
-  std::set<int> strided = std::set<int>();
-  for(int i = 0; i < Rank; i++) {
-    int biggestIndex = -1;
-    int biggestStride = -1;
-    for(int j = 0; j < Rank; j++) {
-      if(strided.find(strides[j]) != strided.end()) { continue; }
-      if(strides[j] > biggestStride) {
-        biggestIndex = j;
-        biggestStride = strides[j];
-      }
-    }
-    strided.insert(biggestStride);
-    perm[i] = biggestIndex;
-  }
-
-  return perm;
-
-}
 
 struct SymAccessList {
 
@@ -413,6 +404,33 @@ SymAccessList list_update_int(const SymAccessList & l0, int scalar);
 SymAccessList list_update_double(const SymAccessList & l0, double scalar);
 SymAccessList list_update_iterator(const SymAccessList & l0, const SymIterator & i1);
 
+
+template <typename LayoutType> 
+std::vector<size_t> layout_to_perm(const LayoutType & layout) {
+
+  constexpr size_t n_dims = layout.n_dims;
+  
+  std::vector<size_t> perm = std::vector<size_t>(n_dims);
+
+  auto strides = layout.strides;
+  std::set<int> strided = std::set<int>();
+  for(size_t i = 0; i < n_dims; i++) {
+    int biggestIndex = -1;
+    int biggestStride = -1;
+    for(size_t j = 0; j < n_dims; j++) {
+      if(strided.find(strides[j]) != strided.end()) { continue; }
+      if(strides[j] > biggestStride) {
+        biggestIndex = j;
+        biggestStride = strides[j];
+      }
+    }
+    strided.insert(biggestStride);
+    perm[i] = biggestIndex;
+  }
+
+  return perm;
+
+}//layout_to_perm
 } // namespace RAJA
 
 

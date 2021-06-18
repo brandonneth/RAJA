@@ -33,6 +33,8 @@ namespace RAJA
 namespace internal
 {
 
+
+
   template<camp::idx_t, typename T>
   struct IndexToType{
       using type = T;
@@ -392,8 +394,6 @@ class ViewBase {
     sym_eval(allIterators, args...);
   }
 
-
-
   template <typename... Args>
   SymAccessList operator () (SymIterator symIterator, Args... args) const
   {
@@ -401,7 +401,10 @@ class ViewBase {
     std::vector<SymIterator> allIterators;
 
     sym_eval(allIterators, symIterator, args...);
-    SymAccess thisAccess = SymAccess(m_data, allIterators);
+
+    auto layout_perm = layout_to_perm(get_layout());
+
+    SymAccess thisAccess = SymAccess(m_data, layout_perm, allIterators);
     SymAccessList l = SymAccessList(thisAccess);
     return l ;
   }
@@ -512,11 +515,14 @@ class TypedViewBase<ValueType, PointerType, LayoutType, camp::list<IndexTypes...
     std::vector<SymIterator> allIterators;
 
     sym_eval(allIterators, symIterator, args...);
-    SymAccess thisAccess = SymAccess(Base::m_data, allIterators);
+    
+    std::vector<idx_t> layout_perm = layout_to_perm(this->get_layout());
+
+    SymAccess thisAccess = SymAccess(Base::m_data, layout_perm, allIterators);
     SymAccessList l = SymAccessList(thisAccess);
     return l ;
   }
-  //END RAJALC
+    //END RAJALC
 };
 
 

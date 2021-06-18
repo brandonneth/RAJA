@@ -19,19 +19,38 @@ void SymAccess::set_write() {
     }
   }
 
-  std::string SymAccess::access_string() {
-    std::stringstream s;
+std::string SymAccess::access_string() {
+  std::stringstream s;
 
 
     
-    for(auto i : iterators) {
-      s << i.name << ",";
-    }
-    
-    std::string res = s.str();
-    res.pop_back();
-    return res;
+  for(auto i : iterators) {
+    s << i.name << ",";
   }
+    
+  std::string res = s.str();
+  res.pop_back();
+  return res;
+}
+
+std::string SymAccess::permuted_access_string() {
+  std::stringstream s;
+  
+  std::vector<SymIterator> permutedIterators = std::vector<SymIterator>(iterators.size());
+
+  for(int i = 0; i < iterators.size(); i++) {
+    size_t destination = layout_permutation[i];
+    permutedIterators[destination] = iterators[i];
+  }
+
+  for(auto i : permutedIterators) {
+    s << i.name << ",";
+  }
+  std::string res = s.str();
+  res.pop_back();
+  return res;
+
+} //SymAccess::permuted_access_string
 
   SymAccess::operator SymAccessList() {
     SymAccessList l = SymAccessList();
@@ -40,7 +59,7 @@ void SymAccess::set_write() {
   }
 
   std::ostream& operator<< (std::ostream& s, SymAccess a) {
-    s << " " << a.view << " ";
+    s << a.view << " ";
     s << a.access_string();
     return s;
   }
@@ -53,9 +72,6 @@ bool operator < (const SymAccess a, const SymAccess b) {
 }
 
 void print_access_list(std::ostream&s, std::vector<SymAccess> accesses, int indent) {
- 
-   
-
  
   std::set<SymAccess> printed = std::set<SymAccess>();
 
@@ -71,7 +87,21 @@ void print_access_list(std::ostream&s, std::vector<SymAccess> accesses, int inde
   }
 }
 
+void print_permuted_access_list(std::ostream&s, std::vector<SymAccess> accesses, int indent) {
+ 
+  std::set<SymAccess> printed = std::set<SymAccess>();
 
+  for (auto a : accesses) {
+    if(printed.find(a) == printed.end()) {
+
+      for(int i = 0; i < indent; i++) {s << " ";}
+      s << (a.isRead ? "R" : " ");   
+      s << (a.isWrite ? "W" : " ");      
+      s << a.view << " " << a.permuted_access_string() << "\n";
+      printed.insert(a);
+    }
+  }
+}
 
 
 

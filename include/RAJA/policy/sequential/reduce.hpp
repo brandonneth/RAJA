@@ -55,8 +55,15 @@ public:
 
 RAJA_DECLARE_ALL_REDUCERS(seq_reduce, detail::ReduceSeq)
 
-RAJA_DECLARE_REDUCER(SumArr, seq_reduce, detail::ReduceSeq)
+//RAJA_DECLARE_REDUCER(SumArr, seq_reduce, detail::ReduceSeq)
 
+template <typename T>
+class ReduceSumArr<seq_reduce, T> : public reduce::detail::BaseReduceSumArr<T, detail::ReduceSeq>
+{
+public:
+  using Base = reduce::detail::BaseReduceSumArr<T, detail::ReduceSeq>;
+  using Base::Base;
+};
 }  // namespace RAJA
 
 #endif  // closing endif for header file include guard

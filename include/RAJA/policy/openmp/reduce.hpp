@@ -65,9 +65,9 @@ public:
 
 template <typename T, typename Reduce>
 class ReduceOMPArr
-    : public reduce::detail::BaseCombinable<T, Reduce, ReduceOMPArr<T, Reduce>>
+    : public reduce::detail::BaseCombinableArr<T, Reduce, ReduceOMPArr<T, Reduce>>
 {
-  using Base = reduce::detail::BaseCombinable<T, Reduce, ReduceOMPArr>;
+  using Base = reduce::detail::BaseCombinableArr<T, Reduce, ReduceOMPArr>;
 
 public:
   using Base::Base;

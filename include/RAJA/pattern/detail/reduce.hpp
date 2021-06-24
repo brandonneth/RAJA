@@ -256,11 +256,11 @@ public:
 
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
-  BaseReduceArr() : c{T(), Reduce::identity()} {}
+  BaseReduceArr() : c{NULL, Reduce::identity()} {}
 
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
-  BaseReduceArr(T init_val, T identity_ = Reduce::identity())
+  BaseReduceArr(T*& init_val, T identity_ = Reduce::identity())
       : c{init_val, identity_}
   {
   }
@@ -291,7 +291,9 @@ public:
 
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
-  void combine(T const &other) const { c.combine(other); }
+  void combine(T const &other, idx_t i) const { c.combine(other, i); }
+
+  void combineArr(T const &other) const {c.combine(other);}
 
   T &local() const { return c.local(); }
 
@@ -374,6 +376,76 @@ private:
   Derived &derived() { return *(static_cast<Derived *>(this)); }
 };
 
+template <typename T, typename Reduce, typename Derived>
+class BaseCombinableArr
+{
+protected:
+  BaseCombinableArr const *parent = nullptr;
+  T identity;
+  T mutable my_data;
+  T*  my_arr;
+public:
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  constexpr BaseCombinableArr() : identity{T()}, my_data{T()} {}
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  constexpr BaseCombinableArr(T* init_val, T identity_ = T())
+      : identity{identity_}, my_arr{init_val}
+  {
+  }
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  void reset(T init_val, T identity_)
+  {
+    my_data = init_val;
+    identity = identity_;
+  }
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  constexpr BaseCombinableArr(BaseCombinableArr const &other)
+      : parent{other.parent ? other.parent : &other},
+        identity{other.identity},
+        my_data{identity}
+  {
+  }
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  ~BaseCombinableArr()
+  {
+    if (parent && my_data != identity) {
+      Reduce()(parent->my_data, my_data);
+    }
+  }
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  void combine(T const &other, idx_t i) { Reduce{}(my_data, other); }
+
+  /*!
+   *  \return the calculated reduced value
+   */
+  T get() const { return derived().get_combined(); }
+
+  /*!
+   *  \return reference to the local value
+   */
+  T &local() const { return my_data; }
+
+  T get_combined() const { return my_data; }
+
+private:
+  // Convenience method for CRTP
+  const Derived &derived() const
+  {
+    return *(static_cast<const Derived *>(this));
+  }
+  Derived &derived() { return *(static_cast<Derived *>(this)); }
+};
 /*!
  ******************************************************************************
  *
@@ -508,9 +580,9 @@ public:
     return *this;
   }
 
-  const BaseReduceSumArr & add(idx_t i, T rhs) const 
+  const BaseReduceSumArr & add(T rhs, idx_t i) const 
   {
-    this->combine(rhs);
+    this->combine(rhs,i);
     return *this;
   }
 };

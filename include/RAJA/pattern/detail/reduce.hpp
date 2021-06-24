@@ -238,6 +238,71 @@ public:
   T get() const { return c.get(); }
 };
 
+template <typename T,
+          template <typename>
+          class Reduce_,
+          template <typename, typename>
+          class Combiner_>
+class BaseReduceArr
+{
+  using Reduce = Reduce_<T>;
+  // NOTE: the _t here is to appease MSVC
+  using Combiner_t = Combiner_<T, Reduce>;
+  Combiner_t mutable c;
+
+public:
+  using value_type = T;
+  using reduce_type = Reduce;
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  BaseReduceArr() : c{T(), Reduce::identity()} {}
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  BaseReduceArr(T init_val, T identity_ = Reduce::identity())
+      : c{init_val, identity_}
+  {
+  }
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  void reset(T val, T identity_ = Reduce::identity())
+  {
+    c.reset(val, identity_);
+  }
+
+  //! prohibit compiler-generated copy assignment
+  BaseReduceArr &operator=(const BaseReduceArr &) = delete;
+
+  //! compiler-generated copy constructor
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  BaseReduceArr(const BaseReduceArr &copy) : c(copy.c) {}
+
+  //! compiler-generated move constructor
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  RAJA_INLINE
+  BaseReduceArr(BaseReduceArr &&copy) : c(std::move(copy.c)) {}
+
+  //! compiler-generated move assignment
+  BaseReduceArr &operator=(BaseReduceArr &&) = default;
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  void combine(T const &other) const { c.combine(other); }
+
+  T &local() const { return c.local(); }
+
+  //! Get the calculated reduced value
+  operator T() const { return c.get(); }
+
+  //! Get the calculated reduced value
+  T get() const { return c.get(); }
+};
+
+
 template <typename T, typename Reduce, typename Derived>
 class BaseCombinable
 {
@@ -428,10 +493,10 @@ public:
 };
 
 template <typename T, template <typename, typename> class Combiner>
-class BaseReduceSumArr : public BaseReduce<T, RAJA::reduce::sum, Combiner>
+class BaseReduceSumArr : public BaseReduceArr<T, RAJA::reduce::sum, Combiner>
 {
 public:
-  using Base = BaseReduce<T, RAJA::reduce::sum, Combiner>;
+  using Base = BaseReduceArr<T, RAJA::reduce::sum, Combiner>;
   using Base::Base;
 
   //! reducer function; updates the current instance's state

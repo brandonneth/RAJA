@@ -427,6 +427,25 @@ public:
   }
 };
 
+template <typename T, template <typename, typename> class Combiner>
+class BaseReduceSumArr : public BaseReduce<T, RAJA::reduce::sum, Combiner>
+{
+public:
+  using Base = BaseReduce<T, RAJA::reduce::sum, Combiner>;
+  using Base::Base;
+
+  //! reducer function; updates the current instance's state
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  const BaseReduceSumArr &operator+=(T rhs) const
+  {
+    this->combine(rhs);
+    return *this;
+  }
+};
+
+
+
 /*!
  **************************************************************************
  *

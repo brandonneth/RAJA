@@ -181,6 +181,9 @@ class ReduceMaxLoc;
 template <typename REDUCE_POLICY_T, typename T>
 class ReduceSum;
 
+
+template <typename REDUCE_POLICY_T, typename T>
+class ReduceSumArr;
 /*!
  ******************************************************************************
  *

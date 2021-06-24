@@ -55,6 +55,8 @@ public:
 
 RAJA_DECLARE_ALL_REDUCERS(seq_reduce, detail::ReduceSeq)
 
+RAJA_DECLARE_REDUCER(SumArr, seq_reduce, detail::ReduceSeq)
+
 }  // namespace RAJA
 
 #endif  // closing endif for header file include guard

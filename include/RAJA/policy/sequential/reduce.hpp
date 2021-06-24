@@ -49,7 +49,18 @@ public:
 
   using Base::Base;
 };
+template <typename T, typename Reduce>
+class ReduceSeqArr
+    : public reduce::detail::BaseCombinable<T, Reduce, ReduceSeqArr<T, Reduce>>
+{
+  using Base = reduce::detail::BaseCombinable<T, Reduce, ReduceSeqArr<T, Reduce>>;
 
+public:
+  //! prohibit compiler-generated default ctor
+  ReduceSeqArr() = delete;
+
+  using Base::Base;
+};
 
 }  // namespace detail
 
@@ -58,10 +69,10 @@ RAJA_DECLARE_ALL_REDUCERS(seq_reduce, detail::ReduceSeq)
 //RAJA_DECLARE_REDUCER(SumArr, seq_reduce, detail::ReduceSeq)
 
 template <typename T>
-class ReduceSumArr<seq_reduce, T> : public reduce::detail::BaseReduceSumArr<T, detail::ReduceSeq>
+class ReduceSumArr<seq_reduce, T> : public reduce::detail::BaseReduceSumArr<T, detail::ReduceSeqArr>
 {
 public:
-  using Base = reduce::detail::BaseReduceSumArr<T, detail::ReduceSeq>;
+  using Base = reduce::detail::BaseReduceSumArr<T, detail::ReduceSeqArr>;
   using Base::Base;
 };
 }  // namespace RAJA

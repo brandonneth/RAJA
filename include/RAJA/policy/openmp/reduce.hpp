@@ -63,9 +63,41 @@ public:
   }
 };
 
+template <typename T, typename Reduce>
+class ReduceOMPArr
+    : public reduce::detail::BaseCombinable<T, Reduce, ReduceOMPArr<T, Reduce>>
+{
+  using Base = reduce::detail::BaseCombinable<T, Reduce, ReduceOMPArr>;
+
+public:
+  using Base::Base;
+  //! prohibit compiler-generated default ctor
+  ReduceOMPArr() = delete;
+
+  ~ReduceOMPArr()
+  {
+    if (Base::parent) {
+#pragma omp critical(ompReduceCritical)
+      Reduce()(Base::parent->local(), Base::my_data);
+      Base::my_data = Base::identity;
+    }
+  }
+};
+
+
 }  // namespace detail
 
 RAJA_DECLARE_ALL_REDUCERS(omp_reduce, detail::ReduceOMP)
+
+
+template <typename T>                                       
+  class ReduceSumArr<omp_reduce, T>                                    
+      : public reduce::detail::BaseReduceSumArr<T, detail::ReduceOMPArr>    
+  {                                                           
+  public:                                                     
+    using Base = reduce::detail::BaseReduceSumArr<T, detail::ReduceOMPArr>; 
+    using Base::Base;                                         
+  };
 
 ///////////////////////////////////////////////////////////////////////////////
 //

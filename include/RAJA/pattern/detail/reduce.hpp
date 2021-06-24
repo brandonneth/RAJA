@@ -442,6 +442,12 @@ public:
     this->combine(rhs);
     return *this;
   }
+
+  const BaseReduceSumArr & add(idx_t i, T rhs) const 
+  {
+    this->combine(rhs);
+    return *this;
+  }
 };
 
 

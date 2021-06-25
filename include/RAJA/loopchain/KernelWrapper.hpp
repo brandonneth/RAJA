@@ -5,6 +5,7 @@
 
 #include "RAJA/config.hpp"
 #include "RAJA/loopchain/SymExec.hpp"
+#include "RAJA/loopchain/AutoLayout.hpp"
 #include "RAJA/pattern/kernel.hpp"
 
 #include <vector>
@@ -35,7 +36,7 @@ struct KernelWrapper {
     segments(_segments), bodies(_bodies...) {
      overlapAmounts = std::vector<camp::idx_t>();
      tileSizes = std::vector<camp::idx_t>();
-     accesses = _execute_symbolically();
+     //accesses = _execute_symbolically();
   }
   
   KernelWrapper(const KernelWrapper &) = default;
@@ -58,7 +59,7 @@ struct KernelWrapper {
   RAJA_INLINE
   auto make_iterator_tuple(camp::idx_seq<Is...>) {
    
-    auto iteratorOrderVector = policy_to_argument_order(KPol{});
+    auto iteratorOrderVector = policy_to_argument_order<KPol>{}();
      
     auto iterators = camp::make_tuple((make_sym_iterator<Is>(iteratorOrderVector))...);
     return iterators;
@@ -91,7 +92,8 @@ struct KernelWrapper {
     function(camp::get<Is>(iterators)...);
   }  
   std::vector<SymAccess> execute_symbolically() {
-    return accesses;
+    return _execute_symbolically();
+    //return accesses;
   }
   std::vector<SymAccess> _execute_symbolically() {
     auto iterators = make_iterator_tuple(camp::make_idx_seq_t<numArgs>());
@@ -218,26 +220,8 @@ auto change_segment_tuple(KernelWrapper<KernPol, SegmentTuple, Bodies...> knl, S
   return make_kernel<KernPol>(newSeg, camp::get<0>(knl.bodies));
 }
 
-template <camp::idx_t N>
-auto policy_to_argument_order(statement::Lambda<N>) {
-  auto order = std::vector<camp::idx_t>();
 
-  return order;
-}
 
-template <camp::idx_t I, typename E, typename Enclosed>
-auto policy_to_argument_order(statement::For<I,E,Enclosed>) {
-  auto lowerOrder = policy_to_argument_order(Enclosed{});
-
-  lowerOrder.insert(lowerOrder.begin(), I);
-
-  return lowerOrder;
-}
-
-template <typename InnerPolicy>
-auto policy_to_argument_order(KernelPolicy<InnerPolicy>){
-  return policy_to_argument_order(InnerPolicy{});
-} 
 
 
 } //namespace RAJA

@@ -76,10 +76,34 @@ struct op_adapter : private Op<T, T, T> {
     val = operator_type::operator()(val, v);
   }
 };
+
+template <typename T, template <typename...> class Op>
+struct op_adapter_arr : private Op<T, T, T> {
+  using operator_type = Op<T, T, T>;
+  RAJA_HOST_DEVICE static constexpr T identity()
+  {
+    return operator_type::identity();
+  }
+
+  RAJA_HOST_DEVICE RAJA_INLINE void operator()(T *val, idx_t i, const T v) const
+  {
+    val[i] =  operator_type::operator()(val[i], v);
+  }
+
+  RAJA_HOST_DEVICE RAJA_INLINE void operator() (T *arr1, T* arr2, idx_t len) const {
+    for(int i = 0; i < len; i++) {
+      arr1[i] = operator_type::operator()(arr1[i], arr2[i]); 
+    }
+  }
+};
+
 }  // namespace detail
 
 template <typename T>
 struct sum : detail::op_adapter<T, RAJA::operators::plus> {
+};
+template <typename T>
+struct sum_arr : detail::op_adapter_arr<T, RAJA::operators::plus> {
 };
 
 template <typename T>
@@ -256,20 +280,23 @@ public:
 
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
-  BaseReduceArr() : c{NULL, Reduce::identity()} {}
-
-  RAJA_SUPPRESS_HD_WARN
-  RAJA_HOST_DEVICE
-  BaseReduceArr(T*& init_val, T identity_ = Reduce::identity())
-      : c{init_val, identity_}
-  {
+  BaseReduceArr() : c{NULL, 0, Reduce::identity()} {
+    //std::cout << "BaseReduceArr default constructor\n";
   }
 
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
-  void reset(T val, T identity_ = Reduce::identity())
+  BaseReduceArr(T* init_val, idx_t len = 0, T identity_ = Reduce::identity())
+      : c{init_val, len, identity_}
   {
-    c.reset(val, identity_);
+    //std::cout << "BaseReduceArr  constructor\n";
+  }
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  void reset(T val, idx_t len = 0, T identity_ = Reduce::identity())
+  {
+    c.reset(val, identity_, len);
   }
 
   //! prohibit compiler-generated copy assignment
@@ -295,7 +322,7 @@ public:
 
   void combineArr(T const &other) const {c.combine(other);}
 
-  T &local() const { return c.local(); }
+  T* local() const { return c.local(); }
 
   //! Get the calculated reduced value
   operator T() const { return c.get(); }
@@ -384,24 +411,27 @@ protected:
   T identity;
   T mutable my_data;
   T*  my_arr;
+  idx_t len;
 public:
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
-  constexpr BaseCombinableArr() : identity{T()}, my_data{T()} {}
+  constexpr BaseCombinableArr() : identity{T()}, my_data{T()}, len{0} {}
 
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
-  constexpr BaseCombinableArr(T* init_val, T identity_ = T())
-      : identity{identity_}, my_arr{init_val}
+  constexpr BaseCombinableArr(T* init_val, idx_t len_ = 0, T identity_ = T())
+      : identity{identity_}, my_arr{init_val}, len{len_}
   {
+    //std::cout << "BaseCombinableArr parent consturctor: " << init_val << " " << len_ << " " << identity_ << "\n";
   }
 
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
-  void reset(T init_val, T identity_)
+  void reset(T*  init_val, idx_t len_, T identity_)
   {
-    my_data = init_val;
+    my_arr = init_val;
     identity = identity_;
+    len = len_;
   }
 
   RAJA_SUPPRESS_HD_WARN
@@ -409,22 +439,37 @@ public:
   constexpr BaseCombinableArr(BaseCombinableArr const &other)
       : parent{other.parent ? other.parent : &other},
         identity{other.identity},
-        my_data{identity}
+        my_data{identity},
+        len{other.len}
   {
+    //std::cout << "BaseCombinableArr copy constructor\n";
+    my_arr = new T[len];
+    for(int i = 0; i < len; i++) {
+      my_arr[i] = identity;
+    }
   }
+
 
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
   ~BaseCombinableArr()
   {
-    if (parent && my_data != identity) {
-      Reduce()(parent->my_data, my_data);
+    //std::cout << "Destructor for BaseCombinableArr\n";
+    
+    if (parent && len != 0) {
+      Reduce()(parent->my_arr, my_arr, len);
     }
+
+    
   }
 
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
-  void combine(T const &other, idx_t i) { Reduce{}(my_data, other); }
+  void combine(T const &other, idx_t i) { 
+    //std::cout << "BaseCombinableArr::combine(T,idx_t)\n";
+    Reduce{}(my_arr, i, other); 
+
+  }
 
   /*!
    *  \return the calculated reduced value
@@ -434,7 +479,7 @@ public:
   /*!
    *  \return reference to the local value
    */
-  T &local() const { return my_data; }
+  T* local() const { return my_arr; }
 
   T get_combined() const { return my_data; }
 
@@ -565,10 +610,10 @@ public:
 };
 
 template <typename T, template <typename, typename> class Combiner>
-class BaseReduceSumArr : public BaseReduceArr<T, RAJA::reduce::sum, Combiner>
+class BaseReduceSumArr : public BaseReduceArr<T, RAJA::reduce::sum_arr, Combiner>
 {
 public:
-  using Base = BaseReduceArr<T, RAJA::reduce::sum, Combiner>;
+  using Base = BaseReduceArr<T, RAJA::reduce::sum_arr, Combiner>;
   using Base::Base;
 
   //! reducer function; updates the current instance's state

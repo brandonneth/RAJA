@@ -76,10 +76,14 @@ public:
 
   ~ReduceOMPArr()
   {
+    //std::cout << "ReduceOmpArr destructor\n";
     if (Base::parent) {
 #pragma omp critical(ompReduceCritical)
-      Reduce()(Base::parent->local(), Base::my_data);
-      Base::my_data = Base::identity;
+      //std::cout << "ReducOmpArr destructor doing reduction step\n";
+      Reduce()(Base::parent->local(), Base::my_arr, Base::len);
+      for(int i = 0; i < Base::len; i++) {
+        Base::my_arr[i] = Base::identity;
+      }
     }
   }
 };

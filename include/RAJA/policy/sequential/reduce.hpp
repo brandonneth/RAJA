@@ -51,9 +51,9 @@ public:
 };
 template <typename T, typename Reduce>
 class ReduceSeqArr
-    : public reduce::detail::BaseCombinable<T, Reduce, ReduceSeqArr<T, Reduce>>
+    : public reduce::detail::BaseCombinableArr<T, Reduce, ReduceSeqArr<T, Reduce>>
 {
-  using Base = reduce::detail::BaseCombinable<T, Reduce, ReduceSeqArr<T, Reduce>>;
+  using Base = reduce::detail::BaseCombinableArr<T, Reduce, ReduceSeqArr<T, Reduce>>;
 
 public:
   //! prohibit compiler-generated default ctor

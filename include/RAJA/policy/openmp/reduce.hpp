@@ -61,6 +61,8 @@ public:
       Base::my_data = Base::identity;
     }
   }
+
+
 };
 
 template <typename T, typename Reduce>
@@ -71,6 +73,7 @@ class ReduceOMPArr
 
 public:
   using Base::Base;
+  
   //! prohibit compiler-generated default ctor
   ReduceOMPArr() = delete;
 
@@ -79,12 +82,54 @@ public:
     //std::cout << "ReduceOmpArr destructor\n";
     if (Base::parent) {
 #pragma omp critical(ompReduceCritical)
-      //std::cout << "ReducOmpArr destructor doing reduction step\n";
-      Reduce()(Base::parent->local(), Base::my_arr, Base::len);
+{
+      Reduce().end_reduce(Base::parent->local(), Base::my_arr, Base::len);
+
+      
+/*
+      std::cout << omp_get_thread_num() << "," << Base::parent->local() << "," << Base::my_arr << "\n";
+      std::cout << "non-zero indices:";
+      for(int i = 0; i < 100; i++) {
+        if(Base::my_arr[i] != Base::identity) {
+          std::cout << " " << i;
+        }
+      }
+      std::cout << std::endl;
+      std::cout << "underlying non-zero indices:";
+      for(int i = 0; i < 100; i++) {
+        if(Base::parent->local()[i] != Base::identity) {
+          std::cout << " " << i;
+        }
+      }
+      std::cout << std::endl;
+ 
+      std::cout << "Values at those indices:";
+      for(int i = 0; i < 100; i++) {
+        if(Base::my_arr[i] != Base::identity && Base::parent->local()[i] == Base::identity) {
+          std::cout << " " << Base::my_arr[i] << " " << Base::parent->local()[i] << ", "; 
+          std::cout << typename Reduce::operator_type()(Base::parent->local()[i], Base::my_arr[i]) << ",,";
+          //Base::parent->local()[i] += Base::my_arr[i];
+        }
+      }
+
+      std::cout << std::endl;
+*/
+}
       for(int i = 0; i < Base::len; i++) {
         Base::my_arr[i] = Base::identity;
       }
+      free(Base::my_arr);
+      Base::len = 0;
+      Base::my_arr = NULL;
     }
+  }
+
+  T* get() {
+    T* ret_val;
+    //std::cout << "ReduceOmpArr::get\n";
+  //#pragma omp critical(ompReduceCritical)
+    ret_val = Base::my_arr;
+    return ret_val;
   }
 };
 

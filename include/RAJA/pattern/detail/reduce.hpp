@@ -90,10 +90,12 @@ struct op_adapter_arr : private Op<T, T, T> {
     val[i] =  operator_type::operator()(val[i], v);
   }
 
-  RAJA_HOST_DEVICE RAJA_INLINE void operator() (T *arr1, T* arr2, idx_t len) const {
+  RAJA_HOST_DEVICE RAJA_INLINE void end_reduce (T *arr1, T* arr2, idx_t len) const {
     for(int i = 0; i < len; i++) {
-      arr1[i] = operator_type::operator()(arr1[i], arr2[i]); 
+      arr1[i] = operator_type()(arr1[i], arr2[i]); 
+      //std::cout << arr1[i] << "|";
     }
+    
   }
 };
 
@@ -325,10 +327,10 @@ public:
   T* local() const { return c.local(); }
 
   //! Get the calculated reduced value
-  operator T() const { return c.get(); }
+  operator T*() const { return c.get(); }
 
   //! Get the calculated reduced value
-  T get() const { return c.get(); }
+  T* get() const { return c.get(); }
 };
 
 
@@ -413,15 +415,22 @@ protected:
   T*  my_arr;
   idx_t len;
 public:
+ 
+  
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
-  constexpr BaseCombinableArr() : identity{T()}, my_data{T()}, len{0} {}
+  constexpr BaseCombinableArr() : identity{T()}, my_arr{NULL}, len{0} 
+  {
+    std::cout << "BaseCombinableArr default constructor.\n";
+    
+  }
 
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
   constexpr BaseCombinableArr(T* init_val, idx_t len_ = 0, T identity_ = T())
       : identity{identity_}, my_arr{init_val}, len{len_}
   {
+    std::cout << "BCA parameterized constructor. threadNum, my_arr: " << omp_get_thread_num() << "," << my_arr << "\n";
     //std::cout << "BaseCombinableArr parent consturctor: " << init_val << " " << len_ << " " << identity_ << "\n";
   }
 
@@ -447,17 +456,18 @@ public:
     for(int i = 0; i < len; i++) {
       my_arr[i] = identity;
     }
+    //#pragma omp critical(printing)
+    //std::cout << omp_get_thread_num() << "," << my_arr << "," << other.my_arr << "," << parent->my_arr <<  "\n";
   }
-
 
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
   ~BaseCombinableArr()
   {
-    //std::cout << "Destructor for BaseCombinableArr\n";
+    std::cout << "Destructor for BaseCombinableArr\n";
     
     if (parent && len != 0) {
-      Reduce()(parent->my_arr, my_arr, len);
+      Reduce{}.end_reduce(parent->my_arr, my_arr, len);
     }
 
     
@@ -474,14 +484,14 @@ public:
   /*!
    *  \return the calculated reduced value
    */
-  T get() const { return derived().get_combined(); }
+  T* get() const { return derived().get_combined(); }
 
   /*!
    *  \return reference to the local value
    */
   T* local() const { return my_arr; }
 
-  T get_combined() const { return my_data; }
+  T* get_combined() const { return my_arr; }
 
 private:
   // Convenience method for CRTP

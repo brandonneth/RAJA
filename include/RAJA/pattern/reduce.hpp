@@ -184,6 +184,9 @@ class ReduceSum;
 
 template <typename REDUCE_POLICY_T, typename T>
 class ReduceSumArr;
+
+template <typename REDUCE_POLICY_T, typename T>
+class ReduceSumMap;
 /*!
  ******************************************************************************
  *

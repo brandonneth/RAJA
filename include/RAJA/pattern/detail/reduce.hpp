@@ -99,6 +99,7 @@ struct op_adapter_arr : private Op<T, T, T> {
   }
 };
 
+
 }  // namespace detail
 
 template <typename T>
@@ -262,7 +263,9 @@ public:
 
   //! Get the calculated reduced value
   T get() const { return c.get(); }
-};
+}; //BaseReduce
+
+
 
 template <typename T,
           template <typename>
@@ -282,7 +285,7 @@ public:
 
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
-  BaseReduceArr() : c{NULL, 0, Reduce::identity()} {
+  BaseReduceArr() : c{} {
     //std::cout << "BaseReduceArr default constructor\n";
   }
 
@@ -332,8 +335,6 @@ public:
   //! Get the calculated reduced value
   T* get() const { return c.get(); }
 };
-
-
 template <typename T, typename Reduce, typename Derived>
 class BaseCombinable
 {
@@ -405,6 +406,8 @@ private:
   Derived &derived() { return *(static_cast<Derived *>(this)); }
 };
 
+
+
 template <typename T, typename Reduce, typename Derived>
 class BaseCombinableArr
 {
@@ -434,14 +437,6 @@ public:
     //std::cout << "BaseCombinableArr parent consturctor: " << init_val << " " << len_ << " " << identity_ << "\n";
   }
 
-  RAJA_SUPPRESS_HD_WARN
-  RAJA_HOST_DEVICE
-  void reset(T*  init_val, idx_t len_, T identity_)
-  {
-    my_arr = init_val;
-    identity = identity_;
-    len = len_;
-  }
 
   RAJA_SUPPRESS_HD_WARN
   RAJA_HOST_DEVICE
@@ -742,6 +737,223 @@ public:
 }  // namespace detail
 
 }  // namespace reduce
+
+
+
+
+/*
+ * Reducing into a map
+ */
+
+namespace reduce 
+{
+
+
+namespace detail 
+{
+
+template <typename T, template <typename...> class Op>
+struct op_adapter_map : private Op<T, T, T> {
+  using operator_type = Op<T, T, T>;
+  using MapType = std::map<idx_t, T>;
+  RAJA_HOST_DEVICE static constexpr T identity()
+  {
+    return operator_type::identity();
+  }
+
+  RAJA_HOST_DEVICE RAJA_INLINE void operator()( MapType & map, idx_t i, const T v) const
+  {
+    //std::cout << "inserting value " << i << "," << v << std::endl;
+    map[i] =  operator_type::operator()(map[i], v);
+  }
+
+  RAJA_HOST_DEVICE RAJA_INLINE void end_reduce ( MapType & map1, const MapType & map2) const {
+     for (const auto& [key, value] : map2) {
+       //std::cout << "updating with pair: " << key << "," << value << std::endl;
+       map1[key] = operator_type::operator()(map1[key], map2.at(key));
+     }  
+  }
+
+}; //op_adapter_map
+
+} //namespace detail
+
+template <typename T>
+struct sum_map : detail::op_adapter_map<T, RAJA::operators::plus> {
+};
+
+namespace detail 
+{
+
+template <typename T,
+          template <typename>
+          class Reduce_,
+          template <typename, typename>
+          class Combiner_>
+class BaseReduceMap
+{
+  using Reduce = Reduce_<T>;
+  // NOTE: the _t here is to appease MSVC
+  using Combiner_t = Combiner_<T, Reduce>;
+  Combiner_t mutable c;
+
+public:
+  using value_type = T;
+  using reduce_type = Reduce;
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  BaseReduceMap() : c{} {
+  }
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  BaseReduceMap(std::map<idx_t, T> map_, T identity_ = Reduce::identity())
+      : c{map_}
+  {
+  }
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  void reset(T val, idx_t len = 0, T identity_ = Reduce::identity())
+  {
+    c.reset(identity_);
+  }
+
+  //! prohibit compiler-generated copy assignment
+  BaseReduceMap &operator=(const BaseReduceMap &) = delete;
+
+  //! compiler-generated copy constructor
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  BaseReduceMap(const BaseReduceMap &copy) : c(copy.c) {}
+
+  //! compiler-generated move constructor
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  RAJA_INLINE
+  BaseReduceMap(BaseReduceMap &&copy) : c(std::move(copy.c)) {}
+
+  //! compiler-generated move assignment
+  BaseReduceMap &operator=(BaseReduceMap &&) = default;
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  void combine(T const &other, idx_t i) const { c.combine(other, i); }
+
+
+  std::map<idx_t, T> & local() const { return c.local(); }
+
+  //! Get the calculated reduced value
+  operator std::map<idx_t, T>() const { return c.get(); }
+
+  //! Get the calculated reduced value
+  std::map<idx_t, T>  get() const { return c.get(); }
+};
+
+template <typename T, typename Reduce, typename Derived>
+class BaseCombinableMap
+{
+using MapType = std::map<idx_t,T>;
+protected:
+  BaseCombinableMap const *parent = nullptr;
+  T identity;
+  MapType mutable my_map;
+public:
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  constexpr BaseCombinableMap() : identity{T()}, my_map{}
+  {
+    //std::cout << "BaseCombinableArr default constructor.\n";
+    
+  }
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  constexpr BaseCombinableMap(const MapType & my_map_)
+      : my_map{my_map_}  {
+  }
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  constexpr BaseCombinableMap(BaseCombinableMap const &other)
+      : parent{other.parent ? other.parent : &other},
+        identity{other.identity},
+        my_map{}
+  {
+  }
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  ~BaseCombinableMap()
+  {
+    //std::cout << "Destructor for BaseCombinableMap\n";
+    if (parent && my_map.size() != 0) {
+      Reduce{}.end_reduce(parent->local(), my_map);
+    } 
+  }
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  void reset(T identity_ = T()) { 
+    my_map.erase(my_map.begin(), my_map.end());
+    identity = identity_;
+  }
+
+
+  RAJA_SUPPRESS_HD_WARN
+  RAJA_HOST_DEVICE
+  void combine(T const &other, idx_t i) { 
+    //std::cout << "BaseCombinableArr::combine(T,idx_t)\n";
+    Reduce{}(my_map, i, other); 
+  }
+
+  /*!
+   *  \return the calculated reduced value
+   */
+  MapType get() const { return derived().get_combined(); }
+
+  /*!
+   *  \return reference to the local value
+   */
+  MapType & local() const { return my_map; }
+
+  MapType & get_combined() const { return my_map; }
+
+private:
+  // Convenience method for CRTP
+  const Derived &derived() const
+  {
+    return *(static_cast<const Derived *>(this));
+  }
+  Derived &derived() { return *(static_cast<Derived *>(this)); }
+
+}; // BaseCombinableMap
+
+
+template <typename T, template <typename, typename> class Combiner>
+class BaseReduceSumMap : public BaseReduceMap<T, RAJA::reduce::sum_map, Combiner>
+{
+public:
+  using Base = BaseReduceMap<T, RAJA::reduce::sum_map, Combiner>;
+  using Base::Base;
+
+  const BaseReduceSumMap & add(T rhs, idx_t i) const 
+  {
+    this->combine(rhs,i);
+    return *this;
+  }
+};
+
+} //namespace detail
+
+} //namespace reduce
+
+/* 
+ * End reducing into a map
+ */
+
 
 }  // namespace RAJA
 

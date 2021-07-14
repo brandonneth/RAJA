@@ -202,6 +202,85 @@ public:
 
 RAJA_DECLARE_ALL_REDUCERS(omp_reduce_ordered, detail::ReduceOMPOrdered)
 
+template <typename ContentType>
+struct DenseReducer<omp_reduce, ContentType> { 
+void operator()(ContentType * arr1, const ContentType * arr2, const unsigned & size) {
+  #pragma omp critical(ompReduceCriticalDense)
+  for(unsigned i = 0; i < size; i++) {
+    arr1[i] += arr2[i];
+  }
+}
+}; //DenseReducer<omp>
+
+template <typename ContentType>
+struct MapReducer<omp_reduce, ContentType> {
+  void operator() (const MapReduction<omp_reduce,ContentType> * out, const MapReduction<omp_reduce,ContentType> * in)   {
+    
+    if (out->denseContent) {
+      #pragma omp critical(ompReduceCriticalMap)
+      for(const auto &it : in->mapContent) {
+        out->denseContent[it.first] += it.second;
+      }
+    } else {
+      #pragma omp critical(ompReduceCriticalMap)
+      for (const auto &it : in->mapContent) {
+        (*out)(it.first) += it.second;
+      }
+    }
+  }
+};
+
+template <typename ContentType>
+struct BlockReducer<omp_reduce, ContentType> {
+  void operator() (const BlockReduction<omp_reduce,ContentType> *out, 
+                   const BlockReduction<omp_reduce,ContentType> * in) 
+  {
+    #pragma omp critical(ompReduceCriticalBlock)
+    {
+    int i, j;
+    if (out->nblocks == 1 && out->blocks[0] != NULL) {
+      for(i = 0; i < in->nblocks; i++) {
+        if(in->blocks[i] != NULL) {
+          int startIdx = i * BSIZE;
+          if(in->orig->useLocks && in->blocks[i] == &(out->blocks[0][startIdx])) {
+            omp_unset_lock(&(out->writelocks[i]));
+          } else {
+ 
+            BlockReduction<seq_reduce,ContentType>::addBlock(out->blocks[0] + startIdx, in->blocks[i], i, out->totalsize, false);
+            free(in->blocks[i]);
+          }
+        }
+      }
+    } else {
+      for(i = 0; i < in->nblocks; i++) {
+        if(in->blocks[i] != NULL) {
+          if(out->blocks[i] != NULL) {
+            ContentType *curOut = out->blocks[i];
+            ContentType *curIn = in->blocks[i];
+            ContentType *origBlock = &(in->orig->blocks[0][i *BSIZE]);
+            if(in->orig->useLocks && curIn == origBlock) {
+              curOut = in->blocks[i];
+              curIn = out->blocks[i];
+              out->blocks[i] = in->blocks[i];
+            }
+            if(in->orig->useLocks && curOut == origBlock) {
+              BlockReduction<omp_reduce,ContentType>::addBlock(curOut, curIn, i, out->totalsize, false);
+            } else {
+              BlockReduction<omp_reduce,ContentType>::addBlock(curOut, curIn, i, out->totalsize, true);
+            }
+            free(curIn);
+          } else {
+            out->blocks[i] = in->blocks[i];
+          }
+        }
+      }
+    }
+    } //omp critical
+  }
+
+};
+
+
 }  // namespace RAJA
 
 #endif  // closing endif for RAJA_ENABLE_OPENMP guard

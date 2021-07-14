@@ -20,6 +20,8 @@
 
 #include "RAJA/util/Operators.hpp"
 #include "RAJA/util/types.hpp"
+#include "RAJA/pattern/detail/spray.hpp"
+
 
 #define RAJA_DECLARE_REDUCER(OP, POL, COMBINER)               \
   template <typename T>                                       \

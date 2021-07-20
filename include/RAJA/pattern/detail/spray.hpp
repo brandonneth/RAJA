@@ -5,5 +5,5 @@
 #include "RAJA/pattern/detail/spray/atomic.hpp"
 #include "RAJA/pattern/detail/spray/map.hpp"
 #include "RAJA/pattern/detail/spray/block.hpp"
-
+#include "RAJA/pattern/detail/spray/keeper.hpp"
 #endif

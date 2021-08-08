@@ -31,7 +31,7 @@ public:
 
 
 template <typename ReductionPolicy, typename ContentType, unsigned blocksize = 256> 
-class KeeperReduction 
+class KeeperReduction : public virtual SprayReduction<ReductionPolicy,ContentType> 
 {
 public:
 

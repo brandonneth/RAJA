@@ -4,7 +4,21 @@
 namespace RAJA {
 
 
+template<typename ReductionPolicy, typename ContentType>
+class SprayReduction {
+public:
+  mutable ContentType * content;
 
+  virtual ContentType& operator() (long i) const
+  {
+    std::cout << "Base class accessor\n";
+    return content[i];
+  }
+
+
+
+};
+}
 #include "RAJA/pattern/detail/spray/dense.hpp"
 #include "RAJA/pattern/detail/spray/atomic.hpp"
 #include "RAJA/pattern/detail/spray/map.hpp"

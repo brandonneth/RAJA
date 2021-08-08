@@ -1,11 +1,8 @@
 #ifndef RAJA_PATTERN_DETAIL_REDUCE_SPRAY_HPP
 #define RAJA_PATTERN_DETAIL_REDUCE_SPRAY_HPP
 
-template <typename ReductionPolicy, typename ContentType>
-class SprayReduction
-{
-  virtual ContentType &operator()(int idx) = 0;
-}
+namespace RAJA {
+
 
 
 #include "RAJA/pattern/detail/spray/dense.hpp"

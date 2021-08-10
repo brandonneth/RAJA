@@ -217,7 +217,7 @@ auto overlap_segment_tuple(T1 segmentTuple, T2 originalSegmentTuple, T3 overlap,
 
 
 template <typename T1, typename T2, typename T3>
-auto overlap_segment_tuple(T1 segmentTuple, T2 originalSegmentTuple, T3overlap ) {
+auto overlap_segment_tuple(T1 segmentTuple, T2 originalSegmentTuple, T3 overlap ) {
   return overlap_segment_tuple(segmentTuple, originalSegmentTuple, overlap, idx_seq_for(overlap));
 }
 

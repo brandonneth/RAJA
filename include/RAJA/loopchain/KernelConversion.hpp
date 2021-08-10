@@ -236,10 +236,10 @@ isl_union_map * flow_dep_relation_from_knls(isl_ctx * ctx,
 
 //returns a relation between the iteration spaces of the two knls mapping instances of knl1 to 
 //instances of knl2 where knl1 instance reads and knl2 instance writes the same location
-template <camp::idx_t LoopNum1, camp::idx_t LoopNum2>
+template <typename T1, typename T2, camp::idx_t LoopNum1, camp::idx_t LoopNum2>
 isl_union_map * anti_dep_relation_from_knls(isl_ctx * ctx,
-                                            auto knl1, 
-                                            auto knl2) {
+                                            T1 knl1, 
+                                            T2 knl2) {
 
   isl_union_map * knl1Reads = read_relation_from_knl<LoopNum1>(ctx, knl1);
   isl_union_map * knl2Writes = write_relation_from_knl<LoopNum2>(ctx, knl2);

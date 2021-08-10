@@ -81,14 +81,14 @@ struct KernelWrapper {
     return accesses;
   }
 
-  template <camp::idx_t... Is>
+  template <typename T1, camp::idx_t... Is>
   RAJA_INLINE
-  auto collect_accesses_from_iterators(auto iterators, camp::idx_seq<Is...>) {
+  auto collect_accesses_from_iterators(T1 iterators, camp::idx_seq<Is...>) {
     return collect_accesses(camp::get<Is>(iterators)...);
   }
 
-  template <camp::idx_t...Is>
-  void es_helper(auto function, auto iterators, camp::idx_seq<Is...>) {
+  template <typename T1, typename T2, camp::idx_t...Is>
+  void es_helper(T1 function, T2 iterators, camp::idx_seq<Is...>) {
     function(camp::get<Is>(iterators)...);
   }  
   std::vector<SymAccess> execute_symbolically() {

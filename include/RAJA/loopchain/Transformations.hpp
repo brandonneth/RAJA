@@ -17,7 +17,7 @@ namespace RAJA
 template <typename... KernelTupleType>
 struct LoopChain;
 
-template <camp::idx_t MainKnlIdx, typename...KnlTupleType>
+/*template <camp::idx_t MainKnlIdx, typename...KnlTupleType>
 auto fused_kernels(camp::tuple<KnlTupleType...> knlTuple);
 
 isl_union_set * fused_iterspace(isl_ctx * ctx, auto iterspaceTuple);
@@ -30,7 +30,7 @@ auto fused_iterspace_upper_bounds(isl_ctx * ctx, auto iterspaceTuple, camp::idx_
 
 template <typename...Knls>
 auto chain(Knls...knls); 
-
+*/
 /*
 
 //returns a new segment that is segment shifted by shiftAmount

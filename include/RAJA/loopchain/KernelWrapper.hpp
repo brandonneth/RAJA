@@ -5,6 +5,7 @@
 
 #include "RAJA/config.hpp"
 #include "RAJA/loopchain/SymExec.hpp"
+#include "RAJA/loopchain/AutoLayout.hpp"
 #include "RAJA/pattern/kernel.hpp"
 
 #include <vector>
@@ -35,7 +36,7 @@ struct KernelWrapper {
     segments(_segments), bodies(_bodies...) {
      overlapAmounts = std::vector<camp::idx_t>();
      tileSizes = std::vector<camp::idx_t>();
-     accesses = _execute_symbolically();
+     //accesses = _execute_symbolically();
   }
   
   KernelWrapper(const KernelWrapper &) = default;
@@ -46,15 +47,21 @@ struct KernelWrapper {
 
   template <camp::idx_t Idx>
   RAJA_INLINE
-  SymIterator make_sym_iterator() {
-    std::string iteratorName = "i" + std::to_string(Idx);
+  SymIterator make_sym_iterator(std::vector<camp::idx_t> iteratorOrder) {
+    std::string iteratorName = "i" + std::to_string(iteratorOrder[Idx]);
     return SymIterator(iteratorName);
   }
+
+
+  
 
   template <camp::idx_t... Is>
   RAJA_INLINE
   auto make_iterator_tuple(camp::idx_seq<Is...>) {
-    auto iterators = camp::make_tuple((make_sym_iterator<Is>())...);
+   
+    auto iteratorOrderVector = policy_to_argument_order<KPol>{}();
+     
+    auto iterators = camp::make_tuple((make_sym_iterator<Is>(iteratorOrderVector))...);
     return iterators;
   }
   
@@ -74,18 +81,19 @@ struct KernelWrapper {
     return accesses;
   }
 
-  template <camp::idx_t... Is>
+  template <typename T1, camp::idx_t... Is>
   RAJA_INLINE
-  auto collect_accesses_from_iterators(auto iterators, camp::idx_seq<Is...>) {
+  auto collect_accesses_from_iterators(T1 iterators, camp::idx_seq<Is...>) {
     return collect_accesses(camp::get<Is>(iterators)...);
   }
 
-  template <camp::idx_t...Is>
-  void es_helper(auto function, auto iterators, camp::idx_seq<Is...>) {
+  template <typename T1, typename T2, camp::idx_t...Is>
+  void es_helper(T1 function, T2 iterators, camp::idx_seq<Is...>) {
     function(camp::get<Is>(iterators)...);
   }  
   std::vector<SymAccess> execute_symbolically() {
-    return accesses;
+    return _execute_symbolically();
+    //return accesses;
   }
   std::vector<SymAccess> _execute_symbolically() {
     auto iterators = make_iterator_tuple(camp::make_idx_seq_t<numArgs>());
@@ -211,6 +219,9 @@ auto change_segment_tuple(KernelWrapper<KernPol, SegmentTuple, Bodies...> knl, S
   
   return make_kernel<KernPol>(newSeg, camp::get<0>(knl.bodies));
 }
+
+
+
 
 
 } //namespace RAJA

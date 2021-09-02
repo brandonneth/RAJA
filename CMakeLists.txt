@@ -202,9 +202,16 @@ if (ENABLE_OPENMP)
   set (raja_depends
     openmp)
 endif()
+
+
+include(FindPkgConfig)
+pkg_check_modules(ISL REQUIRED isl)
 set (raja_depends
     ${raja_depends}
-    isl)
+    ISL)
+
+
+
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17)
   message(WARNING "RAJA::simd_exec support requires Intel-17 or greater")

@@ -204,11 +204,11 @@ if (ENABLE_OPENMP)
 endif()
 
 
-
-pkg_check_module(ISL REQUIRED isl)
+include(FindPkgConfig)
+pkg_check_modules(ISL REQUIRED isl)
 set (raja_depends
     ${raja_depends}
-    PkgConfig::ISL)
+    ISL)
 
 
 

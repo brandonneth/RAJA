@@ -230,7 +230,7 @@ class ViewBase {
 
   protected:
     pointer_type m_data;
-    layout_type const m_layout;
+    layout_type m_layout;
 
   public:
 

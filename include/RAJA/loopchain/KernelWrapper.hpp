@@ -219,7 +219,7 @@ struct KernelWrapper {
     
     //LambdaParameters contents
     separator = "";
-    for(int i = 0; i < NumArgs; i++) {
+    for(int i = 0; i < numArgs; i++) {
       o << separator << i;
       separator = ",";
     }

@@ -48,8 +48,8 @@ struct KernelWrapper {
 
   template <camp::idx_t Idx>
   RAJA_INLINE
-  SymIterator make_sym_iterator(std::vector<camp::idx_t> iteratorOrder) {
-    std::string iteratorName = "i" + std::to_string(iteratorOrder[Idx]);
+  SymIterator make_sym_iterator() {
+    std::string iteratorName = "i" + std::to_string(Idx);
     return SymIterator(iteratorName);
   }
 
@@ -58,11 +58,8 @@ struct KernelWrapper {
 
   template <camp::idx_t... Is>
   RAJA_INLINE
-  auto make_iterator_tuple(camp::idx_seq<Is...>) {
-   
-    auto iteratorOrderVector = policy_to_nesting_order<KPol>{}();
-    
-    auto iterators = camp::make_tuple((make_sym_iterator<Is>(iteratorOrderVector))...);
+  auto make_iterator_tuple(camp::idx_seq<Is...>) { 
+    auto iterators = camp::make_tuple((make_sym_iterator<Is>())...);
     return iterators;
   }
   
@@ -193,9 +190,96 @@ struct KernelWrapper {
 
 
   std::string model_data() {
+
+    const char * separator = "";
+    std::stringstream o;
+    //JSON opening bracket
+    o << "{\n";
+    
+
+
+    // NestingORder key and list start
+    o << " \"NestingOrder\" : [";
+
+    
     std::vector<camp::idx_t> nestingOrder = policy_to_nesting_order<KPol>{}();
+    //NestingOrder list contents
+    for(auto i : nestingOrder) {
+      o << separator << i;
+      separator = ",";
+    }
+    //NestingOrder list end
+    o << "]";
+    //Next entry
+    o << ",\n";
+
+    
+    //LambdaParameters key and list start
+    o << "\"LambdaParameters\" : [";
+    
+    //LambdaParameters contents
+    separator = "";
+    for(int i = 0; i < NumArgs; i++) {
+      o << separator << i;
+      separator = ",";
+    }
+
+    //LambdaParameters list end
+    o << "]";
+
+    //Next entry
+    o << ",\n";
+
+    //AccessArguments key and list start
+    o << "\"AccessArguments\" : [";
+
     auto accesses = execute_symbolically();
-    return "";
+    separator = "";
+    for(auto access: accesses) {
+      o << separator;
+      o << "[";
+      o << access.view << ",";
+      o << access.access_string();
+      o << "]";
+      separator = ",";
+    }
+    //list end
+    o << "]";
+    
+
+    o << ",\n";
+
+    //DataLayouts key
+    o << "\"DataLayouts\" : ";
+
+    //DataLayouts map start
+    o << "{\n";
+    
+    std::map<void*, std::vector<size_t>> m{};
+
+    for(auto access: accesses) {
+      m[access.view] = access.layout_permutation;
+    }     
+
+    separator = "";
+    for(const auto& [key,value] : m) {
+      o << separator << key << ": [";
+      const char * s2 = "";
+      for(auto v : value) {
+        o << s2 << v;
+        s2 = ",";
+      }
+      o << "]";
+      separator = ",\n";
+    }
+
+    //Map end
+    o << "}";
+
+    
+    // JSON closing bracket
+    o << "}";
+    return o.str();
   }
 
 

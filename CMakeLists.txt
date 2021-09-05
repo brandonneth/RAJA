@@ -205,11 +205,10 @@ endif()
 
 
 include(FindPkgConfig)
-pkg_check_modules(ISL REQUIRED isl)
+pkg_check_modules(ISL REQUIRED IMPORTED_TARGET isl)
 set (raja_depends
     ${raja_depends}
-    ISL)
-
+    PkgConfig::ISL)
 
 
 

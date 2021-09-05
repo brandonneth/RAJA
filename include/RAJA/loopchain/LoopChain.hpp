@@ -21,7 +21,7 @@
 #include "RAJA/loopchain/transformations/ShiftAndFuse.hpp"
 #include "RAJA/loopchain/transformations/OverlappedTile.hpp"
 
-//#include "RAJA/pattern/kernel/TiledLambda.hpp"
+#include "RAJA/pattern/kernel/TiledLambda.hpp"
 #include "RAJA/pattern/kernel/OverlappedTile.hpp"
 
 namespace RAJA

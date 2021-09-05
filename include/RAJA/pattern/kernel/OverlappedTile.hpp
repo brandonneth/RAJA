@@ -49,6 +49,10 @@ template <camp::idx_t ArgumentId,
 struct OverlappedTile : public internal::Statement<ExecPolicy, EnclosedStmts...> {
   using tile_policy_t = TilePolicy;
   using exec_policy_t = ExecPolicy;
+
+  OverlappedTile() {
+
+  } 
 };
 
 

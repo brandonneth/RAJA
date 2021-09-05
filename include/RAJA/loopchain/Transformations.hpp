@@ -7,7 +7,7 @@
  
 #include "RAJA/loopchain/Utils.hpp"
 #include "RAJA/loopchain/LoopChain.hpp"
-#include "RAJA/util/all-isl.h"
+#include "RAJA/util/all-isl.hpp"
 #include "RAJA/loopchain/KernelConversion.hpp"
 
 

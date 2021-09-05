@@ -3,7 +3,7 @@
 #ifndef RAJA_LC_knlconv_HPP
 #define RAJA_LC_knlconv_HPP
 
-#include "RAJA/util/all-isl.h"
+#include "RAJA/util/all-isl.hpp"
 #include <iostream>
 #include <sstream>
 

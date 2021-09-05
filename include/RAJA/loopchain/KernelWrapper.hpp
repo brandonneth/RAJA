@@ -8,6 +8,7 @@
 #include "RAJA/loopchain/AutoLayout.hpp"
 #include "RAJA/pattern/kernel.hpp"
 
+#include "RAJA/pattern/kernel/TiledLambda.hpp"
 #include <vector>
 #include <string>
 namespace RAJA
@@ -59,8 +60,8 @@ struct KernelWrapper {
   RAJA_INLINE
   auto make_iterator_tuple(camp::idx_seq<Is...>) {
    
-    auto iteratorOrderVector = policy_to_argument_order<KPol>{}();
-     
+    auto iteratorOrderVector = policy_to_nesting_order<KPol>{}();
+    
     auto iterators = camp::make_tuple((make_sym_iterator<Is>(iteratorOrderVector))...);
     return iterators;
   }
@@ -188,6 +189,13 @@ struct KernelWrapper {
   std::string segment_string() {
 
     return segment_string_helper(idx_seq_for(segments));
+  }
+
+
+  std::string model_data() {
+    std::vector<camp::idx_t> nestingOrder = policy_to_nesting_order<KPol>{}();
+    auto accesses = execute_symbolically();
+    return "";
   }
 
 

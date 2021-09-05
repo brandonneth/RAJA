@@ -15,8 +15,8 @@
 // SPDX-License-Identifier: (BSD-3-Clause)
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 
-#ifndef RAJA_pattern_kernel_Lambda_HPP
-#define RAJA_pattern_kernel_Lambda_HPP
+#ifndef RAJA_pattern_kernel_TiledLambda_HPP
+#define RAJA_pattern_kernel_TiledLambda_HPP
 
 #include "RAJA/config.hpp"
 
@@ -30,7 +30,6 @@
 #include "RAJA/util/macros.hpp"
 #include "RAJA/util/types.hpp"
 
-#include "RAJA/pattern/kernel/ArgHelper.hpp"
 #include "RAJA/pattern/kernel/internal.hpp"
 
 #include "RAJA/loopchain/Utils.hpp"
@@ -53,6 +52,8 @@ namespace statement
  */
 template <camp::idx_t BodyIdx, typename... Args >
 struct TiledLambda : internal::Statement<camp::nil> {
+  
+  TiledLambda() {}
   const static camp::idx_t loop_body_index = BodyIdx;
 };
 
@@ -61,11 +62,11 @@ struct TiledLambda : internal::Statement<camp::nil> {
 namespace internal
 {
 
-template <camp::idx_t LambdaIndex>
-struct StatementExecutor<statement::TiledLambda<LambdaIndex>> {
+template <camp::idx_t LambdaIndex, typename Types>
+struct StatementExecutor<statement::TiledLambda<LambdaIndex>, Types> {
 
-  template <camp::idx_t...Is>
-  static RAJA_INLINE void exec_helper(auto lambda, auto segments, camp::idx_seq<Is...>) {
+  template <typename T1, typename T2, camp::idx_t...Is>
+  static RAJA_INLINE void exec_helper(T1 lambda, T2 segments, camp::idx_seq<Is...>) {
     std::cout << "Executing Tiled Lambda\n";
   }  
 
@@ -84,8 +85,8 @@ struct StatementExecutor<statement::TiledLambda<LambdaIndex>> {
  * A RAJA::kernel statement that invokes a lambda function
  * with user specified arguments.
  */
-template <camp::idx_t LambdaIndex,typename... Args>
-struct StatementExecutor<statement::TiledLambda<LambdaIndex, Args...>> {
+template <camp::idx_t LambdaIndex, typename... Args, typename Types>
+struct StatementExecutor<statement::TiledLambda<LambdaIndex, Args...>, Types> {
 
   template <typename Data>
   static RAJA_INLINE void exec(Data &&data)

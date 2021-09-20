@@ -1,6 +1,7 @@
 #include "RAJA_test-base.hpp"
 
-TEST(LoopChain, ForallExec) {
+template <typename EXEC_POLICY>
+void ForallExecTestImpl() {
   
   double * _a = new double[100];
   double * _b = new double[100];
@@ -14,7 +15,7 @@ TEST(LoopChain, ForallExec) {
     _a[i] = 10;
   }
 
-  auto forall1 = RAJA::make_forall<RAJA::seq_exec>(RAJA::RangeSegment(0,100). [=](auto i){b(i) = a(i) + i;};
+  auto forall1 = RAJA::make_forall<EXEC_POLICY>(RAJA::RangeSegment(0,100), [=](auto i){b(i) = a(i) + i;});
 
   forall1();
 
@@ -25,3 +26,19 @@ TEST(LoopChain, ForallExec) {
   free(_a);
   free(_b);
 }
+
+TYPED_TEST_SUITE_P(ForallExecTest);
+template <typename T>
+class ForallExecTest : public ::testing::Test
+{
+};
+
+TYPED_TEST_P(ForallExecTest, ForallExec)
+{
+  using EXEC_POLICY = typename camp::at<TypeParam, camp::num<0>>::type;
+
+  ForallExecTestImpl<EXEC_POLICY>();
+
+}
+
+REGISTER_TYPED_TEST_SUITE_P(ForallExecTest, ForallExec);

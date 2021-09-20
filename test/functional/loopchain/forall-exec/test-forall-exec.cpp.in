@@ -4,9 +4,12 @@
 
 #include "RAJA_test-forall-data.hpp"
 
-#include "RAJA_test-forall-indexset-execpol.hpp"
 #include "RAJA_test-indexset-build.hpp"
+#include "RAJA_test-forall-execpol.hpp"
 
 #include "test-forall-exec.hpp"
 
 
+using @BACKEND@ExecTypes = Test<camp::cartesian_product<@BACKEND@ForallExecPols>>::Types;
+
+INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, ForallExecTest, @BACKEND@ExecTypes);

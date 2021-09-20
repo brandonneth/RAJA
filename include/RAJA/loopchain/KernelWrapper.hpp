@@ -120,10 +120,12 @@ struct KernelWrapper {
       auto params = RAJA::make_tuple();
       using param_tuple_t = camp::decay<decltype(params)>;
 
-      using loop_data_t = internal::LoopData<segment_tuple_t, param_tuple_t, camp::decay<Bodies>...>;
+      auto res = resources::get_default_resource<KPol>();
+      using Resource = decltype(res);
+      using loop_data_t = internal::LoopData<segment_tuple_t, param_tuple_t, Resource, camp::decay<Bodies>...>;
    
       loop_data_t loop_data(overlapAmounts, tileSizes, 
-                            make_wrapped_tuple(segments), params, camp::get<Is>(bodies)...);
+                            make_wrapped_tuple(segments), params, res, camp::get<Is>(bodies)...);
 
       util::callPostCapturePlugins(context);
 

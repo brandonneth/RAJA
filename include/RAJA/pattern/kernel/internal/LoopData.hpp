@@ -128,8 +128,8 @@ struct LoopData {
   std::vector<camp::idx_t> tileSizes;
 
   RAJA_INLINE RAJA_HOST_DEVICE
-  LoopData(std::vector<camp::idx_t> overlaps, std::vector<camp::idx_t> tiles, SegmentTuple const &s, ParamTuple const &p, Bodies const &... b)
-      : segment_tuple(s), param_tuple(p), bodies(b...), overlapAmounts(overlaps), tileSizes(tiles)
+  LoopData(std::vector<camp::idx_t> const & overlaps, std::vector<camp::idx_t> const& tiles, SegmentTuple const &s, ParamTuple const &p, Resource r, Bodies const &... b)
+      : segment_tuple(s), param_tuple(p), res(r), bodies(b...), overlapAmounts(overlaps), tileSizes(tiles)
   {
     //assign_begin_all();
   }

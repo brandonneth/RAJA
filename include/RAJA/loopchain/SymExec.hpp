@@ -129,7 +129,32 @@ SymIterator operator * (const T & other, const SymIterator & iterator) {
   return newIterator;
 }
 
+template <typename LayoutType> 
+std::vector<size_t> layout_to_perm(const LayoutType & layout) {
 
+  const size_t n_dims = layout.n_dims;
+  
+  std::vector<size_t> perm = std::vector<size_t>(n_dims);
+
+  auto strides = layout.strides;
+  std::set<int> strided = std::set<int>();
+  for(size_t i = 0; i < n_dims; i++) {
+    int biggestIndex = -1;
+    int biggestStride = -1;
+    for(size_t j = 0; j < n_dims; j++) {
+      if(strided.find(strides[j]) != strided.end()) { continue; }
+      if(strides[j] > biggestStride) {
+        biggestIndex = j;
+        biggestStride = strides[j];
+      }
+    }
+    strided.insert(biggestStride);
+    perm[i] = biggestIndex;
+  }
+
+  return perm;
+
+}//layout_to_perm
 
 struct SymAccess {
   
@@ -140,10 +165,10 @@ struct SymAccess {
   bool isRead;
   bool isWrite;
 
-  
-  SymAccess(void * _view, std::vector<size_t> perm, std::vector<SymIterator>& _iterators) {
+  template <typename LayoutType>
+  SymAccess(void * _view, const LayoutType & layout, std::vector<SymIterator>& _iterators) {
     view = _view;
-    layout_permutation = perm;
+    layout_permutation = layout_to_perm(layout);
     iterators = _iterators;
     isRead = false;
     isWrite = false;
@@ -406,32 +431,6 @@ SymAccessList list_update_double(const SymAccessList & l0, double scalar);
 SymAccessList list_update_iterator(const SymAccessList & l0, const SymIterator & i1);
 
 
-template <typename LayoutType> 
-std::vector<size_t> layout_to_perm(const LayoutType & layout) {
-
-  constexpr size_t n_dims = layout.n_dims;
-  
-  std::vector<size_t> perm = std::vector<size_t>(n_dims);
-
-  auto strides = layout.strides;
-  std::set<int> strided = std::set<int>();
-  for(size_t i = 0; i < n_dims; i++) {
-    int biggestIndex = -1;
-    int biggestStride = -1;
-    for(size_t j = 0; j < n_dims; j++) {
-      if(strided.find(strides[j]) != strided.end()) { continue; }
-      if(strides[j] > biggestStride) {
-        biggestIndex = j;
-        biggestStride = strides[j];
-      }
-    }
-    strided.insert(biggestStride);
-    perm[i] = biggestIndex;
-  }
-
-  return perm;
-
-}//layout_to_perm
 } // namespace RAJA
 
 

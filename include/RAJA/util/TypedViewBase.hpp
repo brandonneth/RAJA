@@ -400,7 +400,9 @@ class ViewBase {
     std::vector<SymIterator> allIterators;
 
     sym_eval(allIterators, symIterator, args...);
-    SymAccess thisAccess = SymAccess(m_data, allIterators);
+
+    
+    SymAccess thisAccess = SymAccess(m_data, m_layout, allIterators);
     SymAccessList l = SymAccessList(thisAccess);
     return l ;
   }
@@ -511,7 +513,7 @@ class TypedViewBase<ValueType, PointerType, LayoutType, camp::list<IndexTypes...
     std::vector<SymIterator> allIterators;
 
     sym_eval(allIterators, symIterator, args...);
-    SymAccess thisAccess = SymAccess(Base::m_data, allIterators);
+    SymAccess thisAccess = SymAccess(Base::m_data, Base::get_layout(), allIterators);
     SymAccessList l = SymAccessList(thisAccess);
     return l ;
   }

@@ -20,7 +20,7 @@ void KernelExecTestImpl() {
       RAJA::statement::Lambda<0>
     >
   >;
-  auto knl1 = RAJA::make_kernel<KERNEL_POL1>(camp::make_tuple(RAJA::RangeSegment(0,100)), [&](auto i) {b1(i) = a1(i) + i;});
+  auto knl1 = RAJA::make_kernel<KERNEL_POL1>(camp::make_tuple(RAJA::RangeSegment(0,100)), [=](auto i) {b1(i) = a1(i) + i;});
 
   knl1();
 
@@ -42,8 +42,8 @@ void KernelExecTestImpl() {
   VIEW_TYPE2 b2(_b, 10, 10);
 
   using KERNEL_POL2 = RAJA::KernelPolicy<
-    RAJA::statement::For<0,EXEC_POLICY,
-      RAJA::statement::For<1,RAJA::seq_exec,
+    RAJA::statement::For<0,RAJA::seq_exec,
+      RAJA::statement::For<1,EXEC_POLICY,
         RAJA::statement::Lambda<0>
       >
     >

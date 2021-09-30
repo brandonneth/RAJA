@@ -98,19 +98,16 @@ constexpr auto tuple_len(camp::tuple<Ts...>) {
   return sizeof...(Ts);
 }
 
-
-template <typename T>
-auto tuple_reverse(camp::tuple<T> t) {
-  return t;
-}
-
 template <typename T, typename...Ts>
 auto tuple_reverse(camp::tuple<T,Ts...> t) {
-  ;
-  auto endTuple = make_tuple(camp::get<0>(t));
-  auto subTuple = tuple_reverse(tuple_slice<1,sizeof...(Ts) + 1>(t));
+  if constexpr (sizeof...(Ts) == 0) {
+    return t;
+  } else {
+    auto endTuple = make_tuple(camp::get<0>(t));
+    auto subTuple = tuple_reverse(tuple_slice<1,sizeof...(Ts) + 1>(t));
 
-  return tuple_cat(subTuple, endTuple);
+    return tuple_cat(subTuple, endTuple);
+  }
 }
 
 
@@ -123,14 +120,34 @@ auto tuple_reverse(camp::tuple<T,Ts...> t) {
 //returns the DimNumth slice of the zip. This means, the DimNumth element of each of the original tuples
 template <camp::idx_t DimNum, typename...InnerTupleTypes, camp::idx_t...Is>
 auto tuple_zip_slice(camp::tuple<InnerTupleTypes...> t, camp::idx_seq<Is...>) {
-  return make_tuple(camp::get<DimNum>(camp::get<Is>(t))...);
+  //return make_tuple(camp::get<DimNum>(camp::get<Is>(t))...);
+  return camp::tuple{camp::get<DimNum>(camp::get<Is>(t))...};
 }
+
+template <typename T>
+void doPrint(T t) {
+  std::cout << t;
+}
+template <typename T, typename... Args>
+void doPrint(T t, Args... args) {
+  std::cout << t;
+  doPrint(args...);
+}
+
 
 template <typename...InnerTupleTypes, camp::idx_t...OuterDims, camp::idx_t... InnerDims>
 auto tuple_zip_helper(camp::tuple<InnerTupleTypes...> t, 
                       camp::idx_seq<OuterDims...> oSeq,
-                      camp::idx_seq<InnerDims...>) {
-  return make_tuple((tuple_zip_slice<InnerDims>(t, oSeq))...);
+                      camp::idx_seq<InnerDims...> iSeq) {
+  //return make_tuple((tuple_zip_slice<InnerDims>(t, oSeq))...);
+  //std::cout << "zip slices:\n";
+  //doPrint(tuple_zip_slice<InnerDims>(t, oSeq) ...) ;
+  //std::cout << "\n";
+  auto t_extra = camp::tuple{tuple_zip_slice<InnerDims>(t, oSeq)..., camp::make_tuple(-100)};
+
+  auto sliced = tuple_slice(t_extra, iSeq);
+  return sliced;
+ // return camp::tuple{tuple_zip_slice<0>(t, oSeq)};
 
 }
 template <typename InnerTupleType, typename...InnerTupleTypes, camp::idx_t...Is>

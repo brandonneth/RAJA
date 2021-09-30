@@ -1,6 +1,6 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 // Copyright (c) 2016-21, Lawrence Livermore National Security, LLC
-// and RAJA project contributors. See the RAJA/LICENSE file for details.
+// and RAJA project contributors. See the RAJA/COPYRIGHT file for details.
 //
 // SPDX-License-Identifier: (BSD-3-Clause)
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
@@ -14,12 +14,9 @@
 
 template < typename T, typename AtomicPolicy, typename IdxType >
 struct PreIncCountOp {
-  PreIncCountOp(T* dcount, T* hcount, camp::resources::Resource work_res, RAJA::TypedRangeSegment<IdxType> seg)
-    : counter(dcount), min((T)0), max((T)seg.size()-(T)1), final((T)seg.size())
-  {
-    hcount[0] = (T)0;
-    work_res.memcpy(dcount, hcount, sizeof(T));
-  }
+  PreIncCountOp(T* count, RAJA::TypedRangeSegment<IdxType> seg)
+    : counter(count), min((T)0), max((T)seg.size()-(T)1), final((T)seg.size())
+  { count[0] = (T)0; }
   RAJA_HOST_DEVICE
     T operator()(IdxType RAJA_UNUSED_ARG(i)) const {
       return (++counter) - (T)1;
@@ -30,12 +27,9 @@ struct PreIncCountOp {
 
 template < typename T, typename AtomicPolicy, typename IdxType >
 struct PostIncCountOp {
-  PostIncCountOp(T* dcount, T* hcount, camp::resources::Resource work_res, RAJA::TypedRangeSegment<IdxType> seg)
-    : counter(dcount), min((T)0), max((T)seg.size()-(T)1), final((T)seg.size())
-  {
-    hcount[0] = (T)0;
-    work_res.memcpy(dcount, hcount, sizeof(T));
-  }
+  PostIncCountOp(T* count, RAJA::TypedRangeSegment<IdxType> seg)
+    : counter(count), min((T)0), max((T)seg.size()-(T)1), final((T)seg.size())
+  { count[0] = (T)0; }
   RAJA_HOST_DEVICE
     T operator()(IdxType RAJA_UNUSED_ARG(i)) const {
       return (counter++);
@@ -46,12 +40,9 @@ struct PostIncCountOp {
 
 template < typename T, typename AtomicPolicy, typename IdxType >
 struct AddEqCountOp {
-  AddEqCountOp(T* dcount, T* hcount, camp::resources::Resource work_res, RAJA::TypedRangeSegment<IdxType> seg)
-    : counter(dcount), min((T)0), max((T)seg.size()-(T)1), final((T)seg.size())
-  {
-    hcount[0] = (T)0;
-    work_res.memcpy(dcount, hcount, sizeof(T));
-  }
+  AddEqCountOp(T* count, RAJA::TypedRangeSegment<IdxType> seg)
+    : counter(count), min((T)0), max((T)seg.size()-(T)1), final((T)seg.size())
+  { count[0] = (T)0; }
   RAJA_HOST_DEVICE
     T operator()(IdxType RAJA_UNUSED_ARG(i)) const {
       return (counter += (T)1) - (T)1;
@@ -62,12 +53,9 @@ struct AddEqCountOp {
 
 template < typename T, typename AtomicPolicy, typename IdxType >
 struct FetchAddCountOp {
-  FetchAddCountOp(T* dcount, T* hcount, camp::resources::Resource work_res, RAJA::TypedRangeSegment<IdxType> seg)
-    : counter(dcount), min((T)0), max((T)seg.size()-(T)1), final((T)seg.size())
-  {
-    hcount[0] = (T)0;
-    work_res.memcpy(dcount, hcount, sizeof(T));
-  }
+  FetchAddCountOp(T* count, RAJA::TypedRangeSegment<IdxType> seg)
+    : counter(count), min((T)0), max((T)seg.size()-(T)1), final((T)seg.size())
+  { count[0] = (T)0; }
   RAJA_HOST_DEVICE
     T operator()(IdxType RAJA_UNUSED_ARG(i)) const {
       return counter.fetch_add((T)1);
@@ -82,23 +70,18 @@ template <typename ExecPolicy,
          typename T,
          template <typename, typename, typename> class CountOp>
 void testAtomicRefAdd(RAJA::TypedRangeSegment<IdxType> seg,
-    T* count, T* list, bool* hit,
-    T* hcount, T* hlist, bool* hhit,
-    camp::resources::Resource work_res, IdxType N)
+    T* count, T* list, bool* hit)
 {
-  CountOp<T, AtomicPolicy, IdxType> countop(count, hcount, work_res, seg);
-
+  CountOp<T, AtomicPolicy, IdxType> countop(count, seg);
   RAJA::forall<ExecPolicy>(seg, [=] RAJA_HOST_DEVICE(IdxType i) {
       list[i] = countop.max + (T)1;
       hit[i] = false;
       });
-
   RAJA::forall<ExecPolicy>(seg, [=] RAJA_HOST_DEVICE(IdxType i) {
       T val = countop(i);
       list[i] = val;
       hit[(IdxType)val] = true;
       });
-
 #if defined(RAJA_ENABLE_CUDA)
   cudaErrchk(cudaDeviceSynchronize());
 #endif
@@ -106,23 +89,11 @@ void testAtomicRefAdd(RAJA::TypedRangeSegment<IdxType> seg,
   hipErrchk(hipDeviceSynchronize());
 #endif
 
-  work_res.memcpy( hcount, count, sizeof(T) );
-  work_res.memcpy( hlist, list, sizeof(T) * N );
-  work_res.memcpy( hhit, hit, sizeof(bool) * N );
-
-#if defined(RAJA_ENABLE_CUDA)
-  cudaErrchk(cudaDeviceSynchronize());
-#endif
-
-#if defined(RAJA_ENABLE_HIP)
-  hipErrchk(hipDeviceSynchronize());
-#endif
-
-  EXPECT_EQ(countop.final, hcount[0]);
+  EXPECT_EQ(countop.final, count[0]);
   for (IdxType i = 0; i < seg.size(); i++) {
-    EXPECT_LE(countop.min, hlist[i]);
-    EXPECT_GE(countop.max, hlist[i]);
-    EXPECT_TRUE(hhit[i]);
+    EXPECT_LE(countop.min, list[i]);
+    EXPECT_GE(countop.max, list[i]);
+    EXPECT_TRUE(hit[i]);
   }
 }
 
@@ -136,17 +107,13 @@ void ForallAtomicRefAddTestImpl( IdxType N )
 {
   RAJA::TypedRangeSegment<IdxType> seg(0, N);
 
-  camp::resources::Resource work_res{WORKINGRES()};
+  camp::resources::Resource count_res{WORKINGRES()};
+  camp::resources::Resource list_res{WORKINGRES()};
+  camp::resources::Resource hit_res{WORKINGRES()};
 
-  camp::resources::Resource host_res{camp::resources::Host()};
-
-  T * count   = work_res.allocate<T>(1);
-  T * list    = work_res.allocate<T>(N);
-  bool * hit  = work_res.allocate<bool>(N);
-
-  T * hcount   = host_res.allocate<T>(1);
-  T * hlist    = host_res.allocate<T>(N);
-  bool * hhit  = host_res.allocate<bool>(N);
+  T * count   = count_res.allocate<T>(1);
+  T * list    = list_res.allocate<T>(N);
+  bool * hit  = hit_res.allocate<bool>(N);
 
 #if defined(RAJA_ENABLE_CUDA)
   cudaErrchk(cudaDeviceSynchronize());
@@ -157,20 +124,17 @@ void ForallAtomicRefAddTestImpl( IdxType N )
 #endif
 
   testAtomicRefAdd<ExecPolicy, AtomicPolicy, IdxType, T, 
-                     PreIncCountOp  >(seg, count, list, hit, hcount, hlist, hhit, work_res, N);
+                     PreIncCountOp  >(seg, count, list, hit);
   testAtomicRefAdd<ExecPolicy, AtomicPolicy, IdxType, T, 
-                     PostIncCountOp >(seg, count, list, hit, hcount, hlist, hhit, work_res, N);
+                     PostIncCountOp >(seg, count, list, hit);
   testAtomicRefAdd<ExecPolicy, AtomicPolicy, IdxType, T, 
-                     AddEqCountOp   >(seg, count, list, hit, hcount, hlist, hhit, work_res, N);
+                     AddEqCountOp   >(seg, count, list, hit);
   testAtomicRefAdd<ExecPolicy, AtomicPolicy, IdxType, T, 
-                     FetchAddCountOp>(seg, count, list, hit, hcount, hlist, hhit, work_res, N);
+                     FetchAddCountOp>(seg, count, list, hit);
 
-  work_res.deallocate( count );
-  work_res.deallocate( list );
-  work_res.deallocate( hit );
-  host_res.deallocate( hcount );
-  host_res.deallocate( hlist );
-  host_res.deallocate( hhit ); 
+  count_res.deallocate( count );
+  list_res.deallocate( list );
+  hit_res.deallocate( hit );
 }
 
 

@@ -71,7 +71,7 @@ auto iterspace_to_segments(isl_ctx * ctx, isl_union_set * iterspace) {
 
 } //iterspace_to_segments
 
-template <typename T, camp::idx_t Idx>
+template <camp::idx_t Idx, typename T>
 std::string bound_from_segment(T segment) {
   
   auto low = *segment.begin();
@@ -84,12 +84,7 @@ std::string bound_from_segment(T segment) {
   return str;
 }
 
-template <typename T, camp::idx_t I>
-std::string bounds_from_segment(T segmentTuple, camp::idx_seq<I>) {
 
-  return bound_from_segment<I>(camp::get<I>(segmentTuple));
-  
-}
 
 template <typename T, camp::idx_t I, camp::idx_t...Is>
 std::string bounds_from_segment(T segmentTuple, camp::idx_seq<I, Is...>) {
@@ -126,7 +121,7 @@ std::string range_vector(T numElements, camp::idx_t loopNum) {
 //Returns the iteration space polyhedron of knl. 
 //Does so without the loop number in the chain, 
 //so that must be prepended if necessary.
-template <typename T, camp::idx_t LoopNum>
+template <camp::idx_t LoopNum, typename T>
 isl_union_set * iterspace_from_knl(isl_ctx * ctx, T knl) {
 
 

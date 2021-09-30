@@ -14,6 +14,8 @@
 namespace RAJA
 {
 
+template <typename T>
+T get_array_name(SymAccess a);
 
 //KernelWrapper wraps a kernel execution so it can be transformed before execution
 //The type and constructor parameters are the same as the kernel function.
@@ -101,8 +103,19 @@ struct KernelWrapper {
     es_helper(func, iterators, camp::make_idx_seq_t<numArgs>());
 
     auto _accesses = collect_accesses_from_iterators(iterators, camp::make_idx_seq_t<numArgs>());
- 
-    return _accesses;
+
+    auto accesses = std::vector<SymAccess>();
+
+    for(auto & access : _accesses) {
+      
+      auto search = std::find(accesses.begin(), accesses.end(), access);
+      if(search == accesses.end()) {
+        accesses.push_back(access);
+      }
+    }
+
+
+    return accesses;
   }
 
   // Traditional execution. For normal kernels, this resolves to a call to kernel.
@@ -222,7 +235,7 @@ struct KernelWrapper {
     //LambdaParameters contents
     separator = "";
     for(int i = 0; i < numArgs; i++) {
-      o << separator << i;
+      o << separator << "i" << i;
       separator = ",";
     }
 
@@ -240,7 +253,7 @@ struct KernelWrapper {
     for(auto access: accesses) {
       o << separator;
       o << "[";
-      o << access.view << ",";
+      o << "\"" << get_array_name(access) << "\"" << ",";
       o << access.access_string();
       o << "]";
       separator = ",";
@@ -257,15 +270,15 @@ struct KernelWrapper {
     //DataLayouts map start
     o << "{\n";
     
-    std::map<void*, std::vector<size_t>> m{};
+    std::map<std::string, std::vector<size_t>> m{};
 
     for(auto access: accesses) {
-      m[access.view] = access.layout_permutation;
+      m[get_array_name(access)] = access.layout_permutation;
     }     
 
     separator = "";
     for(const auto& [key,value] : m) {
-      o << separator << key << ": [";
+      o << separator << "\"" << key << "\"" << ": [";
       const char * s2 = "";
       for(auto v : value) {
         o << s2 << v;

@@ -185,13 +185,22 @@ struct SymAccess {
 
   friend std::ostream& operator<< (std::ostream& s, SymAccess a);
   
-  int operator < (const SymAccess other) {
+  int operator < (const SymAccess & other) {
     std::stringstream a, b;
-    a << this;
+    a << *this;
     b << other;
    
     return a.str().compare(b.str());
   }
+
+  int operator == (const SymAccess & other) {
+    std::stringstream a, b;
+    a << *this;
+    b << other;
+    std::cout << "comparing " << a.str() << " with " << b.str() << std::endl; 
+    return 0 == a.str().compare(b.str());
+  }
+
 }; //SymAccess
 
 

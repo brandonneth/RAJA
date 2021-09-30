@@ -24,7 +24,7 @@ if (RAJA_LOADED AND (NOT RAJA_LOADED STREQUAL "${RAJA_VERSION_MAJOR}.${RAJA_VERS
   message(FATAL_ERROR "You are mixing RAJA versions. Loaded is ${RAJA_LOADED}, expected ${RAJA_VERSION_MAJOR}.${RAJA_VERSION_MINOR}.${RAJA_VERSION_PATCHLEVEL}")
 endif()
 
-set ( CMAKE_CXX_FLAGS "-w")
+set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
 
 if (RAJA_LOADED)
   return() # Stop processing file, avoids nesting the whole file

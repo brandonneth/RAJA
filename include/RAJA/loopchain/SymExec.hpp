@@ -197,7 +197,6 @@ struct SymAccess {
     std::stringstream a, b;
     a << *this;
     b << other;
-    std::cout << "comparing " << a.str() << " with " << b.str() << std::endl; 
     return 0 == a.str().compare(b.str());
   }
 

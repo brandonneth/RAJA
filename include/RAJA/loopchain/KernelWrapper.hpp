@@ -235,7 +235,7 @@ struct KernelWrapper {
     //LambdaParameters contents
     separator = "";
     for(int i = 0; i < numArgs; i++) {
-      o << separator << "i" << i;
+      o << separator << "\"i" << i <<"\"";
       separator = ",";
     }
 
@@ -254,7 +254,11 @@ struct KernelWrapper {
       o << separator;
       o << "[";
       o << "\"" << get_array_name(access) << "\"" << ",";
-      o << access.access_string();
+      char * _s = "";
+      for(auto iterator : access.iterators) {
+        o << _s << "\"" << iterator << "\"";
+        _s = ",";
+      }
       o << "]";
       separator = ",";
     }

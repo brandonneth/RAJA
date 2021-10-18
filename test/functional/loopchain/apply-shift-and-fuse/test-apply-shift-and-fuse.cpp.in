@@ -7,9 +7,9 @@
 #include "RAJA_test-indexset-build.hpp"
 #include "RAJA_test-forall-execpol.hpp"
 
-#include "test-apply-shift.hpp"
+#include "test-apply-shift-and-fuse.hpp"
 
 
 using @BACKEND@ExecTypes = Test<camp::cartesian_product<@BACKEND@ForallExecPols>>::Types;
 
-INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, ApplyShiftTest, @BACKEND@ExecTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, ApplyShiftAndFuseTest, @BACKEND@ExecTypes);

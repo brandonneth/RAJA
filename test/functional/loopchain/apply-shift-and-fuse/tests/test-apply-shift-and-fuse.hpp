@@ -65,7 +65,7 @@ void ApplyShiftAndFuseTestImpl() {
    [=](auto i, auto j) {b2(i,j) = a2(i,j);}
   );
 
-   auto knl3 = RAJA::make_kernel<KPol2>(RAJA::make_tuple(RangeSegment(1,2), RangeSegment(0,9)),
+   auto knl4 = RAJA::make_kernel<KPol2>(RAJA::make_tuple(RangeSegment(1,2), RangeSegment(0,9)),
    [=](auto i, auto j) {a2(i,j+1) = 1;}
   );
 

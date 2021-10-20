@@ -109,7 +109,7 @@ std::string shift_constraints_for_pair(T1 knl1, T2 knl2, T3 id1, T4 id2 ) {
 
 // Recurses across the pairs of kernels to generate and concatenate 
 // the constraints between each pair. 
-template <typename T1, camp::idx_t KnlId1, camp::idx_t KnlId2, camp::idx_t NumKnls>
+template <camp::idx_t KnlId1, camp::idx_t KnlId2, camp::idx_t NumKnls, typename T1>
 auto shift_constraints_helper(isl_ctx * ctx, T1 knlTuple) {
 
   if constexpr (KnlId1 == NumKnls) {

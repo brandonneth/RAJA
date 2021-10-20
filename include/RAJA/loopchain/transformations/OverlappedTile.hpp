@@ -269,7 +269,7 @@ auto overlapped_tile_policy() {
   }
 }
 //creates the kernel which tiles the overlapping region of the kernels in the tuple
-template <typename T1, typename T2, camp::idx_t TileSize, camp::idx_t...Is>
+template <camp::idx_t TileSize, camp::idx_t...Is, typename T1, typename T2>
 auto overlapped_tile_no_fuse_kernel(T1 knlTuple, T2 overlapAmountTuples, camp::idx_seq<Is...> knlSeq) {
 
   //std::cout << "overlapped_tile_no_fuse_kernel\n";

@@ -67,13 +67,12 @@ struct StatementExecutor<statement::TiledLambda<LambdaIndex>, Types> {
 
   template <typename T1, typename T2, camp::idx_t...Is>
   static RAJA_INLINE void exec_helper(T1 lambda, T2 segments, camp::idx_seq<Is...>) {
-    std::cout << "Executing Tiled Lambda\n";
+    lambda(segments);
   }  
 
   template <typename Data>
   static RAJA_INLINE void exec(Data &&data)
   {
-    std::cout << "StatementExecutor<TiledLambda<LambdaIndex>>.exec\n";
 
     auto lambda = camp::get<LambdaIndex>(data.bodies);
     exec_helper(lambda, data.segment_tuple, idx_seq_for(data.segment_tuple));
@@ -81,10 +80,6 @@ struct StatementExecutor<statement::TiledLambda<LambdaIndex>, Types> {
 };
 
 
-/*!
- * A RAJA::kernel statement that invokes a lambda function
- * with user specified arguments.
- */
 template <camp::idx_t LambdaIndex, typename... Args, typename Types>
 struct StatementExecutor<statement::TiledLambda<LambdaIndex, Args...>, Types> {
 
@@ -92,7 +87,6 @@ struct StatementExecutor<statement::TiledLambda<LambdaIndex, Args...>, Types> {
   static RAJA_INLINE void exec(Data &&data)
   {
 
-    std::cout << "StatementExecutor<TiledLambda<LambdaIndex, Args...>>.exec\n";
     //Convert SegList, ParamList into Seg, Param types, and store in a list
     using targList = typename camp::flatten<camp::list<Args...>>::type;
 

@@ -232,7 +232,7 @@ auto overlapped_tile_no_fuse_executor(camp::tuple<KernelTypes...> knlTuple,
   auto entireRangeSegment = intersect_segment_tuples(segments);
     
   auto f = [=](auto tileRangeSegments) {
-     
+     std::cout << "Executing overlapped_tile_no_fuse executor lambda\n"; 
      auto overlapTileSegmentTuples = make_tuple(overlap_segment_tuple(tileRangeSegments, camp::get<Is>(knlTuple).segments, camp::get<Is>(overlaps))...);
 
      auto newKnlTuple = make_tuple((change_segment_tuple(camp::get<Is>(knlTuple), camp::get<Is>(overlapTileSegmentTuples)))...);
@@ -282,6 +282,8 @@ auto overlapped_tile_no_fuse_kernel(T1 knlTuple, T2 overlapAmountTuples, camp::i
   auto segments = make_tuple(camp::get<Is>(knlTuple).segments...);
   auto segmentTuple = intersect_segment_tuples(segments);
   auto tiledExecutor = overlapped_tile_no_fuse_executor(knlTuple, overlapAmountTuples);
+
+  std::cout << "Intersection of segment tuples: " << *camp::get<0>(segmentTuple).begin() << "," << *camp::get<0>(segmentTuple).end() << " x " << *camp::get<1>(segmentTuple).begin() << "," << *camp::get<1>(segmentTuple).end() << "\n";
 
   return make_kernel<KPol>(segmentTuple, tiledExecutor);
 }//overlap_kernel

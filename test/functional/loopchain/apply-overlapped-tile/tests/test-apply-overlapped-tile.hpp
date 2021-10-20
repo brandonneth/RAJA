@@ -54,7 +54,7 @@ void ApplyOverlappedTileTestImpl() {
   auto rangeSegment = make_tuple(RangeSegment(1,15), RangeSegment(1,15));
 
   using KPOL =  RAJA::KernelPolicy<
-    RAJA::statement::For<0,EXEC_POLICY,
+    RAJA::statement::For<0,RAJA::omp_parallel_for_exec,
       RAJA::statement::For<1,RAJA::seq_exec,
         RAJA::statement::Lambda<0>
       >
@@ -78,8 +78,31 @@ void ApplyOverlappedTileTestImpl() {
 
   int otiledCheck = checksum();
 
-  EXPECT_EQ(correct_val, otiledCheck);
 
+
+  auto print_array = [](auto a) {
+    for(int i = 0; i < 16; i++) {
+      for(int j = 0; j < 16; j++) {
+        std::cout << a(i,j) << " ";
+      }
+      std::cout << "\n";
+    }
+
+  };
+  if(correct_val != otiledCheck) {
+    std::cout << "Error with overlapped tiling of 3 jacobis.\n";
+    std::cout << "a:\n";
+    print_array(a);
+    std::cout << "b:\n";
+    print_array(b);
+    std::cout << "c:\n";
+    print_array(c);
+    std::cout << "d:\n";
+    print_array(d);
+  } 
+
+  
+  EXPECT_EQ(correct_val, otiledCheck);
 }
 
 TYPED_TEST_SUITE_P(ApplyOverlappedTileTest);

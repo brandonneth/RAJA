@@ -47,7 +47,7 @@ void ApplyFuseTestImpl() {
   using View2 = View<double, RAJA::Layout<2>>;
 
   View2 a2(_a, 10,10);
-  View2 b2(_a, 10,10);
+  View2 b2(_b, 10,10);
 
   using KPol2 = KernelPolicy<
     statement::For<0,seq_exec,

@@ -61,8 +61,6 @@ namespace internal
 {
 
 /*!
- * A generic RAJA::kernel forall_impl tile wrapper for statement::For
- * Assigns the tile segment to segment ArgumentId
  *
  */
 template <camp::idx_t ArgumentId, typename Data, typename Types, typename... EnclosedStmts>
@@ -207,8 +205,6 @@ struct StatementExecutor<
   template <typename Data>
   static RAJA_INLINE void exec(Data &data)
   {
-    //std::cout << "StatementExecutor<OverlappedTile>\n";
-    //std::cout << "Executing statement executor for overlappedtile\n";
     // Get the segment we are going to tile
     auto const &segment = camp::get<ArgumentId>(data.segment_tuple);
 
@@ -223,10 +219,11 @@ struct StatementExecutor<
     } else {
       tileSize = chunk_size;
     }
+
     // Create a tile iterator, needs to survive until the forall is
     // done executing.
     IterableOverlappedTiler<decltype(segment)> tiled_iterable(segment, tileSize);
-
+ 
     // Wrap in case forall_impl needs to thread_privatize
     OverlappedTileWrapper<ArgumentId, Data, Types,
                 EnclosedStmts...> tile_wrapper(data);

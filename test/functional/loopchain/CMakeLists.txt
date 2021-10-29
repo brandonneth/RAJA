@@ -12,3 +12,4 @@ add_subdirectory(apply-fuse)
 add_subdirectory(apply-shift-and-fuse)
 
 add_subdirectory(apply-overlapped-tile)
+add_subdirectory(auto-layout)

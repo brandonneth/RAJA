@@ -1014,9 +1014,14 @@ auto overlapped_tile_fuse(Knls...knls) {
 
 }
 */
+
+template <typename...Knls>
+auto chain(tuple<Knls...> knl_tuple) {
+  return LoopChain<Knls...>(knl_tuple);
+}
 template <typename...Knls>
 auto chain(Knls...knls) {
-  return LoopChain<Knls...>(make_tuple(knls...));
+  return chain(make_tuple(knls...));
 }
 
 

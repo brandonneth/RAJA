@@ -5,7 +5,7 @@
 #define RAJA_Chain_HPP
 
 #include "RAJA/config.hpp"
-
+#include "RAJA/loopchain/Utils.hpp"
 
 namespace RAJA
 {
@@ -123,6 +123,11 @@ struct LoopChain {
     } else {
       execute(camp::idx_seq<Is...>{});
     }
+  }
+
+  void operator() (){
+
+    execute(idx_seq_from_to<0,sizeof...(KernelTypes)>());
   }
 }; //LoopChain
 

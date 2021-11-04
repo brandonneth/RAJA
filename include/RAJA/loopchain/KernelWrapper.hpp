@@ -130,7 +130,7 @@ struct KernelWrapper {
      
       using segment_tuple_t = typename IterableWrapperTuple<camp::decay<SegmentTuple>>::type;
 
-      auto params = RAJA::make_tuple();
+      auto params = make_tuple();
       using param_tuple_t = camp::decay<decltype(params)>;
 
       auto res = resources::get_default_resource<KPol>();
@@ -151,7 +151,7 @@ struct KernelWrapper {
 
       util::callPostLaunchPlugins(context);
     } else {
-      RAJA::kernel<KernelPol>(segments, camp::get<Is>(bodies)...);
+      kernel<KernelPol>(segments, camp::get<Is>(bodies)...);
     }
 
   } //execute
@@ -171,7 +171,7 @@ struct KernelWrapper {
       } else {
 
         using ExecPol = typename ForType::execution_policy_t;
-        RAJA::forall<ExecPol>(camp::get<0>(segments), camp::get<0>(bodies));
+        forall<ExecPol>(camp::get<0>(segments), camp::get<0>(bodies));
       }
     } else {
       auto seq = camp::make_idx_seq_t<sizeof...(Bodies)>{};
@@ -316,7 +316,7 @@ make_kernel(const SegmentTuple & segment,   Bodies const &... bodies) {
 template <typename ExecPol, typename Segment, typename Body> 
 auto make_forall(Segment segment, const Body & body) {
   using KernPol = 
-    RAJA::KernelPolicy<
+    KernelPolicy<
       statement::For<0,ExecPol,
         statement::Lambda<0>
       >

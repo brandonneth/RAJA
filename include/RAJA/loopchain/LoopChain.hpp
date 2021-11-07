@@ -11,7 +11,6 @@
 #include "RAJA/loopchain/Chain.hpp"
 
 
-
 #include "RAJA/loopchain/Transformations.hpp"
 //#include "RAJA/loopchain/ISLAnalysis.hpp"
 #include "RAJA/loopchain/KernelConversion.hpp"

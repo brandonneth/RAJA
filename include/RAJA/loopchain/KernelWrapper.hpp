@@ -5,7 +5,7 @@
 
 #include "RAJA/config.hpp"
 #include "RAJA/loopchain/SymExec.hpp"
-#include "RAJA/loopchain/AutoLayout.hpp"
+#include "RAJA/loopchain/autolayout/AutoLayout.hpp"
 #include "RAJA/pattern/kernel.hpp"
 
 #include "RAJA/pattern/kernel/TiledLambda.hpp"

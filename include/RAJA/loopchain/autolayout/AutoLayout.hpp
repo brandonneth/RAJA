@@ -1,9 +1,8 @@
-#ifndef RAJA_AutoLayout_HPP
-#define RAJA_AutoLayout_HPP
-
+#ifndef RAJA_LCAutoLayout_HPP
+#define RAJA_LCAutoLayout_HPP
 #include "RAJA/config.hpp"
+#include "RAJA/loopchain/autolayout/LayoutDecision.hpp"
 #include <ctime>
-
 namespace RAJA {
 
 template <typename T>
@@ -300,3 +299,4 @@ auto execute_named_kernels(tuple<Contents...> named_kernels) {
 
 
 #endif
+

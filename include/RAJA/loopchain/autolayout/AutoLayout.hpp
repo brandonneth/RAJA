@@ -2,6 +2,7 @@
 #define RAJA_LCAutoLayout_HPP
 #include "RAJA/config.hpp"
 #include "RAJA/loopchain/autolayout/LayoutDecision.hpp"
+#include "RAJA/loopchain/autolayout/Enumerate.hpp"
 #include <ctime>
 namespace RAJA {
 

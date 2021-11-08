@@ -307,6 +307,12 @@ class ViewBase {
     }
 
     RAJA_HOST_DEVICE
+    RAJA_INLINE void set_layout(layout_type layout){
+      m_layout = layout;
+    }
+
+
+    RAJA_HOST_DEVICE
     RAJA_INLINE
     constexpr
     pointer_type const &get_data() const

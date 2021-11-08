@@ -2,7 +2,7 @@
 #define RAJA_LayoutDecision_HPP
 
 #include "RAJA/config.hpp"
-
+#include "RAJA/loopchain/Utils.hpp"
 
 namespace RAJA {
 
@@ -26,6 +26,14 @@ struct LayoutDecisions {
    
   }
 
+  LayoutDecisions(const LayoutDecisions & other) : moments(other.moments), views(other.views) {
+    
+  }
+/*
+  LayoutDecisions& operator=(LayoutDecisions other) {
+    moments = other.moments;
+    views = other.views;
+  }*/
 
   template <camp::idx_t I, typename ViewType, typename LayoutType, typename MomentView>
   int check_and_update_layout(LayoutTypes & moment, MomentView & moment_view, ViewType & view_to_change, LayoutType new_layout) {
@@ -34,6 +42,7 @@ struct LayoutDecisions {
       if(&moment_view == &view_to_change) {
         std::cout << "The views are refreences to the same views\n";
         get<I>(moment) = new_layout;
+        return 1;
       }
       return 0;
     } else {
@@ -43,7 +52,10 @@ struct LayoutDecisions {
 
   template <typename ViewType, typename LayoutType, camp::idx_t...Is>
   void update_moment(LayoutTypes & moment, ViewType & view, LayoutType layout, camp::idx_seq<Is...>) {
-    auto results = tuple(check_and_update_layout<Is>(moment, get<Is>(views), view, layout)...);
+    auto results = (check_and_update_layout<Is>(moment, get<Is>(views), view, layout) + ...);
+    if(results == 0) {
+      std::cout << "call to update_moment did not change any of the layouts\n";
+    }
   }
 
   template <typename ViewType, typename LayoutType>
@@ -66,7 +78,47 @@ struct LayoutDecisions {
     return knls;
   }
 
+  template <camp::idx_t NumKernels_, typename...Views_>
+  friend std::ostream & operator<<(std::ostream& os, const LayoutDecisions & ld);
 }; //LayoutDecisions
+
+template <typename Moment, camp::idx_t I, camp::idx_t...Is>
+void output_moment(std::ostream&os, const Moment & moment, camp::idx_seq<I, Is...>) {
+  auto layout = get<I>(moment);
+  os << "_view" << I << "_" ;
+  auto perm = layout_to_perm(layout);
+
+  for(int i = 0; i < perm.size(); i++) {
+  os << perm[i] << "_";
+  }
+  os << "_";
+  if constexpr (sizeof...(Is) == 0) { 
+    return;
+  } else {
+    output_moment(os, moment, camp::idx_seq<Is...>{});
+  }
+}
+
+
+template <camp::idx_t CurrKernel, camp::idx_t NumKernels, typename...Views, camp::idx_t...Is>
+void ld_output_helper(std::ostream&os, const LayoutDecisions<NumKernels,Views...> & ld, camp::idx_seq<Is...> seq) {
+  auto moment = ld.moments[CurrKernel];
+  output_moment(os, moment, seq);
+  if constexpr (CurrKernel == NumKernels) {
+    return;
+  } else {
+    os <<"_" << "knl" << CurrKernel << "_";
+    ld_output_helper<CurrKernel+1, NumKernels>(os, ld, seq);
+    return;
+  }
+}
+
+template <camp::idx_t NumKernels, typename...Views>
+std::ostream & operator<<(std::ostream& os, const LayoutDecisions<NumKernels,Views...> & ld) {
+  ld_output_helper<0,NumKernels>(os, ld, idx_seq_from_to<0,sizeof...(Views)>());
+  return os;
+} 
+
 
 template <typename...Views, typename KernelType1, typename KernelType2, camp::idx_t...Is>
 auto decide_moment(int moment_number, LayoutDecisions<2,Views...> & decisions,  KernelType1 knl1, KernelType2 knl2, camp::idx_seq<Is...>) {

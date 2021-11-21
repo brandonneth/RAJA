@@ -40,7 +40,7 @@ struct LayoutDecisions {
     if constexpr (std::is_same<ViewType, MomentView>::value) {
      
       if(&moment_view == &view_to_change) {
-        std::cout << "The views are refreences to the same views\n";
+        //std::cout << "The views are refreences to the same views\n";
         get<I>(moment) = new_layout;
         return 1;
       }

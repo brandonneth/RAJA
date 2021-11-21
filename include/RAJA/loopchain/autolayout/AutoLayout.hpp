@@ -3,6 +3,7 @@
 #include "RAJA/config.hpp"
 #include "RAJA/loopchain/autolayout/LayoutDecision.hpp"
 #include "RAJA/loopchain/autolayout/Enumerate.hpp"
+#include "RAJA/loopchain/autolayout/Evaluate.hpp"
 #include <ctime>
 namespace RAJA {
 
@@ -157,7 +158,7 @@ auto permute_view(ViewType & v, LayoutType l) {
       }
     }
     if(sameLayout) {
-      std::cout << "no layout change\n"; 
+      //std::cout << "no layout change\n"; 
       return;
     }
     T * _v2 = new T[v.size()];

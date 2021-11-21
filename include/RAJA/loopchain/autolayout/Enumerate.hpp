@@ -95,7 +95,7 @@ auto enumerate_moment(std::vector<DecisionType> partial_decisions, tuple<ViewTyp
 
 template <camp::idx_t MomentsDecided, camp::idx_t NumKernels, typename...ViewTypes>
 auto enumerate_possible_decisions_helper(std::vector<LayoutDecisions<NumKernels,ViewTypes...>> partial_decisions, tuple<ViewTypes...> views) {
-  std::cout << "enumerate_possible_decisions_helper view is reference: " << std::is_reference<decltype(get<0>(views))>::value << "\n";
+  //std::cout << "enumerate_possible_decisions_helper view is reference: " << std::is_reference<decltype(get<0>(views))>::value << "\n";
 
   if constexpr (MomentsDecided == NumKernels + 1 ) {
     return partial_decisions;

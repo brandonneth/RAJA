@@ -10,6 +10,6 @@
 #include "test-auto-layout.hpp"
 
 
-using @BACKEND@ExecTypes = Test<camp::cartesian_product<@BACKEND@AutoLayoutPols>>::Types;
+using @BACKEND@ExecTypes = Test<camp::cartesian_product<@BACKEND@ForallExecPols>>::Types;
 
 INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, AutoLayoutTest, @BACKEND@ExecTypes);

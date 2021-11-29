@@ -156,6 +156,20 @@ std::vector<size_t> layout_to_perm(const LayoutType & layout) {
 
 }//layout_to_perm
 
+template <size_t NumDims, typename LayoutType>
+std::array<camp::idx_t, NumDims> layout_to_perm_array(LayoutType &layout) {
+  
+  auto vec = layout_to_perm(layout);
+
+  std::array<camp::idx_t, NumDims> perm;
+  for(auto i = 0; i < NumDims; i++) {
+    perm[i] = vec[i];
+  }
+
+  return perm;
+
+}
+
 struct SymAccess {
   
   void * view;

@@ -25,6 +25,7 @@
 
 
 #include "RAJA/loopchain/autolayout/AutoLayout.hpp"
+#include "RAJA/loopchain/autolayout/model/Modeling.hpp"
 namespace RAJA
 {
 

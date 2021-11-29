@@ -10,7 +10,7 @@ namespace RAJA {
 
 template <camp::idx_t NumDims>
 EqualityConstraint<NumDims> * one_format_constraint(std::string viewName, camp::idx_t idx) {
-  std::vector<DecisionVariable<NumDims>*> format_vars;
+  std::vector<Expression<NumDims>*> format_vars;
   auto all_perms = enumerate_perms<NumDims>();
   for(auto perm : all_perms) {
     std::vector<camp::idx_t> p;
@@ -20,7 +20,7 @@ EqualityConstraint<NumDims> * one_format_constraint(std::string viewName, camp::
     format_vars.push_back(new FormatDecision<NumDims>(viewName, idx, p));
   }
 
-  auto sum = new DecisionVariableSum(format_vars);
+  auto sum = new SumExpression(format_vars);
 
   auto one = new Constant<NumDims>(1);
   return new EqualityConstraint<NumDims>(sum, one);  
@@ -34,7 +34,7 @@ EqualityConstraint<NumDims> * one_conversion_constraint(std::string viewName, ca
   if(idx == 0) {
     return new EqualityConstraint<NumDims>(new Constant<NumDims>(0), new Constant<NumDims>(0));
   }    
-  std::vector<DecisionVariable<NumDims>*> conversion_vars;
+  std::vector<Expression<NumDims>*> conversion_vars;
   auto all_perms = enumerate_perms<NumDims>();
   for(auto perm1 : all_perms) {
     for(auto perm2 : all_perms) {
@@ -48,7 +48,7 @@ EqualityConstraint<NumDims> * one_conversion_constraint(std::string viewName, ca
     }
   }
 
-  auto sum = new DecisionVariableSum(conversion_vars);
+  auto sum = new SumExpression(conversion_vars);
 
   auto one = new Constant<NumDims>(1);
   return new EqualityConstraint<NumDims>(sum, one);  
@@ -70,7 +70,7 @@ AndConstraint<NumDims>* conversion_input_constraint(std::string viewName, camp::
 
     FormatDecision<NumDims> * format = new FormatDecision<NumDims> (viewName, idx, p);
 
-    auto sum = new DecisionVariableSum<NumDims>();
+    auto sum = new SumExpression<NumDims>();
 
     for(auto out_perm : all_perms) {
       std::vector<camp::idx_t> out_p;
@@ -103,7 +103,7 @@ AndConstraint<NumDims>* conversion_output_constraint(std::string viewName, camp:
 
     FormatDecision<NumDims> * format = new FormatDecision<NumDims> (viewName, idx, p);
 
-    auto sum = new DecisionVariableSum<NumDims>();
+    auto sum = new SumExpression<NumDims>();
 
     for(auto in_perm : all_perms) {
       std::vector<camp::idx_t> in_p;
@@ -123,7 +123,7 @@ template <camp::idx_t NumDims>
 AndConstraint<NumDims>* binary_choice_constraints(std::string viewName, camp::idx_t idx) {
   AndConstraint<NumDims>* constraints = new AndConstraint<NumDims>();
   
-  std::vector<DecisionVariable<NumDims>*> vars;
+  std::vector<Expression<NumDims>*> vars;
   auto all_perms = enumerate_perms<NumDims>();
   for(auto perm : all_perms) {
     std::vector<camp::idx_t> p;

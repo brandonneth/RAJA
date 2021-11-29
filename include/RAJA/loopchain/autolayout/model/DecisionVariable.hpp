@@ -3,13 +3,27 @@
 
 #include <sstream>
 #include "RAJA/loopchain/autolayout/model/ConstraintGrammar.hpp"
+#include "RAJA/loopchain/autolayout/AutoLayout.hpp"
 
-
+#include <chrono>
 namespace RAJA {
 
   
-  template <camp::idx_t I>
-  std::size_t estimate_cost(DecisionVariable<I> * d); 
+template <typename Args, camp::idx_t...Is, typename ViewType>
+void f_helper(Args&& args_tuple, camp::idx_seq<Is...>, ViewType & v, ViewType &  v2) {
+  v(camp::get<Is>(args_tuple)...) = v2(camp::get<Is>(args_tuple)...);
+
+}
+
+template <typename ViewType>
+auto f_lambda(ViewType & v, ViewType & v2) {
+  return [&](auto...is) {
+    f_helper(camp::forward_as_tuple(is...), idx_seq_from_to<0,sizeof...(is)>(), v, v2);
+  };
+}
+
+
+ 
 
   template <camp::idx_t I>
   class FormatDecision : public DecisionVariable<I> {
@@ -35,6 +49,44 @@ namespace RAJA {
       return s.str();
 
     }
+virtual camp::idx_t estimate_cost() {
+  using V =  View<double, Layout<I>>;
+
+  camp::idx_t n = 128;
+
+  camp::idx_t s = 1;
+  std::array<camp::idx_t, I> sizes;
+  for(auto i = 0; i < I; i++) {
+    sizes[i] = n;
+    s *= n;
+  }
+
+  Layout<I> in_layout = make_permuted_layout(sizes, permutation);
+
+  V in(new double[s], in_layout);
+  V in2(new double[s], in_layout);
+
+  using kpol = typename nest<I>::pol;
+
+  auto val = (double) viewName[0];
+  auto l = f_lambda(in, in2);
+
+  auto seg = RangeSegment(0,n);
+
+  auto segs = tuple_repeat<I>(seg);
+
+  auto knl = make_kernel<kpol>(segs, l);
+  
+  auto start =std::chrono::high_resolution_clock::now(); 
+  knl(); 
+  auto stop =std::chrono::high_resolution_clock::now();
+
+  auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
+ 
+
+  return t;
+
+} 
 
   };
     
@@ -76,12 +128,56 @@ namespace RAJA {
     }
 
 
+virtual camp::idx_t estimate_cost() {
+  using V =  View<double, Layout<I>>;
+
+  camp::idx_t n = 128;
+
+  camp::idx_t s = 1;
+  std::array<camp::idx_t, I> sizes;
+  for(auto i = 0; i < I; i++) {
+    sizes[i] = n;
+    s *= n;
+  }
+
+  Layout<I> in_layout = make_permuted_layout(sizes, in_perm);
+  Layout<I> out_layout = make_permuted_layout(sizes, out_perm);
+
+  using kpol = typename nest<I>::pol;
+
+  auto start =std::chrono::high_resolution_clock::now(); 
+  V in(new double[s], in_layout);
+
+  V out(new double[s], out_layout);
+
+  auto l = f_lambda(in, out);
+  auto seg = RangeSegment(0,n);
+
+  auto segs = tuple_repeat<I>(seg);
+
+  auto conversion = make_kernel<kpol>(segs, l);
+
+  conversion(); 
+  using T = double;
+T * _v = in.get_data();   
+  T * _v2 = out.get_data();
+  memcpy(_v, _v2, sizeof(double) *in.size());
+    free(_v2);
+    free(_v);
+  auto stop =std::chrono::high_resolution_clock::now();
+
+  auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
+
+  return t;
+
+} 
+
   };
 
 
 template <camp::idx_t NumDims>
-DecisionVariableList<NumDims> * decision_variables(std::string viewName, camp::idx_t idx) {
-  auto vars = new DecisionVariableList<NumDims>();
+TermList<NumDims> * decision_variables(std::string viewName, camp::idx_t idx) {
+  auto vars = new TermList<NumDims>();
   auto all_perms = enumerate_perms<NumDims>();
   for(auto perm : all_perms) {
     std::vector<camp::idx_t> p;
@@ -116,8 +212,8 @@ DecisionVariableList<NumDims> * decision_variables(std::string viewName, camp::i
 }
 
 template <camp::idx_t NumDims>
-DecisionVariableList<NumDims> * all_decision_variables(std::string viewName, camp::idx_t max_idx) {
-  auto vars = new DecisionVariableList<NumDims>();
+TermList<NumDims> * all_decision_variables(std::string viewName, camp::idx_t max_idx) {
+  auto vars = new TermList<NumDims>();
   auto all_perms = enumerate_perms<NumDims>();
  
 for(int idx = 0; idx <= max_idx; idx++) {
@@ -148,22 +244,6 @@ for(int idx = 0; idx <= max_idx; idx++) {
   return vars;  
 }
 
-#include <ctime>
-template <camp::idx_t I>
-std::size_t estimate_cost(ConversionDecision<I> d) {
-  using V =  View<double, Layout<I>>;
-
-  std::size_t n = 1024;
-  //V in(d.in_perm);
-  //V out(d.out_perm);
-
-  /*
- * create and then time the kernel that does a small version of the conversion
- */
-
-  return 0;
-
-} 
 } //namespace RAJA
 
 #endif

@@ -36,6 +36,38 @@ auto enumerate_perms(ViewType v) {
   return perms;  
   
 }
+
+template <camp::idx_t NumDims>
+auto enumerate_perms() {
+
+  using ArrayType = std::array<camp::idx_t, NumDims>;
+
+  std::vector<ArrayType> perms;
+
+  ArrayType currPerm;
+
+   
+  for(int i = 0; i < NumDims; i++) {
+    currPerm[i] = i;
+  }    
+
+    std::sort(currPerm.begin(), currPerm.end());
+
+  do {
+    ArrayType perm;
+    for(int i = 0; i < NumDims; i++) {
+      perm[i] = currPerm[i];
+    }
+    perms.push_back(perm);
+  } while (std::next_permutation(currPerm.begin(), currPerm.end()));
+  
+  
+  return perms;  
+
+}
+
+
+
 template <camp::idx_t CurrentMoment, camp::idx_t ViewIdx, typename DecisionType, typename...ViewTypes>
 auto enumerate_decisions_for_views(std::vector<DecisionType> partial_decisions, tuple<ViewTypes...> views);
 

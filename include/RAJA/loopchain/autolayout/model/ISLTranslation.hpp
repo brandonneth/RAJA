@@ -14,7 +14,7 @@ namespace RAJA {
 
 
 template <camp::idx_t NumDims> 
-isl_union_set * decision_space(isl_ctx * ctx, DecisionVariableList<NumDims> * vars, Constraint<NumDims> * constraints) {
+isl_union_set * decision_space(isl_ctx * ctx, TermList<NumDims> * vars, Constraint<NumDims> * constraints) {
 
   std::stringstream s;
   s << "{ " << vars->rep() << " : " << constraints->rep() << " } ";
@@ -26,6 +26,45 @@ isl_union_set * decision_space(isl_ctx * ctx, DecisionVariableList<NumDims> * va
   return space;
 }
 
+template <camp::idx_t NumDims> 
+isl_union_map * objective_function(isl_ctx * ctx, TermList<NumDims> * vars, Constraint<NumDims> * constraints) {
+
+  auto obj = new NamedVariable<NumDims>("obj");
+
+ 
+
+
+  auto sum = new SumExpression<NumDims>();
+  
+  for(Term<NumDims> * d : vars->variables) {
+    std::cout << "Getting cost of decision variable: " << d->rep() << "\n";
+    auto c = d->estimate_cost();
+    
+    auto mult = new MultExpression<NumDims>(d, new Constant<NumDims>(c));
+
+    sum->add(mult);
+    
+  }
+
+  auto obj_func = new EqualityConstraint(obj, sum);
+
+  auto out_vars = new TermList<NumDims>();
+  out_vars->add(obj);
+
+  for(auto var : vars->variables) {
+    out_vars->add(var);
+  }
+
+
+
+  std::stringstream s;
+ 
+  s << "{" << vars->rep() << " -> " << out_vars->rep() << " : " << constraints->rep() << " && " << obj_func->rep() << "}";
+
+  isl_union_map * map = isl_union_map_read_from_str(ctx, s.str().c_str());
+
+  return map;
+}
 
 
 

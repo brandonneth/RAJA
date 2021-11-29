@@ -14,16 +14,21 @@ template <camp::idx_t NumKernels, typename...Views>
 struct LayoutDecisions {
 
   constexpr static camp::idx_t NumViews = sizeof...(Views);
-
   using LayoutTypes = camp::tuple<typename std::remove_reference<Views>::type::layout_type...>;
    
   std::array<LayoutTypes, NumKernels + 1> moments;
-
   camp::tuple<Views...> views;
-  LayoutDecisions(camp::tuple<Views...> _views) :views(_views) {
+
+  template <camp::idx_t...Is>
+  LayoutDecisions(camp::tuple<Views...> _views, camp::idx_seq<Is...>) :views(_views) {
     
     std::cout << "instatiating a LayoutDecisions object with " << NumViews << " views\n";
-   
+  
+    for(auto i = 0; i < moments.size(); i++) {
+      camp::sink(add_decision(get<Is>(views), get<Is>(views).get_layout(), i)...);
+    }
+
+     
   }
 
   LayoutDecisions(const LayoutDecisions & other) : moments(other.moments), views(other.views) {
@@ -59,8 +64,9 @@ struct LayoutDecisions {
   }
 
   template <typename ViewType, typename LayoutType>
-  void add_decision(ViewType & view_to_change, LayoutType new_layout, camp::idx_t when) {
+  bool add_decision(ViewType & view_to_change, LayoutType new_layout, camp::idx_t when) {
     update_moment(moments[when], view_to_change, new_layout, idx_seq_for(moments[when]));
+    return 1;
   }
 
 
@@ -157,7 +163,7 @@ template <camp::idx_t NumKernels, typename... ViewTypes>
 auto create_layout_decisions(tuple<ViewTypes...> views) {
   using DecisionType = LayoutDecisions<NumKernels, ViewTypes... >;
 
-  return DecisionType(views);
+  return DecisionType(views, idx_seq_for(views));
 }
 
 

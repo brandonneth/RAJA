@@ -62,7 +62,7 @@ void DecisionObjectTestImpl() {
     e(i1,i0) += d(i0,i2) * c(i2,i0);
   };
 
-   auto print_array = [=](auto a) {
+   auto print_array = [&](auto a) {
     for(int i = 0; i < N; i++) {
       for(int j = 0; j < N; j++) {
         std::cout << a(i,j) << " ";
@@ -80,7 +80,7 @@ void DecisionObjectTestImpl() {
 
   //tie() creates tuple of references
   //
-  auto decisions = create_layout_decisions<2>(tie(c,e));
+  auto decisions = create_layout_decisions<2>(tie(c));
 
   decisions.add_decision(c, c.get_layout(), 0);
   
@@ -101,23 +101,23 @@ void DecisionObjectTestImpl() {
   auto baseline = checksum();
 
   auto b_indexed = c.get_data()[1];
- 
+/* 
   std::cout << "After baseline computation.\n";
   std::cout << "View c:\n";
   print_array(c);
   std::cout << "View c's data memory, index 1: " << c.get_data()[1] << "\n";
-
+*/
  
   initialize();
   computation();
   auto referent = checksum();
 
-
+/*
   std::cout << "After manipulated computation.\n";
   std::cout << "View c:\n";
   print_array(c);
   std::cout << "View c's data memory, index 1: " << c.get_data()[1] << "\n";
-
+*/
   auto r_indexed = c.get_data()[1];
   
   EXPECT_EQ(baseline, referent);
@@ -139,4 +139,90 @@ TYPED_TEST_P(DecisionObjectTest, DecisionObject)
 
 }
 
+
+TEST(DecisionObjectTest, InitializedWithLayouts) {
+  using namespace RAJA;
+  RAJA::idx_t N = 16;
+  double * _a = new double[N*N];
+ 
+  using KPOL = KernelPolicy<
+    statement::For<0, loop_exec,
+      statement::For<1, loop_exec,
+        statement::Lambda<0>
+      >
+    >
+  >;
+  
+  using VIEW2 = View<double, RAJA::Layout<2>>;
+  
+  std::array<camp::idx_t, 2> sizes{{N,N}};
+  std::array<camp::idx_t, 2> perm{{1,0}};
+  Layout<2> flipped = make_permuted_layout(sizes, perm);
+  VIEW2 a(_a, flipped);
+
+  auto l = [&](auto i, auto j) {
+    a(i,j) = 1;
+  };
+
+  auto segment = make_tuple(RangeSegment(0,N), RangeSegment(0,N));
+
+  auto knl1 = make_kernel<KPOL>(segment, l);
+  auto knl2 = make_kernel<KPOL>(segment, l);
+
+  auto d = create_layout_decisions<2>(tie(a));
+
+  auto m0 = d.moments[0];
+  auto m1 = d.moments[1];
+  auto m2 = d.moments[2];
+
+  auto la0 = get<0>(m0);
+  auto la1 = get<0>(m1);
+  auto la2 = get<0>(m2);
+
+  auto p0 = layout_to_perm_array<2>(la0);
+  auto p1 = layout_to_perm_array<2>(la1);
+  auto p2 = layout_to_perm_array<2>(la2);
+
+  EXPECT_EQ(perm, p0) << "Decision object starting layout matches original layout\n";
+  EXPECT_EQ(perm, p1) << "Decision object layotu after first kernel matches original layout\n";
+  EXPECT_EQ(perm, p2) << "Decision object layotu after second kernel matches original layout\n";
+}
+
+TEST(DecisionObjectTest, MultipleKernels) {
+  using namespace RAJA;
+  RAJA::idx_t N = 16;
+  double * _a = new double[N*N];
+  double * _b = new double[N*N];
+ 
+  using KPOL = KernelPolicy<
+    statement::For<0, loop_exec,
+      statement::For<1, loop_exec,
+        statement::Lambda<0>
+      >
+    >
+  >;
+  
+  using VIEW2 = View<double, RAJA::Layout<2>>;
+  
+  std::array<camp::idx_t, 2> sizes{{N,N}};
+  std::array<camp::idx_t, 2> perm{{1,0}};
+  Layout<2> flipped = make_permuted_layout(sizes, perm);
+  VIEW2 a(_a, flipped);
+  VIEW2 b(_b, flipped);
+
+  auto l = [&](auto i, auto j) {
+    a(i,j) = 1;
+  };
+
+  auto segment = make_tuple(RangeSegment(0,N), RangeSegment(0,N));
+
+  auto knl1 = make_kernel<KPOL>(segment, l);
+  auto knl2 = make_kernel<KPOL>(segment, l);
+
+  auto d2 = create_layout_decisions<2>(tie(a,b));
+  auto d1 = create_layout_decisions<1>(tie(a,b));
+
+  
+
+}
 REGISTER_TYPED_TEST_SUITE_P(DecisionObjectTest, DecisionObject);

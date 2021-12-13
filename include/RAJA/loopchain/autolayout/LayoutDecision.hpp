@@ -10,6 +10,70 @@ template <typename ViewType, typename LayoutType>
 auto permute_view(ViewType & v, LayoutType l);
 
 
+
+template <camp::idx_t NumKernels, typename...ViewRefs>
+struct FormatDecisions {
+  constexpr static camp::idx_t NumViews = sizeof...(ViewRefs);
+  constexpr static camp::idx_t NumMoments = NumKernels+1;
+  using LayoutTupleType = camp::tuple<typename std::remove_reference<ViewRefs>::type::layout_type...>;
+
+  
+  camp::tuple<ViewRefs...> views;
+  std::array<std::array<bool, NumViews>, NumMoments> user_decided;
+
+  std::array<LayoutTupleType, NumMoments> moments;
+
+  LayoutTupleType input_formats;
+
+  template <camp::idx_t...Is>
+  FormatDecisions(camp::tuple<ViewRefs...> _views, camp::idx_seq<Is...>) : views(_views) {
+    input_formats = make_tuple(get<Is>(views).get_layout()...);
+
+    for(int i0 = 0; i0 < NumMoments; i0++ ) {
+      for(auto i1 = 0; i1 < NumViews; i1++) {
+        user_decided[i0][i1] = false;
+      }
+    }
+  }
+
+  
+
+  template <camp::idx_t I, typename ViewType, typename InternalViewType>
+  camp::idx_t view_index_helper(ViewType & view, InternalViewType & internal_view) {
+   
+    if constexpr (std::is_same<ViewType, InternalViewType>::value) {
+      if (&view == &internal_view) {
+        return I;
+      } else {
+        return -1;
+      }
+    } else {
+      return -1;
+    }
+  }
+
+  template <typename ViewType, camp::idx_t...Is>
+  camp::idx_t view_index(ViewType & view, camp::idx_seq<Is...>) {
+    camp::idx_t index = vmax(view_index_helper<Is>(view, get<Is>(views))...);
+    return index;
+  }
+
+  template <typename ViewType, typename LayoutType>
+  bool change_to_before(ViewType & view, LayoutType layout, camp::idx_t idx) {
+    camp::idx_t v_idx = view_index(view, idx_seq_for(views));
+    if(v_idx == -1) {
+      std::cout << "View not found in tuple of views for this decision object\n";
+      return false;
+    }
+
+    user_decided[idx][v_idx] = true;
+    return true;
+  }
+  
+};
+
+
+
 template <camp::idx_t NumKernels, typename...Views>
 struct LayoutDecisions {
 

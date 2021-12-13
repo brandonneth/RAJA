@@ -301,6 +301,38 @@ struct KernelWrapper {
     return o.str();
   }
 
+  //given an access (which contains layout permutation information)
+  // returns the "equivalent" access order if the kernel was nested 
+  // monotonically and the view had the identity layout.
+  std::vector<camp::idx_t> normalize_access(SymAccess a) {
+    auto layout_perm = a.layout_permutation;
+    auto policy_order = policy_to_nesting_order<KPol>{}();
+
+    auto access_args = a.iterators;
+
+    std::vector<camp::idx_t> access_indices;
+   
+    for (auto arg : access_args) {
+      auto digits = arg.name.substr(1);
+      auto index = std::stoi(digits, nullptr);
+      access_indices.push_back(index);
+    }
+
+    std::vector<camp::idx_t> normalized_logical_access;
+
+    for(auto index : access_indices) {
+      auto indexof = std::find(policy_order.begin(), policy_order.end(), index) - policy_order.begin();
+      normalized_logical_access.push_back(indexof);
+      std::cout << indexof << " ";
+    }
+
+
+    std::vector<camp::idx_t> normalized_access;
+    for(auto index : layout_perm) {
+      normalized_access.push_back(normalized_logical_access.at(index));
+    }
+    return normalized_access; 
+  }
 
 }; // KernelWrapper
 

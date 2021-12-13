@@ -58,6 +58,74 @@ void SymEvalTestImpl() {
 
 }
 
+
+TEST(SymEvalTest, NormalizeAccess) {
+  using namespace RAJA;
+  using VIEW = View<double, Layout<3>>;
+
+  int N = 8;
+  auto segs = make_tuple(RangeSegment(0,N), RangeSegment(0,N), RangeSegment(0,N));
+  VIEW a(new double[N*N*N], N,N,N);
+
+  Layout<3> layout1 = make_permuted_layout<3>({{N,N,N}}, {{0,1,2}});
+  Layout<3> layout2 = make_permuted_layout<3>({{N,N,N}}, {{1,0,2}});
+
+  using KPOL1 = KernelPolicy<
+    statement::For<0,loop_exec,
+      statement::For<1,loop_exec,
+        statement::For<2,loop_exec,
+          statement::Lambda<0>
+        >
+      >
+    >
+  >;
+  using KPOL2 = KernelPolicy<
+    statement::For<2,loop_exec,
+      statement::For<0,loop_exec,
+        statement::For<1,loop_exec,
+          statement::Lambda<0>
+        >
+      >
+    >
+  >;
+
+  
+  a.set_layout(layout1);
+  auto knl11 = make_kernel<KPOL1>(segs, [=](auto i, auto j, auto k) {a(i,j,k) = 1;});
+  auto access11 = knl11.execute_symbolically().at(0);
+  auto n11 = knl11.normalize_access(access11);
+  EXPECT_EQ(n11[0], 0);
+  EXPECT_EQ(n11[1], 1);
+  EXPECT_EQ(n11[2], 2);
+
+  a.set_layout(layout2);
+  auto knl12 = make_kernel<KPOL1>(segs, [=](auto i, auto j, auto k) {a(i,j,k) = 1;});
+  auto access12 = knl12.execute_symbolically().at(0);
+  auto n12 = knl12.normalize_access(access12);
+  EXPECT_EQ(n12[0], 1);
+  EXPECT_EQ(n12[1], 0);
+  EXPECT_EQ(n12[2], 2);
+
+  a.set_layout(layout1);
+  auto knl21 = make_kernel<KPOL2>(segs, [=](auto i, auto j, auto k) {a(i,j,k) = 1;});
+  auto access21 = knl21.execute_symbolically().at(0);
+  auto n21 = knl21.normalize_access(access21);
+  EXPECT_EQ(n21[0], 1);
+  EXPECT_EQ(n21[1], 2);
+  EXPECT_EQ(n21[2], 0);
+
+
+  a.set_layout(layout2);
+  auto knl22 = make_kernel<KPOL2>(segs, [=](auto i, auto j, auto k) {a(i,j,k) = 1;});
+  auto access22 = knl22.execute_symbolically().at(0);
+  auto n22 = knl22.normalize_access(access22);
+  EXPECT_EQ(n22[0], 2);
+  EXPECT_EQ(n22[1], 1);
+  EXPECT_EQ(n22[2], 0);
+
+}
+
+
 TYPED_TEST_SUITE_P(SymEvalTest);
 template <typename T>
 class SymEvalTest : public ::testing::Test

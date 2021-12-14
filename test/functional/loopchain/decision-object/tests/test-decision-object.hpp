@@ -225,4 +225,37 @@ TEST(DecisionObjectTest, MultipleKernels) {
   
 
 }
+TEST(DecisionObjectTest, FormatDecisions) {
+  using namespace RAJA;
+  RAJA::idx_t N = 16;
+  double * _a = new double[N*N];
+  double * _b = new double[N*N];
+ 
+  using KPOL = KernelPolicy<
+    statement::For<0, loop_exec,
+      statement::For<1, loop_exec,
+        statement::Lambda<0>
+      >
+    >
+  >;
+  
+  using VIEW2 = View<double, RAJA::Layout<2>>;
+  VIEW2 a(_a, N, N);
+  VIEW2 b(_b, N, N);
+
+  FormatDecisions<2, VIEW2&, VIEW2&> d(tie(a,b), camp::idx_seq<0,1>{});
+
+  std::array<camp::idx_t, 2> sizes{{N,N}};
+  std::array<camp::idx_t, 2> perm{{1,0}};
+  Layout<2> flipped = make_permuted_layout(sizes, perm);
+
+  d.change_to_before(a, flipped, 0);
+  d.change_to_before(b, flipped, 1);
+
+  EXPECT_EQ(d.user_decided[0][0], true);
+  EXPECT_EQ(d.user_decided[1][1], true);
+  EXPECT_EQ(d.user_decided[0][1], false);
+  EXPECT_EQ(d.user_decided[1][0], false);
+    
+}
 REGISTER_TYPED_TEST_SUITE_P(DecisionObjectTest, DecisionObject);

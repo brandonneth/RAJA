@@ -323,7 +323,6 @@ struct KernelWrapper {
     for(auto index : access_indices) {
       auto indexof = std::find(policy_order.begin(), policy_order.end(), index) - policy_order.begin();
       normalized_logical_access.push_back(indexof);
-      std::cout << indexof << " ";
     }
 
 

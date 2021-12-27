@@ -35,7 +35,7 @@ auto idx_seq_shift(camp::idx_seq<Is...>) {
 // idx_seq_for: Returns the idx seq for a tuple
 
 template <typename... ElemTypes>
-auto idx_seq_for(camp::tuple<ElemTypes...> t) {
+auto idx_seq_for(camp::tuple<ElemTypes...>) {
   return camp::make_idx_seq_t<sizeof...(ElemTypes)>{};
 }
 
@@ -196,6 +196,45 @@ template <typename T, typename...Ts>
 auto vmin(T val, Ts...rest) {
   return std::min(val, vmin(rest...));
 }
+
+// Policy utilities
+// - policy_to_nesting_order
+template <typename T>
+struct policy_to_nesting_order_struct {
+
+};
+
+template <typename InnerPolicy>
+struct policy_to_nesting_order_struct<KernelPolicy<InnerPolicy>> {
+
+  auto operator()() {
+    return policy_to_nesting_order_struct<InnerPolicy>{}();
+  }
+
+};
+
+template <camp::idx_t NestDepth, typename ExecPolicy, typename InnerPolicy>
+struct policy_to_nesting_order_struct<statement::For<NestDepth, ExecPolicy, InnerPolicy>> {
+  std::vector<camp::idx_t> operator()() {
+    std::vector<camp::idx_t> v = policy_to_nesting_order_struct<InnerPolicy>{}();
+    v.insert(v.begin(), NestDepth);
+
+    return v;
+  }
+};
+
+template <camp::idx_t LambdaId>
+struct policy_to_nesting_order_struct<statement::Lambda<LambdaId>> {
+  auto operator()() {
+    return std::vector<camp::idx_t>{};
+  }
+};
+
+template <typename KernelPolicy>
+auto policy_to_nesting_order() {
+  return policy_to_nesting_order_struct<KernelPolicy>{}();
+}
+
 
 
 } //namespace RAJA

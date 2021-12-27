@@ -32,7 +32,6 @@
 
 #include "RAJA/pattern/kernel/internal.hpp"
 
-#include "RAJA/loopchain/Utils.hpp"
 namespace RAJA
 {
 

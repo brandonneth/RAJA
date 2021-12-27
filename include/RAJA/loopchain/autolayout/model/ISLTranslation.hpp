@@ -31,36 +31,24 @@ isl_union_map * objective_function(isl_ctx * ctx, TermList<NumDims> * vars, Cons
 
   auto obj = new NamedVariable<NumDims>("obj");
 
- 
-
-
   auto sum = new SumExpression<NumDims>();
-  
   for(Term<NumDims> * d : vars->variables) {
-    std::cout << "Getting cost of decision variable: " << d->rep() << "\n";
+    //std::cout << "Getting cost of decision variable: " << d->rep() << "\n";
     auto c = d->estimate_cost();
-    
     auto mult = new MultExpression<NumDims>(d, new Constant<NumDims>(c));
-
-    sum->add(mult);
-    
+    sum->add(mult); 
   }
 
   auto obj_func = new EqualityConstraint(obj, sum);
 
   auto out_vars = new TermList<NumDims>();
   out_vars->add(obj);
-
   for(auto var : vars->variables) {
     out_vars->add(var);
   }
 
-
-
-  std::stringstream s;
- 
+  std::stringstream s; 
   s << "{" << vars->rep() << " -> " << out_vars->rep() << " : " << constraints->rep() << " && " << obj_func->rep() << "}";
-
   isl_union_map * map = isl_union_map_read_from_str(ctx, s.str().c_str());
 
   return map;

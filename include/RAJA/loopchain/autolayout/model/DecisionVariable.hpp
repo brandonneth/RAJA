@@ -3,7 +3,7 @@
 
 #include <sstream>
 #include "RAJA/loopchain/autolayout/model/ConstraintGrammar.hpp"
-#include "RAJA/loopchain/autolayout/AutoLayout.hpp"
+#include "RAJA/loopchain/autolayout/Utils.hpp"
 
 #include <chrono>
 namespace RAJA {
@@ -30,8 +30,8 @@ auto f_lambda(ViewType & v, ViewType & v2) {
     public:
     std::string viewName;
     camp::idx_t idx;
-
     std::array<camp::idx_t, I> permutation;
+    
     FormatDecision(std::string viewName_, camp::idx_t idx_, std::vector<camp::idx_t> perm) 
       : viewName(viewName_), idx(idx_)
     {
@@ -39,6 +39,10 @@ auto f_lambda(ViewType & v, ViewType & v2) {
         permutation[i] = perm.at(i);
       }
     }
+    FormatDecision(std::string viewName_, camp::idx_t idx_, std::array<camp::idx_t,I> perm) 
+      : viewName(viewName_), idx(idx_), permutation(perm)
+    {}
+
 
     std::string rep() const {
       std::stringstream s;
@@ -50,42 +54,7 @@ auto f_lambda(ViewType & v, ViewType & v2) {
 
     }
 virtual camp::idx_t estimate_cost() {
-  using V =  View<double, Layout<I>>;
-
-  camp::idx_t n = 128;
-
-  camp::idx_t s = 1;
-  std::array<camp::idx_t, I> sizes;
-  for(auto i = 0; i < I; i++) {
-    sizes[i] = n;
-    s *= n;
-  }
-
-  Layout<I> in_layout = make_permuted_layout(sizes, permutation);
-
-  V in(new double[s], in_layout);
-  V in2(new double[s], in_layout);
-
-  using kpol = typename nest<I>::pol;
-
-  auto val = (double) viewName[0];
-  auto l = f_lambda(in, in2);
-
-  auto seg = RangeSegment(0,n);
-
-  auto segs = tuple_repeat<I>(seg);
-
-  auto knl = make_kernel<kpol>(segs, l);
-  
-  auto start =std::chrono::high_resolution_clock::now(); 
-  knl(); 
-  auto stop =std::chrono::high_resolution_clock::now();
-
-  auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
- 
-
-  return t;
-
+  return 0; 
 } 
 
   };
@@ -94,7 +63,8 @@ virtual camp::idx_t estimate_cost() {
   class ConversionDecision : public DecisionVariable<I> {
    public:
 
-    ConversionDecision(std::string viewName_, camp::idx_t idx_, std::vector<camp::idx_t> in_perm_, std::vector<camp::idx_t> out_perm_) : 
+    ConversionDecision(std::string viewName_, camp::idx_t idx_, 
+                       std::vector<camp::idx_t> in_perm_, std::vector<camp::idx_t> out_perm_) : 
       viewName(viewName_), 
       idx(idx_) 
     {
@@ -212,22 +182,23 @@ TermList<NumDims> * decision_variables(std::string viewName, camp::idx_t idx) {
 }
 
 template <camp::idx_t NumDims>
-TermList<NumDims> * all_decision_variables(std::string viewName, camp::idx_t max_idx) {
+TermList<NumDims> * all_decision_variables(std::string viewName, camp::idx_t num_knls) {
   auto vars = new TermList<NumDims>();
   auto all_perms = enumerate_perms<NumDims>();
- 
-for(int idx = 0; idx <= max_idx; idx++) {
 
-  for(auto perm : all_perms) {
-    std::vector<camp::idx_t> p;
-    for(int i = 0; i < NumDims; i++) {
-      p.push_back(perm[i]);
+  //FormatDecisions 
+  for(int idx = 0; idx <= num_knls+1; idx++) {
+    for(auto perm : all_perms) {
+      std::vector<camp::idx_t> p;
+      for(int i = 0; i < NumDims; i++) {
+        p.push_back(perm[i]);
+      }
+      vars->add(new FormatDecision<NumDims>(viewName, idx, p));
     }
-    vars->add(new FormatDecision<NumDims>(viewName, idx, p));
   }
 
-  //format only for idx=0
-  if(idx != 0) {
+  //ConversionDecisions
+  for(int idx = 1; idx <= num_knls+1; idx++) {
     for(auto perm1 : all_perms) {
       for(auto perm2 : all_perms) {
         std::vector<camp::idx_t> p1;
@@ -240,9 +211,13 @@ for(int idx = 0; idx <= max_idx; idx++) {
       }
     }
   }
-}
+
   return vars;  
 }
+
+
+
+
 
 } //namespace RAJA
 

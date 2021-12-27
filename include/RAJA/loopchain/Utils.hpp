@@ -2,7 +2,7 @@
 #ifndef RAJA_LoopChainUtils_HPP
 #define RAJA_LoopChainUtils_HPP
 
-
+#include "RAJA/pattern/kernel.hpp"
 
 namespace RAJA
 {
@@ -199,6 +199,7 @@ auto vmin(T val, Ts...rest) {
 
 // Policy utilities
 // - policy_to_nesting_order
+
 template <typename T>
 struct policy_to_nesting_order_struct {
 

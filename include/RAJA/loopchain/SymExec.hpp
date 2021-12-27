@@ -43,6 +43,11 @@ struct SymIterator {
     accesses = other.accesses;
   }
 
+  camp::idx_t index() {
+    std::size_t pos = name.find("i");
+    std::string indexStart = name.substr(pos+1);
+    return std::stoi(indexStart);
+  }
 
   bool operator == (const int) {
     return 0;
@@ -213,7 +218,45 @@ struct SymAccess {
     b << other;
     return 0 == a.str().compare(b.str());
   }
+  
+  auto argument_order() {
+    std::vector<camp::idx_t> argument_indices;
+    for(auto iterator : iterators) {
+      argument_indices.push_back(iterator.index());
+    }
+    return argument_indices;
+  }
 
+  template <typename KernelPolicy, camp::idx_t ViewDims>
+  auto normalized_layout_perm(std::array<camp::idx_t, ViewDims> layout_perm) {
+    auto policy_order = policy_to_nesting_order<KernelPolicy>();
+
+    std::vector<camp::idx_t> policy_applied;
+    for(auto index : argument_order()) {
+      auto indexof = std::find(policy_order.begin(), policy_order.end(), index) - policy_order.begin();
+      policy_applied.push_back(indexof);
+    }
+
+    std::vector<camp::idx_t> normalized_access;
+    for(auto index : layout_perm) {
+      normalized_access.push_back(policy_applied.at(index));
+    }
+
+    //Now need to make stuff like (0,3,2) be (0,2,1) and such. 
+    
+    std::array<camp::idx_t, ViewDims> final_perm;
+    for(int i = 0; i < ViewDims; i++)  {
+      //count how many elements its bigger than.
+      int biggerThan = 0;
+      for(int j = 0; j < ViewDims; j++) {
+        if(normalized_access.at(i) > normalized_access.at(j)) {
+          biggerThan++;
+        }
+      }
+      final_perm[i] = biggerThan;
+    }
+    return final_perm;
+  } 
 }; //SymAccess
 
 

@@ -217,7 +217,7 @@ struct KernelWrapper {
     o << " \"NestingOrder\" : [";
 
     
-    std::vector<camp::idx_t> nestingOrder = policy_to_nesting_order<KPol>{}();
+    std::vector<camp::idx_t> nestingOrder = policy_to_nesting_order<KPol>();
     //NestingOrder list contents
     for(auto i : nestingOrder) {
       o << separator << i;
@@ -306,7 +306,7 @@ struct KernelWrapper {
   // monotonically and the view had the identity layout.
   std::vector<camp::idx_t> normalize_access(SymAccess a) {
     auto layout_perm = a.layout_permutation;
-    auto policy_order = policy_to_nesting_order<KPol>{}();
+    auto policy_order = policy_to_nesting_order<KPol>();
 
     auto access_args = a.iterators;
 

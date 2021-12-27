@@ -51,7 +51,7 @@ auto shift_segment(const auto segment, auto shiftAmount) {
 template <camp::idx_t...Is>
 RAJA_INLINE
 auto shift_segment_tuple(auto segmentTuple, auto shiftAmountTuple, camp::idx_seq<Is...> seq) {
-  return make_tuple((shift_segment(camp::get<Is>(segmentTuple), camp::get<Is>(shiftAmountTuple)))...);
+  return make_tuple((shift_segment(camp::aet<Is>(segmentTuple), camp::get<Is>(shiftAmountTuple)))...);
 } // shift_segment_tuple
 
 

@@ -2,11 +2,7 @@
 #define _RAJA_LAYOUTISLTRANSLATION_HPP
 
 #include "RAJA/loopchain/autolayout/model/ConstraintGrammar.hpp"
-#include "RAJA/loopchain/autolayout/model/DecisionVariable.hpp"
-#include "RAJA/loopchain/autolayout/model/Constraint.hpp"
 #include "RAJA/util/all-isl.hpp"
-
-
 #include <sstream>
 
 namespace RAJA {
@@ -27,19 +23,11 @@ isl_union_set * decision_space(isl_ctx * ctx, TermList<NumDims> * vars, Constrai
 }
 
 template <camp::idx_t NumDims> 
-isl_union_map * objective_function(isl_ctx * ctx, TermList<NumDims> * vars, Constraint<NumDims> * constraints) {
+isl_union_map * objective_function(isl_ctx * ctx, TermList<NumDims> * vars, Constraint<NumDims> * constraints, Expression<NumDims> * cost_expression) {
 
   auto obj = new NamedVariable<NumDims>("obj");
 
-  auto sum = new SumExpression<NumDims>();
-  for(Term<NumDims> * d : vars->variables) {
-    //std::cout << "Getting cost of decision variable: " << d->rep() << "\n";
-    auto c = d->estimate_cost();
-    auto mult = new MultExpression<NumDims>(d, new Constant<NumDims>(c));
-    sum->add(mult); 
-  }
-
-  auto obj_func = new EqualityConstraint(obj, sum);
+  auto obj_func = new EqualityConstraint(obj, cost_expression);
 
   auto out_vars = new TermList<NumDims>();
   out_vars->add(obj);

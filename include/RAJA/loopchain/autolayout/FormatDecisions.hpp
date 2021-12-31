@@ -6,11 +6,10 @@
 #include "RAJA/loopchain/autolayout/Utils.hpp"
 #include "RAJA/loopchain/autolayout/model/DecisionVariable.hpp"
 #include "RAJA/loopchain/autolayout/model/Constraint.hpp"
+#include "RAJA/loopchain/autolayout/model/ISLTranslation.hpp"
 #include <typeinfo>
 namespace RAJA {
 
-template <typename ViewType, typename LayoutType>
-auto permute_view(ViewType & v, LayoutType l);
 
 template <typename T>
 T get_array_name(SymAccess a);
@@ -321,6 +320,14 @@ struct FormatDecisions {
       return term_sum;
     }
   }
+  template <class ViewType, idx_t NumDims >
+  void set_choice(ViewType & v, FormatDecision<NumDims> * var) {
+    std::cout << "setting choice for format decision object\n";
+  }
+  template <class ViewType, idx_t NumDims >
+  void set_choice(ViewType & v, ConversionDecision<NumDims> * var) {
+    std::cout << "setting choice for conversion decision object\n";
+  }
 
   template <typename ViewType>
   auto finalize_view(ViewType & view) {
@@ -338,6 +345,7 @@ struct FormatDecisions {
 
     auto cost_function = estimate_format_cost<0>(view);
 
+    //TODO: this is a hack. The estimate_cost should probably take a policy or something and then that should be uniformized instead of doing format costs here. 
     for(auto v : decision_variables->variables) {
       auto estimate = v->estimate_cost();
       auto c = new Constant<NumDims>(estimate);
@@ -345,17 +353,88 @@ struct FormatDecisions {
       cost_function->add(cost_term);
     }
 
-    std::cout << "Final cost function to include: " << cost_function->rep() << "\n";
+    isl_ctx * ctx = isl_ctx_alloc();
+   
+    isl_union_set * all_choices = decision_space(ctx, decision_variables, all_constraints);
+    isl_union_map * objective_map = objective_function(ctx, decision_variables, all_constraints, cost_function);
 
-    
+    isl_union_set * applied = isl_union_set_apply(all_choices, objective_map);
+    isl_union_set * best_score = isl_union_set_lexmin(applied);
+    isl_point * choice = isl_union_set_sample_point(best_score);
 
-    return extra_constraints->rep();
+    if(isl_point_is_void(choice)) {
+      std::cerr << "No point found. Not making any modeling choices.\n";
+      isl_ctx_free(ctx); 
+      return false;
+    } 
+ 
+    int num_format_decisions = NumMoments * tgamma(NumDims+1);
+    for(int i = 0; i < num_format_decisions; i++) {
+      Term<NumDims> * var = decision_variables->variables.at(i);
+      std::cout << "Getting output value for " << var->rep() << ": ";
+      isl_val * val_ = isl_point_get_coordinate_val(choice, isl_dim_out, i+1);
+      long val = isl_val_get_num_si(val_);
+       std::cout << val << "\n";
+
+      if(val == 1) {
+        FormatDecision<NumDims> * vv = dynamic_cast<FormatDecision<NumDims>*>(var);
+        auto perm = vv->permutation;
+        auto idx = vv->idx;
+        std::array<idx_t, NumDims> sizes;
+        for(int s = 0; s < NumDims; s++) {
+          sizes[s] = view.get_layout().sizes[s];
+        }
+        auto newlayout = make_permuted_layout(sizes, perm);
+        update_layout(moments[idx], view, newlayout);
+
+      }
+    }
+
+    isl_ctx_free(ctx); 
+    return true;
   }
-  
+
+
+   
+   
   auto finalize() {
     
+    //finalize all the views
+    auto view_finalizer = [&]
+    <camp::idx_t...Is>
+    (camp::idx_seq<Is...>) {
+      camp::sink(finalize_view(get<Is>(views))...);
+    };
+
+    view_finalizer(idx_seq_for(views));
     
-    
+    auto moment_generator = [&]
+    <camp::idx_t...Is>
+    (camp::idx_seq<Is...>) {
+      return make_tuple(permute_views(views, moments[Is])...);
+    };
+
+    //we only need from 1 to NumMoments becasue they come in with the first.
+    // We now have NumKernel+1 conversion collections.
+    auto conversions = moment_generator(idx_seq_from_to<1,NumMoments>());
+
+    auto stitch = [&]
+    <camp::idx_t CurrStitch>
+    () {
+      return tuple_cat(get<CurrStitch>(conversions), make_tuple(get<CurrStitch>(knls)));
+    };
+
+    auto stitcher = [&]
+    <camp::idx_t...Is>
+    (camp::idx_seq<Is...>) {
+      auto final_conversion = get<NumKernels>(conversions);
+      auto all_but_final = tuple_cat(stitch.template operator()<Is>()...);
+      return tuple_cat(all_but_final, final_conversion);
+    };
+
+    auto knls_and_conversions= stitcher(idx_seq_for(knls));
+    return chain(knls_and_conversions);
+ 
   }
 
 };

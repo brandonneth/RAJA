@@ -97,8 +97,8 @@ void cl_helper(Args&& args_tuple, camp::idx_seq<Is...>, ViewType & v, ViewType &
   v2(camp::get<Is>(args_tuple)...) = v(camp::get<Is>(args_tuple)...);
 }
 
-template <typename T, camp::idx_t NumDims>
-auto conversion_lambda(View<T, Layout<NumDims>> & v, View<T, Layout<NumDims>> &v2) {
+template <typename T, typename LayoutType>
+auto conversion_lambda(View<T, LayoutType> & v, View<T, LayoutType> &v2) {
   return [&](auto...is) {
     cl_helper(camp::forward_as_tuple(is...), idx_seq_from_to<0,sizeof...(is)>(), v, v2);
   };
@@ -110,7 +110,6 @@ auto permute_view(ViewType & v, LayoutType l) {
 
   using T = typename ViewType::value_type;
   constexpr camp::idx_t NumDims = l.n_dims;
-  using VIEW = View<T, Layout<NumDims>>;
   using kpol = typename nest<NumDims>::pol;
 
   auto converter = [=, &v](auto unused) {
@@ -128,10 +127,10 @@ auto permute_view(ViewType & v, LayoutType l) {
     }
     T * _v2 = new T[v.size()];
 
-    VIEW v2(_v2, l);
+    ViewType v2(_v2, l);
     auto bounds = layout_to_bounds<NumDims>(l);
 
-    auto lambda = conversion_lambda<T, NumDims>(v, v2);
+    auto lambda = conversion_lambda<T, LayoutType>(v, v2);
     
     
     kernel<kpol>(bounds, lambda);

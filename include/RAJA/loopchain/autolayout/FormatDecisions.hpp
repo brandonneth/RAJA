@@ -298,35 +298,20 @@ struct FormatDecisions {
     
       for(auto access: accesses) {
         if(access.view == view.get_data()) {
-          std::cout << "access in knl " << KnlIdx << " accesses the view\n";
-          std::cout << "access:" << access << "\n"; 
-          std::cout << "cost terms: \n";
           auto all_perms = enumerate_perms<NumDims>();
           for (auto perm : all_perms) {
             auto format_var = new FormatDecision<NumDims>(view_name(view), KnlIdx+1, perm);
           
             auto normalized_layout_perm = access.template normalized_layout_perm<KernelPolicy,NumDims>(perm);
-            std::cout << "normalized layout perm: " ;
-            for(auto i : normalized_layout_perm) { std::cout << i < " ";}
-            std::cout << "\n";
             auto cost = estimate_cost<NumDims>(normalized_layout_perm);
           
             auto cost_term = new MultExpression(format_var, new Constant<NumDims>(cost));
             term_sum->add(cost_term);
-            std::cout << cost_term->rep() << "\n";
           }
         }
       } 
       return term_sum;
     }
-  }
-  template <class ViewType, idx_t NumDims >
-  void set_choice(ViewType & v, FormatDecision<NumDims> * var) {
-    std::cout << "setting choice for format decision object\n";
-  }
-  template <class ViewType, idx_t NumDims >
-  void set_choice(ViewType & v, ConversionDecision<NumDims> * var) {
-    std::cout << "setting choice for conversion decision object\n";
   }
 
   template <typename ViewType>
@@ -371,17 +356,17 @@ struct FormatDecisions {
     int num_format_decisions = NumMoments * tgamma(NumDims+1);
     for(int i = 0; i < num_format_decisions; i++) {
       Term<NumDims> * var = decision_variables->variables.at(i);
-      std::cout << "Getting output value for " << var->rep() << ": ";
+      //std::cout << "Getting output value for " << var->rep() << ": ";
       isl_val * val_ = isl_point_get_coordinate_val(choice, isl_dim_out, i+1);
       long val = isl_val_get_num_si(val_);
-       std::cout << val << "\n";
+       //std::cout << val << "\n";
 
       if(val == 1) {
         FormatDecision<NumDims> * vv = dynamic_cast<FormatDecision<NumDims>*>(var);
         auto perm = vv->permutation;
         auto idx = vv->idx;
         std::array<idx_t, NumDims> sizes;
-        for(int s = 0; s < NumDims; s++) {
+        for(auto s = 0; s < NumDims; s++) {
           sizes[s] = view.get_layout().sizes[s];
         }
         auto newlayout = make_permuted_layout(sizes, perm);

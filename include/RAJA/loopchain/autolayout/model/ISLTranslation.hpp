@@ -15,9 +15,7 @@ isl_union_set * decision_space(isl_ctx * ctx, TermList<NumDims> * vars, Constrai
   std::stringstream s;
   s << "{ " << vars->rep() << " : " << constraints->rep() << " } ";
 
-  std::cout << "String for decision space\n";
-  std::cout << s.str() << "\n";
-  isl_union_set * space = isl_union_set_read_from_str(ctx, s.str().c_str());
+    isl_union_set * space = isl_union_set_read_from_str(ctx, s.str().c_str());
 
   return space;
 }

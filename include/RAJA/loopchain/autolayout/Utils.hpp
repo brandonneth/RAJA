@@ -3,45 +3,6 @@
 #include <ctime>
 namespace RAJA {
 
-template <typename ViewType>
-auto fixed_layout(ViewType v) {
-
- 
-  using LayoutType = typename ViewType::layout_type;
-  constexpr camp::idx_t NumDims = v.get_layout().n_dims;
-  std::array<camp::idx_t, NumDims> perm;
-
-  for(int i = 0; i < NumDims-1; i++) {
-    perm[i] = i+1;
-  }
-  perm[NumDims-1] = 0;
-
-  
-  std::array<camp::idx_t, NumDims> sizes;
-
-  for(int i = 0; i < NumDims; i++) {
-    sizes[i] = v.get_layout().sizes[i];
-  }
-
-  auto newlayout = make_permuted_layout(sizes, perm);
-
-    return newlayout;
-}
-
-template <typename...ViewTypes, camp::idx_t...Is>
-auto fixed_layouts(tuple<ViewTypes...> views, camp::idx_seq<Is...>) {
-
-  return make_tuple(fixed_layout(get<Is>(views))...);
-}
-
-
-template <typename...ViewTypes, typename KernelType1, typename KernelType2>
-auto modeling_magic(camp::tuple<ViewTypes...> views, KernelType1 knl1, KernelType2 knl2) {
-
-  return fixed_layouts(views, idx_seq_for(views)); 
-}
-
-
 template <camp::idx_t CurrDim, camp::idx_t NumDims>
 struct nest_helper;
 
@@ -117,7 +78,7 @@ auto permute_view(ViewType & v, LayoutType l) {
 
     int sameLayout = 1;
     
-    for(int i = 0; i < v.get_layout().n_dims; i++) {
+    for(auto i = 0; i < NumDims; i++) {
       if(v.get_layout().strides[i] != l.strides[i]) {
         sameLayout = 0;
       }

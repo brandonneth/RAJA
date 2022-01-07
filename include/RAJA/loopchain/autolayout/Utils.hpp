@@ -94,7 +94,8 @@ auto layout_to_bounds(Layout<NumDims> l) {
 
 template <typename Args, camp::idx_t...Is, typename ViewType>
 void cl_helper(Args&& args_tuple, camp::idx_seq<Is...>, ViewType & v, ViewType &v2) {
-  v2(camp::get<Is>(args_tuple)...) = v(camp::get<Is>(args_tuple)...);
+  auto val = v(camp::get<Is>(args_tuple)...);
+  v2(camp::get<Is>(args_tuple)...) = val; 
 }
 
 template <typename T, typename LayoutType>
@@ -112,7 +113,7 @@ auto permute_view(ViewType & v, LayoutType l) {
   constexpr camp::idx_t NumDims = l.n_dims;
   using kpol = typename nest<NumDims>::pol;
 
-  auto converter = [=, &v](auto unused) {
+  auto converter = [=, &v](auto) {
 
     int sameLayout = 1;
     
@@ -122,7 +123,7 @@ auto permute_view(ViewType & v, LayoutType l) {
       }
     }
     if(sameLayout) {
-      //std::cout << "no layout change\n"; 
+      std::cerr << "no layout change\n"; 
       return;
     }
     T * _v2 = new T[v.size()];

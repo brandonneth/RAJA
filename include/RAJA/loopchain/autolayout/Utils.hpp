@@ -13,14 +13,15 @@ struct nest_helper<0,NumDims> {
 
 template <camp::idx_t CurrDim, camp::idx_t NumDims>
 struct nest_helper {
-  using subpol = typename nest_helper<CurrDim-1, NumDims>::pol;
-  using pol = statement::For<NumDims-CurrDim, loop_exec, subpol>;
+  using subpol = typename nest_helper<CurrDim-1, NumDims>::pol;  
+  
+  using pol = statement::For<NumDims-CurrDim, omp_parallel_for_exec, subpol>;
 };
 
 template <camp::idx_t NumDims>
 struct nest {
-  using _pol = typename nest_helper<NumDims-1, NumDims-1>::pol;
-  using pol = KernelPolicy<statement::For<0, omp_parallel_for_exec, _pol>>;
+  using _pol = typename nest_helper<NumDims, NumDims>::pol;
+  using pol = KernelPolicy<_pol>;
 };
 
 template <camp::idx_t DimsLeft>

@@ -19,8 +19,8 @@ struct nest_helper {
 
 template <camp::idx_t NumDims>
 struct nest {
-  using _pol = typename nest_helper<NumDims, NumDims>::pol;
-  using pol = KernelPolicy<_pol>;
+  using _pol = typename nest_helper<NumDims-1, NumDims-1>::pol;
+  using pol = KernelPolicy<statement::For<0, omp_parallel_for_exec, _pol>>;
 };
 
 template <camp::idx_t DimsLeft>

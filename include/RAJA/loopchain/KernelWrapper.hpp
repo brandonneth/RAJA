@@ -180,7 +180,7 @@ struct KernelWrapper {
   }
 
   RAJA_INLINE
-  void operator() (SegmentTuple segs) {
+  void operator() (SegmentTuple) {
     //TODO: Enable the kernel to be executed with a different segment
   }
 
@@ -254,7 +254,7 @@ struct KernelWrapper {
       o << separator;
       o << "[";
       o << "\"" << get_array_name(access) << "\"" << ",";
-      char * _s = "";
+      std::string _s = "";
       for(auto iterator : access.iterators) {
         o << _s << "\"" << iterator << "\"";
         _s = ",";

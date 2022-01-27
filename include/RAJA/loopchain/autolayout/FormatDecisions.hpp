@@ -35,7 +35,7 @@ struct FormatDecisions {
   std::array<LayoutTupleType, NumMoments> moments;
   std::array<std::array<bool, NumViews>, NumMoments> user_decided; 
 
-
+  idx_t cost = 0;
 
   template <idx_t...Is>
   FormatDecisions(tuple<ViewRefs...> _views, KernelTuple _knls, camp::idx_seq<Is...>) : 
@@ -354,12 +354,16 @@ struct FormatDecisions {
     isl_union_set * best_score = isl_union_set_lexmin(applied);
     isl_point * choice = isl_union_set_sample_point(best_score);
 
+    
     if(isl_point_is_void(choice)) {
       std::cerr << "No point found. Not making any modeling choices.\n";
       isl_ctx_free(ctx); 
       return false;
     } 
- 
+
+    isl_val * score = isl_point_get_coordinate_val(choice, isl_dim_out, 0);
+    cost += isl_val_get_num_si(score);
+
     int num_format_decisions = NumMoments * tgamma(NumDims+1);
     for(int i = 0; i < num_format_decisions; i++) {
       Term<NumDims> * var = decision_variables->variables.at(i);
@@ -390,7 +394,7 @@ struct FormatDecisions {
    
    
   auto finalize() {
-    
+    cost = 0;
     //finalize all the views
     auto view_finalizer = [&]
     <camp::idx_t...Is>
@@ -454,6 +458,7 @@ struct FormatDecisions {
     }
     o << "]";
   }
+
 
 };
 

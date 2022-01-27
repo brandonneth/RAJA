@@ -235,6 +235,11 @@ struct FormatDecisions {
 
   template <idx_t NumDims>
   idx_t estimate_cost(std::array<idx_t, NumDims> layout_order) {
+    static std::map<std::array<idx_t,NumDims>,idx_t> cache;
+
+    if( cache[layout_order] != 0) {
+      return cache[layout_order] / 3;
+    }
     using V =  View<double, Layout<NumDims>>;
 
     camp::idx_t n = 128;
@@ -276,6 +281,8 @@ struct FormatDecisions {
     auto stop =std::chrono::high_resolution_clock::now();
 
     auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
+    cache[layout_order] = t;
+    
     return t / 3;
   }
 
@@ -445,6 +452,7 @@ struct FormatDecisions {
     for(auto i = 0; i < NumMoments; i++) {
       print_to_stream_helper<0>(o, moments[i]);
     }
+    o << "]";
   }
 
 };

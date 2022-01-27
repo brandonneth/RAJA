@@ -423,7 +423,7 @@ struct FormatDecisions {
   }
 
   template <idx_t I>
-  void print_to_stream_helper(std::ostream o, LayoutTupleType t) {
+  void print_to_stream_helper(std::ostream & o, LayoutTupleType t) {
     if constexpr (I >= NumViews) {
       return;
     } else {
@@ -440,7 +440,7 @@ struct FormatDecisions {
       print_to_stream_helper<I+1>(o,t);
     }
   }
-  auto print_to_stream(std::ostream o) {
+  auto print_to_stream(std::ostream & o) {
     o << "[";
     for(auto i = 0; i < NumMoments; i++) {
       print_to_stream_helper<0>(o, moments[i]);

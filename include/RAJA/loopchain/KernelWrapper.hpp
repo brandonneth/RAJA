@@ -335,7 +335,7 @@ struct KernelWrapper {
 
   template <idx_t I>
   auto ni_helper() {
-    if constexpr (I == NumArgs) { return 1;} else
+    if constexpr (I == numArgs) { return 1;} else
     {
       auto s = get<I>(segments);
       return s * ni_helper<I+1>();

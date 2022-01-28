@@ -459,7 +459,13 @@ struct FormatDecisions {
     o << "]";
   }
 
-
+  void lock() {
+    for(auto i= 0; i < NumMoments; i++) {
+      for(auto j = 0; j < NumViews; j++) {
+        user_decided[i][j] = true;
+      }
+    }
+  }
 };
 
 template <typename ViewRefTuple, typename...KernelTypes>

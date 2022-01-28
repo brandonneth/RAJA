@@ -338,7 +338,7 @@ struct KernelWrapper {
     if constexpr (I == numArgs) { return 1;} else
     {
       auto s = get<I>(segments);
-      return s * ni_helper<I+1>();
+      return s.size() * ni_helper<I+1>();
     }
   }
  

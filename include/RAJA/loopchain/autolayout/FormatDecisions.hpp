@@ -342,7 +342,7 @@ struct FormatDecisions {
     //TODO: this is a hack. The estimate_cost should probably take a policy or something and then that should be uniformized instead of doing format costs here. 
     for(auto v : decision_variables->variables) {
       auto estimate = v->estimate_cost() / 1000;
-      unsigned long coef = estimate * view.size()
+      unsigned long coef = estimate * view.size();
       auto c = new Constant<NumDims>(coef);
       auto cost_term = new MultExpression<NumDims>(v, c);
       cost_function->add(cost_term);

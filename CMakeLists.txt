@@ -301,10 +301,6 @@ endif ()
 blt_add_library(
   NAME RAJA
   SOURCES ${raja_sources}
-<<<<<<< HEAD
-=======
-
->>>>>>> 1c4dd21fe15f5b23edd8affb8ad79cdea5e14119
   DEPENDS_ON ${raja_depends} camp ${CMAKE_DL_LIBS}
   DEFINES ${raja_defines})
 

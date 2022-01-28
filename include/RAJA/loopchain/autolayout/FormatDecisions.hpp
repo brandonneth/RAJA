@@ -240,7 +240,6 @@ struct FormatDecisions {
     static std::map<std::array<idx_t,NumDims>,idx_t> cache;
 
     if( cache[layout_order] != 0) {
-      std::cerr << "using cache\n";
       return cache[layout_order] / 3;
     }
     using V =  View<double, Layout<NumDims>>;
@@ -314,8 +313,8 @@ struct FormatDecisions {
           
             auto normalized_layout_perm = access.template normalized_layout_perm<KernelPolicy,NumDims>(perm);
             auto cost = estimate_cost<NumDims>(normalized_layout_perm) / 1000;
-            std::cout << "cost multiplier: " << cost * knl.num_iterations() << "\n";
-            auto cost_term = new MultExpression(format_var, new Constant<NumDims>(cost * knl.num_iterations()));
+            unsigned long coef = cost * knl.num_iterations();
+            auto cost_term = new MultExpression(format_var, new Constant<NumDims>(coef));
             term_sum->add(cost_term);
           }
         }
@@ -343,8 +342,8 @@ struct FormatDecisions {
     //TODO: this is a hack. The estimate_cost should probably take a policy or something and then that should be uniformized instead of doing format costs here. 
     for(auto v : decision_variables->variables) {
       auto estimate = v->estimate_cost() / 1000;
-
-      auto c = new Constant<NumDims>(estimate * view.size());
+      unsigned long coef = estimate * view.size()
+      auto c = new Constant<NumDims>(coef);
       auto cost_term = new MultExpression<NumDims>(v, c);
       cost_function->add(cost_term);
     }

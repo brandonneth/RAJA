@@ -48,6 +48,8 @@ struct FormatDecisions {
       for(auto i1 = 0; i1 < NumViews; i1++) {
         user_decided[i0][i1] = false;
       }
+      moments[i0] = make_tuple(get<Is>(views).get_layout()...);
+
     }
     for(int i = 0; i < NumViews; i++) {
       user_decided[0][i] = true;

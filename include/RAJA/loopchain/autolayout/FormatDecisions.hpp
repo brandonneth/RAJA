@@ -240,8 +240,9 @@ struct FormatDecisions {
     static std::map<std::array<idx_t,NumDims>,idx_t> cache;
 
     if( cache[layout_order] != 0) {
-      return cache[layout_order] / 3;
+      return cache[layout_order];
     }
+    //std::cerr << "no cache\n";
     using V =  View<double, Layout<NumDims>>;
 
     camp::idx_t n = 128;
@@ -285,7 +286,7 @@ struct FormatDecisions {
     auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
     cache[layout_order] = t;
     
-    return t / 3;
+    return t;
   }
 
 
@@ -325,6 +326,7 @@ struct FormatDecisions {
 
   template <typename ViewType>
   auto finalize_view(ViewType & view) {
+    //std::cerr << "finalizing view\n";
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
     
@@ -337,17 +339,18 @@ struct FormatDecisions {
   
     auto all_constraints = new AndConstraint<NumDims>(base_constraints, extra_constraints);
 
-    auto cost_function = estimate_format_cost<0>(view);
+    SumExpression<NumDims> * cost_function = estimate_format_cost<0>(view);
 
     //TODO: this is a hack. The estimate_cost should probably take a policy or something and then that should be uniformized instead of doing format costs here. 
     for(auto v : decision_variables->variables) {
       auto estimate = v->estimate_cost() / 1000;
       unsigned long coef = estimate * view.size();
       auto c = new Constant<NumDims>(coef);
-      auto cost_term = new MultExpression<NumDims>(v, c);
+      MultExpression<NumDims> * cost_term = new MultExpression<NumDims>(v, c);
       cost_function->add(cost_term);
     }
 
+    //std::cerr << "cost function: " << cost_function->rep() << "\n";
     isl_ctx * ctx = isl_ctx_alloc();
    
     isl_union_set * all_choices = decision_space(ctx, decision_variables, all_constraints);

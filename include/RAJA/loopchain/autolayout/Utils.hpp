@@ -85,7 +85,7 @@ auto permute_view(ViewType & v, LayoutType l) {
       }
     }
     if(sameLayout) {
-      std::cerr << "no layout change\n"; 
+      //std::cerr << "no layout change\n"; 
       return;
     }
     T * _v2 = new T[v.size()];

@@ -99,6 +99,11 @@ virtual camp::idx_t estimate_cost() {
 
 
 virtual camp::idx_t estimate_cost() {
+  static idx_t cost = -1;
+  if(cost != -1) {
+    return cost;
+  }
+  //std::cerr << "no cache\n";
   using V =  View<double, Layout<I>>;
 
   camp::idx_t n = 128;
@@ -137,8 +142,8 @@ T * _v = in.get_data();
   auto stop =std::chrono::high_resolution_clock::now();
 
   auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
-
-  return t;
+  cost = t;
+  return cost;
 
 } 
 

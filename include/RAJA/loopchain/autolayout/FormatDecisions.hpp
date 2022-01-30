@@ -279,13 +279,11 @@ struct FormatDecisions {
 
     auto start =std::chrono::high_resolution_clock::now();
     knl();
-    knl();
-    knl();
     auto stop =std::chrono::high_resolution_clock::now();
 
     auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
-    cache[layout_order] = t / 3;
-    
+    cache[layout_order] = t;
+    //std::cerr << "compcost: " << cache[layout_order] << "\n";
     return cache[layout_order];
   }
 
@@ -313,7 +311,8 @@ struct FormatDecisions {
             auto format_var = new FormatDecision<NumDims>(view_name(view), KnlIdx+1, perm);
           
             auto normalized_layout_perm = access.template normalized_layout_perm<KernelPolicy,NumDims>(perm);
-            auto cost = estimate_cost<NumDims>(normalized_layout_perm) / 1000;
+            //std::cerr << "estimating cost of " << format_var->rep() << "\n";
+            auto cost = estimate_cost<NumDims>(normalized_layout_perm);
             unsigned long coef = cost * knl.num_iterations();
             auto cost_term = new MultExpression(format_var, new Constant<NumDims>(coef));
             term_sum->add(cost_term);

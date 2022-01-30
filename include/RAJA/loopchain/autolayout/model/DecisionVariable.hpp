@@ -96,16 +96,28 @@ virtual camp::idx_t estimate_cost() {
       }
       return s.str();
     }
+    std::string key() const {
+      std::stringstream s;
+      for(auto i = 0; i < in_perm.size(); i++) {
+        s << "_" << in_perm[i];
+      }
+      s << "_out";
+      for(auto i = 0; i < out_perm.size(); i++) {
+        s << "_" << out_perm[i];
+      }
+      return s.str();
 
+    }
 
 virtual camp::idx_t estimate_cost() {
   static std::map<std::string,idx_t> cache;
-  if(cache[rep()] != 0) {
-    return cache[rep()];
+  
+  if(cache[key()] != 0) {
+    return cache[key()];
   }
   if (in_perm == out_perm) {
-    cache[rep()] = 1;
-    return cache[rep()];
+    cache[key()] = 1;
+    return cache[key()];
   }
 
   using V =  View<double, Layout<I>>;
@@ -145,8 +157,9 @@ T * _v = in.get_data();
   auto stop =std::chrono::high_resolution_clock::now();
 
   auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
-  cache[rep()] = t;
-  return cache[rep()];
+  cache[key()] = t;
+  //std::cerr << "convcost " << key() << ": " << t << "\n";
+  return cache[key()];
 
 } 
 

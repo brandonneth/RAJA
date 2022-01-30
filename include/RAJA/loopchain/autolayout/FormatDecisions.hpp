@@ -474,7 +474,7 @@ struct FormatDecisions {
   }
 
   template <typename ViewType>
-  std::string model_for_view(ViewType & v) {
+  std::string model_for_view(ViewType & view) {
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
     
     auto decision_variables = all_decision_variables<NumDims>(view_name(view), NumKernels);

@@ -472,6 +472,32 @@ struct FormatDecisions {
       }
     }
   }
+
+  template <typename ViewType>
+  std::string model_for_view(ViewType & v) {
+    constexpr camp::idx_t NumDims = LayoutType().n_dims;
+    
+    auto decision_variables = all_decision_variables<NumDims>(view_name(view), NumKernels);
+   
+    
+    auto base_constraints = all_constraints<NumDims>(view_name(view), NumKernels); 
+
+    auto extra_constraints = user_constraints<0>(view);
+  
+    auto all_constraints = new AndConstraint<NumDims>(base_constraints, extra_constraints);
+
+    SumExpression<NumDims> * cost_function = estimate_format_cost<0>(view);
+
+    //TODO: this is a hack. The estimate_cost should probably take a policy or something and then that should be uniformized instead of doing format costs here. 
+    for(auto v : decision_variables->variables) {
+      auto estimate = v->estimate_cost() / 1000;
+      unsigned long coef = estimate * view.size();
+      auto c = new Constant<NumDims>(coef);
+      MultExpression<NumDims> * cost_term = new MultExpression<NumDims>(v, c);
+      cost_function->add(cost_term);
+    }
+      return cost_function->rep();
+  }
 };
 
 template <typename ViewRefTuple, typename...KernelTypes>

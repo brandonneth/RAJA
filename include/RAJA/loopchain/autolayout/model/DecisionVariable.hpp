@@ -103,6 +103,11 @@ virtual camp::idx_t estimate_cost() {
   if(cost != -1) {
     return cost;
   }
+  if (in_perm == out_perm) {
+    cost = 0;
+    return cost;
+  }
+
   //std::cerr << "no cache\n";
   using V =  View<double, Layout<I>>;
 
@@ -114,10 +119,9 @@ virtual camp::idx_t estimate_cost() {
     sizes[i] = n;
     s *= n;
   }
-
   Layout<I> in_layout = make_permuted_layout(sizes, in_perm);
   Layout<I> out_layout = make_permuted_layout(sizes, out_perm);
-
+  
   using kpol = typename nest<I>::pol;
 
   auto start =std::chrono::high_resolution_clock::now(); 

@@ -284,9 +284,9 @@ struct FormatDecisions {
     auto stop =std::chrono::high_resolution_clock::now();
 
     auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
-    cache[layout_order] = t;
+    cache[layout_order] = t / 3;
     
-    return t;
+    return cache[layout_order];
   }
 
 

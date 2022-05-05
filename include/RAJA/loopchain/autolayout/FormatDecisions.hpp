@@ -351,19 +351,38 @@ struct FormatDecisions {
     }
 
     //std::cerr << "cost function: " << cost_function->rep() << "\n";
+    //std::cerr << "Setting up and solving ILP problem\n";
+    //std::cerr << "User Constraints: " << extra_constraints->rep() << "\n";
+    //auto start = std::chrono::system_clock::now();
     isl_ctx * ctx = isl_ctx_alloc();
-   
+     
+    //auto time_alloc = std::chrono::system_clock::now();
     isl_union_set * all_choices = decision_space(ctx, decision_variables, all_constraints);
+    //auto time_space = std::chrono::system_clock::now();
     isl_union_map * objective_map = objective_function(ctx, decision_variables, all_constraints, cost_function);
-
+   
+    //auto time_create = std::chrono::system_clock::now();
     isl_union_set * applied = isl_union_set_apply(all_choices, objective_map);
+    //auto time_applied = std::chrono::system_clock::now();
     isl_union_set * best_score = isl_union_set_lexmin(applied);
     isl_point * choice = isl_union_set_sample_point(best_score);
 
-    
+/*
+    std::cerr << "Made choice\n";
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> solve_time = end-start;
+    std::chrono::duration<double> apply_time = time_applied-start;
+    std::chrono::duration<double> create_time = time_create-start;
+    std::chrono::duration<double> space_time = time_space-start;
+    std::chrono::duration<double> alloc_time = time_space-start;
+    std::cerr << "Elasped Time: " << solve_time.count() << "\n";
+    std::cerr << "Time to create the ctx: " << alloc_time.count() << "\n";
+    std::cerr << "Time to create the set : " << space_time.count() << "\n";
+    std::cerr << "Time to create the set and  map: " << create_time.count() << "\n";
+    std::cerr << "Time to create and apply the map: " << apply_time.count() << "\n";*/
     if(isl_point_is_void(choice)) {
       std::cerr << "No point found. Not making any modeling choices.\n";
-      isl_ctx_free(ctx); 
+     // isl_ctx_free(ctx); 
       return false;
     } 
 
@@ -392,7 +411,7 @@ struct FormatDecisions {
       }
     }
 
-    isl_ctx_free(ctx); 
+    //isl_ctx_free(ctx); 
     return true;
   }
 

@@ -6,6 +6,7 @@
 #include "RAJA/config.hpp"
 #include "RAJA/util/Operators.hpp"
 #include "RAJA/util/Layout.hpp"
+#include "RAJA/loopchain/Utils.hpp"
 #include <string>
 #include <iostream>
 #include <sstream>

@@ -5,10 +5,11 @@
 
 #include "RAJA/config.hpp"
 #include "RAJA/loopchain/SymExec.hpp"
-#include "RAJA/loopchain/AutoLayout.hpp"
 #include "RAJA/pattern/kernel.hpp"
 
 #include "RAJA/pattern/kernel/TiledLambda.hpp"
+
+#include "RAJA/loopchain/PolicyToNestingOrder.hpp"
 #include <vector>
 #include <string>
 namespace RAJA
@@ -217,7 +218,7 @@ struct KernelWrapper {
     o << " \"NestingOrder\" : [";
 
     
-    std::vector<camp::idx_t> nestingOrder = policy_to_nesting_order<KPol>{}();
+    std::vector<camp::idx_t> nestingOrder = policy_to_nesting_order<KPol>();
     //NestingOrder list contents
     for(auto i : nestingOrder) {
       o << separator << i;

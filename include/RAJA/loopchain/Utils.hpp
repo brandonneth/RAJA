@@ -2,7 +2,9 @@
 #ifndef RAJA_LoopChainUtils_HPP
 #define RAJA_LoopChainUtils_HPP
 
-
+#include "RAJA/config.hpp"
+#include "RAJA/pattern/kernel.hpp"
+#include "RAJA/pattern/kernel/Lambda.hpp"
 
 namespace RAJA
 {
@@ -188,6 +190,8 @@ auto vmin(T val, Ts...rest) {
 }
 
 
-} //namespace RAJA
+
+
+}
 
 #endif

@@ -11,9 +11,6 @@ void FormatDecisionsTestImpl() {
 
   using VIEW2 = RAJA::View<double, RAJA::Layout<2,RAJA::idx_t>>;
 
- 
-  
-
   std::array<RAJA::idx_t, 2> perm_01 {{0,1}};
   std::array<RAJA::idx_t, 2> perm_10 {{1,0}};
   auto layout_01 = RAJA::make_permuted_layout( {{3,3}}, perm_01 );

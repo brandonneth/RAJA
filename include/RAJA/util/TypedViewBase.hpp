@@ -10,7 +10,7 @@
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 // Copyright (c) 2016-21, Lawrence Livermore National Security, LLC
-// and RAJA project contributors. See the RAJA/COPYRIGHT file for details.
+// and RAJA project contributors. See the RAJA/LICENSE file for details.
 //
 // SPDX-License-Identifier: (BSD-3-Clause)
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
@@ -305,6 +305,12 @@ class ViewBase {
     RAJA_INLINE void set_data(PointerType data_ptr){
       m_data = data_ptr;
     }
+
+    RAJA_HOST_DEVICE
+    RAJA_INLINE void set_layout(layout_type layout){
+      m_layout = layout;
+    }
+
 
     RAJA_HOST_DEVICE
     RAJA_INLINE

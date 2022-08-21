@@ -24,6 +24,8 @@
 #include "RAJA/pattern/kernel/TiledLambda.hpp"
 #include "RAJA/pattern/kernel/OverlappedTile.hpp"
 
+
+#include "RAJA/loopchain/FormatDecisions/Conversion.hpp"
 namespace RAJA
 {
 

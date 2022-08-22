@@ -124,6 +124,11 @@ struct LoopChain {
       execute(camp::idx_seq<Is...>{});
     }
   }
+
+
+  void operator() (){
+    execute(idx_seq_from_to<0,sizeof...(KernelTypes)>());
+  }
 }; //LoopChain
 
 // LoopChain constructor function for kernel tuple

@@ -136,18 +136,18 @@ SymIterator operator * (const T & other, const SymIterator & iterator) {
 }
 
 template <typename LayoutType> 
-std::vector<size_t> layout_to_perm(const LayoutType & layout) {
+std::vector<idx_t> layout_to_perm(const LayoutType & layout) {
 
   const size_t n_dims = layout.n_dims;
   
-  std::vector<size_t> perm = std::vector<size_t>(n_dims);
+  std::vector<idx_t> perm = std::vector<idx_t>(n_dims);
 
   auto strides = layout.strides;
   std::set<int> strided = std::set<int>();
-  for(size_t i = 0; i < n_dims; i++) {
+  for(idx_t i = 0; i < n_dims; i++) {
     int biggestIndex = -1;
     int biggestStride = -1;
-    for(size_t j = 0; j < n_dims; j++) {
+    for(idx_t j = 0; j < n_dims; j++) {
       if(strided.find(strides[j]) != strided.end()) { continue; }
       if(strides[j] > biggestStride) {
         biggestIndex = j;
@@ -166,7 +166,7 @@ struct SymAccess {
   
   void * view;
   std::vector<SymIterator> iterators;
-  std::vector<size_t> layout_permutation;
+  std::vector<idx_t> layout_permutation;
 
   bool isRead;
   bool isWrite;

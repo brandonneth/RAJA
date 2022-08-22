@@ -57,6 +57,13 @@ void TupleZipTestImpl() {
   EXPECT_EQ(1, camp::get<0>(z3_2)) << "2 element zip [1][0]\n";
   EXPECT_EQ(3, camp::get<1>(z3_2)) << "2 element zip [1][1]\n";
 
+
+
+  auto three_threes = tuple_repeat<3>(3);
+  EXPECT_EQ(3, camp::get<0>(three_threes));
+  EXPECT_EQ(3, camp::get<1>(three_threes));
+  EXPECT_EQ(3, camp::get<2>(three_threes));
+
 }
 
 TYPED_TEST_SUITE_P(TupleZipTest);

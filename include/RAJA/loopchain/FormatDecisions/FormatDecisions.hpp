@@ -186,7 +186,7 @@ struct FormatDecisions {
     }
     return s.str();
   }
-  
+
   template <idx_t NumDims>
   idx_t estimate_format_cost(std::array<idx_t, NumDims> layout_order) {
     static std::map<std::array<idx_t,NumDims>,idx_t> cache;
@@ -412,7 +412,7 @@ struct FormatDecisions {
     };
     auto knls_and_conversions= stitcher(idx_seq_for(knls));
 
-    return chain(knls_and_conversions);
+    return loop_chain(knls_and_conversions);
   }
 
   void lock() {

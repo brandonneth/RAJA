@@ -34,7 +34,7 @@ void FormatDecisionsTestImpl() {
   auto l10 = RAJA::make_permuted_layout( {{8,8}}, perm_10 );
 
   VIEW2 v1(data1, l01);
-  VIEW2 v2(data1, l10);
+  VIEW2 v2(data2, l10);
 
 
   auto segs = make_tuple(RangeSegment(0,8), RangeSegment(0,8));
@@ -45,8 +45,8 @@ void FormatDecisionsTestImpl() {
       >
     >
   >;
-  auto knl1 = make_kernel<KPOL>(segs, [=](auto i, auto j) {v1(i,j) = i+j;});
-  auto knl2 = make_kernel<KPOL>(segs, [=](auto i, auto j) {v2(i,j) = v1(i,j) * 2;});
+  auto knl1 = make_kernel<KPOL>(segs, [&](auto i, auto j) {v1(i,j) = 2*i+j;});
+  auto knl2 = make_kernel<KPOL>(segs, [&](auto i, auto j) {v2(i,j) = v1(i,j) * 2;});
 
   auto choices = format_decisions(camp::tie(v1,v2), knl1, knl2);
   
@@ -90,6 +90,22 @@ void FormatDecisionsTestImpl() {
   choices.lock();
 
   auto computation = choices.finalize();
+
+  computation();
+
+  EXPECT_EQ(layout_to_perm(v1.get_layout()), vector_10);
+  EXPECT_EQ(layout_to_perm(v2.get_layout()), vector_01);
+  for(int i = 0; i < 8; i++) {
+    for(int j = 0; j < 8; j++) {
+      EXPECT_EQ(v1(i,j), 2*i+j);
+    }
+  }
+  for(int i = 0; i < 8; i++) {
+    for(int j = 0; j < 8; j++) {
+      EXPECT_EQ(v1(i,j) * 2, v2(i,j));
+    }
+  }
+
 
 }
 

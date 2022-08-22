@@ -87,7 +87,9 @@ void FormatDecisionsTestImpl() {
   auto choice8 = choices.template get_layout_choice<3>(v2);
   EXPECT_EQ(choice8, vector_01);
 
-  
+  choices.lock();
+
+  auto computation = choices.finalize();
 
 }
 

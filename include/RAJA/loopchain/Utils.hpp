@@ -164,7 +164,7 @@ auto tuple_zip(camp::tuple<InnerTupleTypes...> t) {
   return tuple_zip(t, idx_seq_for(t));
 }
 
-template <typename T, idx_t N>
+template <idx_t N, typename T>
 auto tuple_repeat(T element) {
   if constexpr (N <= 0) {
     return camp::tuple{};

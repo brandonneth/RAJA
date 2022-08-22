@@ -26,6 +26,7 @@
 
 
 #include "RAJA/loopchain/FormatDecisions/Conversion.hpp"
+#include "RAJA/loopchain/FormatDecisions/FormatDecisions.hpp"
 namespace RAJA
 {
 

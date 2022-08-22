@@ -164,6 +164,14 @@ auto tuple_zip(camp::tuple<InnerTupleTypes...> t) {
   return tuple_zip(t, idx_seq_for(t));
 }
 
+template <typename T, idx_t N>
+auto tuple_repeat(T element) {
+  if constexpr (N <= 0) {
+    return camp::tuple{};
+  } else {
+    return tuple_cat(camp::tuple{element}, tuple_repeat<N-1>(element));
+  }
+}
 
 // Vararg utilities, implemented for both tuples and parameter packs
 //   - max

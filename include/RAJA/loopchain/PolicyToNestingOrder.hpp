@@ -1,7 +1,10 @@
 #ifndef RAJA_PolicyToNestingOrder_HPP
 #define RAJA_PolicyToNestingOrder_HPP
+#include "RAJA/config.hpp"
+#include "RAJA/util/resource.hpp"
 
-
+#include "RAJA/pattern/forall.hpp"
+#include "RAJA/pattern/kernel.hpp"
 namespace RAJA {
 
 
@@ -11,7 +14,7 @@ struct policy_to_nesting_order_s {
 };
 
 template <typename InnerPolicy>
-struct policy_to_nesting_order_s<KernelPolicy<InnerPolicy>> {
+struct policy_to_nesting_order_s<RAJA::KernelPolicy<InnerPolicy>> {
 
   auto operator()() {
     return policy_to_nesting_order_s<InnerPolicy>{}();

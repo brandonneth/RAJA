@@ -138,7 +138,7 @@ struct FormatDecisions {
       if constexpr (std::is_same<ViewType&,decltype(get<I>(views))>::value) {
         if(view_index(view) == I) {
           auto p = layout_to_perm(get<I>(layouts));
-          for(int i = 0; i < p.size(); i++) {
+          for(unsigned long int i = 0; i < p.size(); i++) {
             perm.push_back(p[i]);
           }
         }
@@ -294,7 +294,6 @@ struct FormatDecisions {
     }
     
     
-    auto isl_start = std::chrono::high_resolution_clock::now();
     //std::cerr << "cost function: " << cost_function->rep() << "\n";
     //std::cerr << "Setting up and solving ILP problem\n";
     //std::cerr << "User Constraints: " << extra_constraints->rep() << "\n";
@@ -336,8 +335,6 @@ struct FormatDecisions {
 
     isl_val * score = isl_point_get_coordinate_val(choice, isl_dim_out, 0);
     cost += isl_val_get_num_si(score);
-    auto isl_stop = std::chrono::high_resolution_clock::now();
-    isl_time += std::chrono::duration_cast<std::chrono::microseconds>(isl_stop - isl_start).count();
     int num_format_decisions = NumMoments * tgamma(NumDims+1);
     for(int i = 0; i < num_format_decisions; i++) {
       Term<NumDims> * var = decision_variables->variables.at(i);
@@ -395,6 +392,9 @@ struct FormatDecisions {
   }
 
   auto finalize() {
+    isl_time = 0;
+    setup_time = 0;
+    solve_time = 0;
     auto view_finalizer = [&]
     <camp::idx_t...Is>
     (camp::idx_seq<Is...>) {

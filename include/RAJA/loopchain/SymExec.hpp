@@ -144,10 +144,10 @@ std::vector<idx_t> layout_to_perm(const LayoutType & layout) {
 
   auto strides = layout.strides;
   std::set<int> strided = std::set<int>();
-  for(idx_t i = 0; i < n_dims; i++) {
-    int biggestIndex = -1;
-    int biggestStride = -1;
-    for(idx_t j = 0; j < n_dims; j++) {
+  for(size_t i = 0; i < n_dims; i++) {
+    camp::idx_t biggestIndex = -1;
+    camp::idx_t biggestStride = -1;
+    for(size_t j = 0; j < n_dims; j++) {
       if(strided.find(strides[j]) != strided.end()) { continue; }
       if(strides[j] > biggestStride) {
         biggestIndex = j;

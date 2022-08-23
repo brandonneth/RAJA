@@ -452,7 +452,7 @@ struct FormatDecisions {
       auto perm = layout_to_perm(curr_layout);
       auto s = "";
       o << "(";
-      for(int i = 0; i < perm.size(); i++) {
+      for(size_t i = 0; i < perm.size(); i++) {
         o << s << perm[i];
         s  = ",";
       }

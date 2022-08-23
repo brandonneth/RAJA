@@ -38,6 +38,8 @@ struct FormatDecisions {
   idx_t setup_time = 0;
   idx_t solve_time = 0;
   idx_t isl_time = 0;
+  idx_t space_time = 0;
+  idx_t map_time = 0;
   idx_t cost = 0;
 
   template <idx_t...Is>
@@ -298,16 +300,19 @@ struct FormatDecisions {
 
     auto isl_start = std::chrono::high_resolution_clock::now();
     
-    //std::cerr << "cost function: " << cost_function->rep() << "\n";
-    //std::cerr << "Setting up and solving ILP problem\n";
-    //std::cerr << "User Constraints: " << extra_constraints->rep() << "\n";
-    //auto start = std::chrono::system_clock::now();
     isl_ctx * ctx = isl_ctx_alloc();
      
-    //auto time_alloc = std::chrono::system_clock::now();
+
+    auto space_start = std::chrono::high_resolution_clock::now();
     isl_union_set * all_choices = decision_space(ctx, decision_variables, all_constraints);
-    //auto time_space = std::chrono::system_clock::now();
+    auto space_stop = std::chrono::high_resolution_clock::now();
+    space_time += std::chrono::duration_cast<std::chrono::microseconds>(space_stop - space_start).count();
+    
+    auto map_start = std::chrono::high_resolution_clock::now();
     isl_union_map * objective_map = objective_function(ctx, decision_variables, all_constraints, cost_function);
+    auto map_stop = std::chrono::high_resolution_clock::now();
+    map_time += std::chrono::duration_cast<std::chrono::microseconds>(map_stop - map_start).count();
+
     auto isl_stop = std::chrono::high_resolution_clock::now();
     isl_time +=  std::chrono::duration_cast<std::chrono::microseconds>(isl_stop - isl_start).count();
     auto solve_start = std::chrono::high_resolution_clock::now();

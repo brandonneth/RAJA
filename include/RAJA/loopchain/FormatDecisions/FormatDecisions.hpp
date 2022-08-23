@@ -422,6 +422,32 @@ struct FormatDecisions {
       }
     }
   }
+
+  template <idx_t I>
+  void print_to_stream_helper(std::ostream & o, LayoutTupleType t) {
+    if constexpr (I >= NumViews) {
+      return;
+    } else {
+      auto curr_layout = get<I>(t);
+
+      auto perm = layout_to_perm(curr_layout);
+      auto s = "";
+      o << "(";
+      for(int i = 0; i < perm.size(); i++) {
+        o << s << perm[i];
+        s  = ",";
+      }
+        o << ")";
+      print_to_stream_helper<I+1>(o,t);
+    }
+  }
+  auto print_to_stream(std::ostream & o) {
+    o << "[";
+    for(auto i = 0; i < NumMoments; i++) {
+      print_to_stream_helper<0>(o, moments[i]);
+    }
+    o << "]";
+  }
 };
 
 template <typename ViewRefTuple, typename...KernelTypes>

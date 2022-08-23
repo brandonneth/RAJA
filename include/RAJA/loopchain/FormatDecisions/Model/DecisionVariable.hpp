@@ -35,7 +35,7 @@ auto f_lambda(ViewType & v, ViewType & v2) {
     FormatDecision(std::string viewName_, camp::idx_t idx_, std::vector<camp::idx_t> perm) 
       : viewName(viewName_), idx(idx_)
     {
-      for(auto i = 0; i < I; i++) {
+      for(camp::idx_t i = 0; i < I; i++) {
         permutation[i] = perm.at(i);
       }
     }
@@ -47,7 +47,7 @@ auto f_lambda(ViewType & v, ViewType & v2) {
     std::string rep() const {
       std::stringstream s;
       s << viewName << "_f" << idx;
-      for(auto i = 0; i < permutation.size(); i++) {
+      for(size_t i = 0; i < permutation.size(); i++) {
         s << "_" << permutation[i];
       }
       return s.str();
@@ -70,7 +70,7 @@ virtual camp::idx_t estimate_cost() {
     {
       
  
-    for(auto i = 0; i < I; i++) {
+    for(camp::idx_t i = 0; i < I; i++) {
         in_perm[i] = in_perm_.at(i);
         out_perm[i] = out_perm_.at(i);
       }
@@ -87,22 +87,22 @@ virtual camp::idx_t estimate_cost() {
 
       std::stringstream s;
       s << viewName << "_conv" << idx << "_in";
-      for(auto i = 0; i < in_perm.size(); i++) {
+      for(size_t i = 0; i < in_perm.size(); i++) {
         s << "_" << in_perm[i];
       }
       s << "_out";
-      for(auto i = 0; i < out_perm.size(); i++) {
+      for(size_t i = 0; i < out_perm.size(); i++) {
         s << "_" << out_perm[i];
       }
       return s.str();
     }
     std::string key() const {
       std::stringstream s;
-      for(auto i = 0; i < in_perm.size(); i++) {
+      for(size_t i = 0; i < in_perm.size(); i++) {
         s << "_" << in_perm[i];
       }
       s << "_out";
-      for(auto i = 0; i < out_perm.size(); i++) {
+      for(size_t i = 0; i < out_perm.size(); i++) {
         s << "_" << out_perm[i];
       }
       return s.str();
@@ -126,7 +126,7 @@ virtual camp::idx_t estimate_cost() {
 
   camp::idx_t s = 1;
   std::array<camp::idx_t, I> sizes;
-  for(auto i = 0; i < I; i++) {
+  for(camp::idx_t i = 0; i < I; i++) {
     sizes[i] = n;
     s *= n;
   }

@@ -315,10 +315,9 @@ struct FormatDecisions {
 
     auto isl_stop = std::chrono::high_resolution_clock::now();
     isl_time +=  std::chrono::duration_cast<std::chrono::microseconds>(isl_stop - isl_start).count();
+
     auto solve_start = std::chrono::high_resolution_clock::now();
-    //auto time_create = std::chrono::system_clock::now();
     isl_union_set * applied = isl_union_set_apply(all_choices, objective_map);
-    //auto time_applied = std::chrono::system_clock::now();
     isl_union_set * best_score = isl_union_set_lexmin(applied);
     isl_point * choice = isl_union_set_sample_point(best_score);
     auto solve_stop = std::chrono::high_resolution_clock::now();

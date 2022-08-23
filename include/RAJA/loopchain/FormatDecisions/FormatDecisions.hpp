@@ -35,6 +35,9 @@ struct FormatDecisions {
   std::array<LayoutTupleType, NumMoments> moments;
   std::array<std::array<bool, NumViews>, NumMoments> user_decided; 
 
+  idx_t setup_time = 0;
+  idx_t solve_time = 0;
+  idx_t isl_time = 0;
   idx_t cost = 0;
 
   template <idx_t...Is>
@@ -271,6 +274,7 @@ struct FormatDecisions {
 
   template <typename ViewType>
   auto finalize_view(ViewType & view) {
+    auto setup_start = std::chrono::high_resolution_clock::now();
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
     
@@ -288,7 +292,9 @@ struct FormatDecisions {
       MultExpression<NumDims> * cost_term = new MultExpression<NumDims>(v, c);
       cost_function->add(cost_term);
     }
-
+    
+    
+    auto isl_start = std::chrono::high_resolution_clock::now();
     //std::cerr << "cost function: " << cost_function->rep() << "\n";
     //std::cerr << "Setting up and solving ILP problem\n";
     //std::cerr << "User Constraints: " << extra_constraints->rep() << "\n";
@@ -299,13 +305,16 @@ struct FormatDecisions {
     isl_union_set * all_choices = decision_space(ctx, decision_variables, all_constraints);
     //auto time_space = std::chrono::system_clock::now();
     isl_union_map * objective_map = objective_function(ctx, decision_variables, all_constraints, cost_function);
-   
+    auto setup_stop = std::chrono::high_resolution_clock::now();
+    setup_time += std::chrono::duration_cast<std::chrono::microseconds>(setup_stop - setup_start).count();
+    auto solve_start = std::chrono::high_resolution_clock::now();
     //auto time_create = std::chrono::system_clock::now();
     isl_union_set * applied = isl_union_set_apply(all_choices, objective_map);
     //auto time_applied = std::chrono::system_clock::now();
     isl_union_set * best_score = isl_union_set_lexmin(applied);
     isl_point * choice = isl_union_set_sample_point(best_score);
-
+    auto solve_stop = std::chrono::high_resolution_clock::now();
+    solve_time += std::chrono::duration_cast<std::chrono::microseconds>(solve_stop - solve_start).count();
 /*
     std::cerr << "Made choice\n";
     auto end = std::chrono::system_clock::now();
@@ -327,7 +336,8 @@ struct FormatDecisions {
 
     isl_val * score = isl_point_get_coordinate_val(choice, isl_dim_out, 0);
     cost += isl_val_get_num_si(score);
-
+    auto isl_stop = std::chrono::high_resolution_clock::now();
+    isl_time += std::chrono::duration_cast<std::chrono::microseconds>(isl_stop - isl_start).count();
     int num_format_decisions = NumMoments * tgamma(NumDims+1);
     for(int i = 0; i < num_format_decisions; i++) {
       Term<NumDims> * var = decision_variables->variables.at(i);

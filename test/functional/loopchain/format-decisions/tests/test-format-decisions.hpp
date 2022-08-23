@@ -107,9 +107,11 @@ void FormatDecisionsTestImpl() {
   }
 
   auto times = choices.time_execution();
-  EXPECT_TRUE(camp::get<0>(times) >= 0);
-  EXPECT_TRUE(camp::get<1>(times) >= 0);
-
+  EXPECT_TRUE(camp::get<0>(times) > 0);
+  EXPECT_TRUE(camp::get<1>(times) > 0);
+  EXPECT_TRUE(choices.isl_time > 0);
+  EXPECT_TRUE(choices.setup_time > 0);
+  EXPECT_TRUE(choices.solve_time > 0);
 
 }
 

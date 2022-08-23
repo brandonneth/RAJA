@@ -107,7 +107,7 @@ public:
 
     std::stringstream s;
     s << constraints[0]->rep();
-    for (int i = 1; i < constraints.size(); i++) {
+    for (size_t i = 1; i < constraints.size(); i++) {
       s << " && " << constraints[i]->rep();
     }
     return s.str();
@@ -196,7 +196,7 @@ public:
   {
     std::stringstream s;
     s << variables[0]->rep();
-    for (int i = 1; i < variables.size(); i++) {
+    for (size_t i = 1; i < variables.size(); i++) {
       s << " + " << variables[i]->rep();
     }
     return s.str();
@@ -221,7 +221,7 @@ public:
     std::stringstream s;
     s << "[ ";
     s << variables[0]->rep();
-    for (int i = 1; i < variables.size(); i++) {
+    for (size_t i = 1; i < variables.size(); i++) {
       s << " , " << variables[i]->rep();
     }
     s << " ]";

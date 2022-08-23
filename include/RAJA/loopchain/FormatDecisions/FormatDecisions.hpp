@@ -3,6 +3,7 @@
 
 #include <typeinfo>
 #include <cmath>
+#include <chrono>
 #include "RAJA/loopchain/FormatDecisions/Model/Constraint.hpp"
 #include "RAJA/loopchain/FormatDecisions/Model/DecisionVariable.hpp"
 #include "RAJA/loopchain/FormatDecisions/Model/ISLTranslation.hpp"
@@ -447,6 +448,35 @@ struct FormatDecisions {
       print_to_stream_helper<0>(o, moments[i]);
     }
     o << "]";
+  }
+  
+  template <typename KnlTuple, camp::idx_t I, camp::idx_t...Is>
+  camp::tuple<idx_t, idx_t> te_helper(KnlTuple knlTuple, camp::idx_seq<I, Is...>, camp::tuple<idx_t, idx_t> totals) {
+    
+
+    auto start = std::chrono::high_resolution_clock::now();
+    camp::get<I>(knlTuple)();
+    auto stop = std::chrono::high_resolution_clock::now();
+    camp::idx_t elapsed = std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count();
+
+    
+    if constexpr (I % 2 == 0) {
+      camp::get<0>(totals) += elapsed;
+    } 
+    if constexpr (I % 2 == 1) {
+      camp::get<1>(totals) += elapsed;
+    } 
+    if constexpr (sizeof...(Is) == 0) {
+      return totals;
+    } else {
+      return te_helper(knlTuple, camp::idx_seq<Is...>{}, totals);
+    }
+  }
+  camp::tuple<idx_t, idx_t> time_execution() {
+    auto loopchain = finalize();
+    auto knlTuple = loopchain.knlTuple;
+
+    return te_helper(knlTuple, idx_seq_for(knlTuple), camp::tuple<idx_t, idx_t>{0,0});
   }
 };
 

@@ -95,7 +95,7 @@ auto permute_view(ViewType & v, LayoutType l) {
         T * _v = v.get_data();   
         memcpy(_v, _v2, sizeof(T) *v.size());
         v.set_layout(l);
-        delete _v2;
+        delete[] _v2;
     };
 
     auto knl = make_forall<loop_exec>(RangeSegment(0,1), converter);

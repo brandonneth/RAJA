@@ -293,6 +293,10 @@ struct FormatDecisions {
       cost_function->add(cost_term);
     }
     
+    auto setup_stop = std::chrono::high_resolution_clock::now();
+    setup_time += std::chrono::duration_cast<std::chrono::microseconds>(setup_stop - setup_start).count();
+
+    auto isl_start = std::chrono::high_resolution_clock::now();
     
     //std::cerr << "cost function: " << cost_function->rep() << "\n";
     //std::cerr << "Setting up and solving ILP problem\n";
@@ -304,8 +308,8 @@ struct FormatDecisions {
     isl_union_set * all_choices = decision_space(ctx, decision_variables, all_constraints);
     //auto time_space = std::chrono::system_clock::now();
     isl_union_map * objective_map = objective_function(ctx, decision_variables, all_constraints, cost_function);
-    auto setup_stop = std::chrono::high_resolution_clock::now();
-    setup_time += std::chrono::duration_cast<std::chrono::microseconds>(setup_stop - setup_start).count();
+    auto isl_end = std::chrono::high_resolution_clock::now();
+    isl_time +=  std::chrono::duration_cast<std::chrono::microseconds>(isl_stop - isl_start).count();
     auto solve_start = std::chrono::high_resolution_clock::now();
     //auto time_create = std::chrono::system_clock::now();
     isl_union_set * applied = isl_union_set_apply(all_choices, objective_map);

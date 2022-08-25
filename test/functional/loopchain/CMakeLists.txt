@@ -16,3 +16,4 @@ add_subdirectory(apply-overlapped-tile)
 add_subdirectory(policy-to-nesting-order)
 
 add_subdirectory(format-decisions)
+add_subdirectory(ilp-model)

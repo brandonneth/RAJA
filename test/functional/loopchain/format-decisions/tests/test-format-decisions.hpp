@@ -113,6 +113,9 @@ void FormatDecisionsTestImpl() {
   EXPECT_TRUE(choices.setup_time > 0);
   EXPECT_TRUE(choices.solve_time > 0);
 
+  EXPECT_TRUE(choices.space_time > 0);
+  EXPECT_TRUE(choices.map_time > 0);
+
 }
 
 TYPED_TEST_SUITE_P(FormatDecisionsTest);

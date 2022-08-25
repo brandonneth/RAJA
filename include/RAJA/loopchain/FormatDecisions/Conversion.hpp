@@ -113,5 +113,76 @@ auto permute_views(camp::tuple<ViewTypes...> views, camp::tuple<LayoutTypes...> 
   return permute_views(views, layouts, seq);
 }
 
+template <typename Args, camp::idx_t...Is, typename ViewType>
+void c_helper(Args&& args_tuple, camp::idx_seq<Is...>, ViewType & v, ViewType &  v2) {
+  v(camp::get<Is>(args_tuple)...) = v2(camp::get<Is>(args_tuple)...);
+
+}
+
+template <typename ViewType>
+auto c_lambda(ViewType & v, ViewType & v2) {
+  return [&](auto...is) {
+    c_helper(camp::forward_as_tuple(is...), idx_seq_from_to<0,sizeof...(is)>(), v, v2);
+  };
+}
+template <camp::idx_t I>
+camp::idx_t estimate_conversion_cost(std::array<camp::idx_t, I> in_perm, std::array<camp::idx_t, I> out_perm) {
+  static std::map<std::string,idx_t> cache;
+  std::stringstream st;
+  for(size_t i = 0; i < in_perm.size(); i++) {
+    st << in_perm[i] << " " << out_perm[i];
+  }
+  std::string key = st.str();
+  if(cache[key] != 0) {
+    return cache[key];
+  }
+  if (in_perm == out_perm) {
+    cache[key] = 1;
+    return cache[key];
+  }
+
+  using V =  View<double, Layout<I>>;
+
+  camp::idx_t n = 128;
+
+  camp::idx_t s = 1;
+  std::array<camp::idx_t, I> sizes;
+  for(camp::idx_t i = 0; i < I; i++) {
+    sizes[i] = n;
+    s *= n;
+  }
+  Layout<I> in_layout = make_permuted_layout(sizes, in_perm);
+  Layout<I> out_layout = make_permuted_layout(sizes, out_perm);
+  
+  using kpol = typename nest<I>::pol;
+
+  auto start =std::chrono::high_resolution_clock::now(); 
+  V in(new double[s], in_layout);
+
+  V out(new double[s], out_layout);
+
+  auto l = c_lambda(in, out);
+  auto seg = RangeSegment(0,n);
+
+  auto segs = tuple_repeat<I>(seg);
+
+  auto conversion = make_kernel<kpol>(segs, l);
+
+  conversion(); 
+  using T = double;
+T * _v = in.get_data();   
+  T * _v2 = out.get_data();
+  memcpy(_v, _v2, sizeof(double) *in.size());
+    free(_v2);
+    free(_v);
+  auto stop =std::chrono::high_resolution_clock::now();
+
+  auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
+  cache[key] = t;
+  //std::cerr << "convcost " << key << ": " << t << "\n";
+  return cache[key];
+
+} 
+
 } //namespace RAJA
 #endif

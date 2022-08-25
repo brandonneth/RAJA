@@ -194,7 +194,7 @@ struct FormatDecisions {
   }
 
   template <idx_t NumDims>
-  idx_t estimate_format_cost(std::array<idx_t, NumDims> layout_order) {
+  idx_t estimate_use_cost(std::array<idx_t, NumDims> layout_order) {
     static std::map<std::array<idx_t,NumDims>,idx_t> cache;
 
     if( cache[layout_order] != 0) {
@@ -241,14 +241,14 @@ struct FormatDecisions {
   }
 
   template <idx_t KnlIdx, typename ViewType>
-  auto estimate_format_costs(ViewType & view) {
+  auto estimate_use_costs(ViewType & view) {
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
 
     if constexpr (KnlIdx >= NumKernels) {
       return new SumExpression<NumDims>();
     } else {
-      SumExpression<NumDims> * term_sum = estimate_format_costs<KnlIdx+1>(view);
+      SumExpression<NumDims> * term_sum = estimate_use_costs<KnlIdx+1>(view);
       
       auto knl = get<KnlIdx>(knls);
       using KernelType = decltype(knl);    
@@ -263,7 +263,7 @@ struct FormatDecisions {
           
             auto normalized_layout_perm = access.template normalized_layout_perm<KernelPolicy,NumDims>(perm);
             //std::cerr << "estimating cost of " << format_var->rep() << "\n";
-            auto cost = estimate_format_cost<NumDims>(normalized_layout_perm);
+            auto cost = estimate_use_cost<NumDims>(normalized_layout_perm);
             unsigned long coef = cost * knl.num_iterations();
             auto cost_term = new MultExpression(format_var, new Constant<NumDims>(coef));
             term_sum->add(cost_term);
@@ -273,27 +273,50 @@ struct FormatDecisions {
       return term_sum;
     }
   }
+  template <typename ViewType>
+  auto estimate_conversion_costs(ViewType & view) {
+    using LayoutType = typename ViewType::layout_type;
+    constexpr camp::idx_t NumDims = LayoutType().n_dims;
 
+    auto conversion_costs = new SumExpression<NumDims>();
+
+    const std::vector<std::array<camp::idx_t, NumDims>> all_perms = enumerate_perms<NumDims>();
+    for(int i = 0; i < NumKernels+1; i++) {
+      for(auto in_perm : all_perms) {
+        for(auto out_perm : all_perms) {
+          auto in_var = new FormatDecision<NumDims>(view_name(view), i, in_perm);
+          auto out_var = new FormatDecision<NumDims>(view_name(view), i+1, out_perm);
+          auto estimated_cost = estimate_conversion_cost<NumDims>(in_perm, out_perm);
+          auto c = new Constant<NumDims>(estimated_cost);
+          MultExpression<NumDims> * m = new MultExpression<NumDims>(in_var, out_var);
+          MultExpression<NumDims> * term = new MultExpression<NumDims>(m, c);
+          conversion_costs->add(term);
+        }
+      }
+    }
+    return conversion_costs;
+  }
   template <typename ViewType>
   auto finalize_view(ViewType & view) {
     auto setup_start = std::chrono::high_resolution_clock::now();
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
     
-    SumExpression<NumDims> * cost_function = estimate_format_costs<0>(view);
-
     auto decision_variables = all_decision_variables<NumDims>(view_name(view), NumKernels);
-    auto base_constraints = all_constraints<NumDims>(view_name(view), NumKernels); 
+
+    SumExpression<NumDims> * use_cost = estimate_use_costs<0>(view);
+    SumExpression<NumDims> * conversion_cost = estimate_conversion_costs(view);
+    SumExpression<NumDims> * cost_function = new SumExpression<NumDims>();
+    cost_function->add(use_cost);
+    cost_function->add(conversion_cost);
+
+
+    
+    auto base_constraints_ = base_constraints<NumDims>(view_name(view), NumKernels); 
     auto extra_constraints = user_constraints<0>(view);
-    auto all_constraints = new AndConstraint<NumDims>(base_constraints, extra_constraints);
-    //TODO: this is a hack. The estimate_cost should probably take a policy or something and then that should be uniformized instead of doing format costs here. 
-    for(auto v : decision_variables->variables) {
-      auto estimate = v->estimate_cost() / 1000;
-      unsigned long coef = estimate * view.size();
-      auto c = new Constant<NumDims>(coef);
-      MultExpression<NumDims> * cost_term = new MultExpression<NumDims>(v, c);
-      cost_function->add(cost_term);
-    }
+    auto all_constraints = new AndConstraint<NumDims>(base_constraints_, extra_constraints);
+
+    
     
     auto setup_stop = std::chrono::high_resolution_clock::now();
     setup_time += std::chrono::duration_cast<std::chrono::microseconds>(setup_stop - setup_start).count();
@@ -309,19 +332,19 @@ struct FormatDecisions {
     space_time += std::chrono::duration_cast<std::chrono::microseconds>(space_stop - space_start).count();
     
     auto map_start = std::chrono::high_resolution_clock::now();
-    isl_union_map * objective_map = objective_function(ctx, decision_variables, all_constraints, cost_function);
+    isl_union_pw_qpolynomial * polynomial = objective_function(ctx, decision_variables, cost_function);
     auto map_stop = std::chrono::high_resolution_clock::now();
     map_time += std::chrono::duration_cast<std::chrono::microseconds>(map_stop - map_start).count();
 
-    auto isl_stop = std::chrono::high_resolution_clock::now();
-    isl_time +=  std::chrono::duration_cast<std::chrono::microseconds>(isl_stop - isl_start).count();
+    
 
     auto solve_start = std::chrono::high_resolution_clock::now();
-    isl_union_set * applied = isl_union_set_apply(all_choices, objective_map);
-    isl_union_set * best_score = isl_union_set_lexmin(applied);
-    isl_point * choice = isl_union_set_sample_point(best_score);
+    isl_point * choice = find_best_choice(all_choices, polynomial);
     auto solve_stop = std::chrono::high_resolution_clock::now();
     solve_time += std::chrono::duration_cast<std::chrono::microseconds>(solve_stop - solve_start).count();
+
+    auto isl_stop = std::chrono::high_resolution_clock::now();
+    isl_time +=  std::chrono::duration_cast<std::chrono::microseconds>(isl_stop - isl_start).count();
 /*
     std::cerr << "Made choice\n";
     auto end = std::chrono::system_clock::now();
@@ -340,14 +363,13 @@ struct FormatDecisions {
      // isl_ctx_free(ctx); 
       return false;
     } 
-
-    isl_val * score = isl_point_get_coordinate_val(choice, isl_dim_out, 0);
-    cost += isl_val_get_num_si(score);
+  
+    
     int num_format_decisions = NumMoments * tgamma(NumDims+1);
     for(int i = 0; i < num_format_decisions; i++) {
       Term<NumDims> * var = decision_variables->variables.at(i);
       //std::cout << "Getting output value for " << var->rep() << ": ";
-      isl_val * val_ = isl_point_get_coordinate_val(choice, isl_dim_out, i+1);
+      isl_val * val_ = isl_point_get_coordinate_val(choice, isl_dim_out, i);
       long val = isl_val_get_num_si(val_);
        //std::cout << val << "\n";
 
@@ -510,6 +532,8 @@ auto format_decisions(ViewRefTuple views, KernelTypes...knls) {
 
   return helper(views);
 }
+
+
 
 }  // namespace RAJA
 

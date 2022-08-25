@@ -345,22 +345,16 @@ struct FormatDecisions {
 
     auto isl_stop = std::chrono::high_resolution_clock::now();
     isl_time +=  std::chrono::duration_cast<std::chrono::microseconds>(isl_stop - isl_start).count();
-/*
-    std::cerr << "Made choice\n";
-    auto end = std::chrono::system_clock::now();
-    std::chrono::duration<double> solve_time = end-start;
-    std::chrono::duration<double> apply_time = time_applied-start;
-    std::chrono::duration<double> create_time = time_create-start;
-    std::chrono::duration<double> space_time = time_space-start;
-    std::chrono::duration<double> alloc_time = time_space-start;
-    std::cerr << "Elasped Time: " << solve_time.count() << "\n";
-    std::cerr << "Time to create the ctx: " << alloc_time.count() << "\n";
-    std::cerr << "Time to create the set : " << space_time.count() << "\n";
-    std::cerr << "Time to create the set and  map: " << create_time.count() << "\n";
-    std::cerr << "Time to create and apply the map: " << apply_time.count() << "\n";*/
+
     if(isl_point_is_void(choice)) {
       std::cerr << "No point found. Not making any modeling choices.\n";
-     // isl_ctx_free(ctx); 
+      isl_printer * pp = isl_printer_to_file(ctx, stderr);
+      std::cerr << "Decision Space: ";
+      isl_printer_print_union_set(pp, all_choices);
+      std::cerr << "\n";
+      std::cerr << "Objective Function: ";
+      isl_printer_print_union_pw_qpolynomial(pp, polynomial);
+      std::cerr << "\n";
       return false;
     } 
   

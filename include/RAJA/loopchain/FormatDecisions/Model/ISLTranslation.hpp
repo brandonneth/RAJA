@@ -40,7 +40,7 @@ isl_point * find_best_choice(isl_union_set * choices, isl_union_pw_qpolynomial *
     camp::idx_t lowest_val;
   } fn_struct;
   fn_struct.obj = objective;
-  fn_struct.lowest_point = NULL;
+  fn_struct.lowest_point = isl_union_set_sample_point(isl_union_set_copy(choices));
   fn_struct.lowest_val = INT_MAX;
 
   auto fn = [](isl_point * pnt, void * user) {

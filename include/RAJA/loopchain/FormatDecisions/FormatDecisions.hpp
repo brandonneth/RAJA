@@ -35,6 +35,7 @@ struct FormatDecisions {
   std::array<LayoutTupleType, NumMoments> moments;
   std::array<std::array<bool, NumViews>, NumMoments> user_decided; 
 
+  bool locked = 0;
   idx_t setup_time = 0;
   idx_t solve_time = 0;
   idx_t isl_time = 0;
@@ -419,13 +420,14 @@ struct FormatDecisions {
     isl_time = 0;
     setup_time = 0;
     solve_time = 0;
-    auto view_finalizer = [&]
-    <camp::idx_t...Is>
-    (camp::idx_seq<Is...>) {
-      camp::sink(finalize_view(get<Is>(views))...);
-    };
-    view_finalizer(idx_seq_for(views));
-
+    if(!locked) {
+      auto view_finalizer = [&]
+      <camp::idx_t...Is>
+      (camp::idx_seq<Is...>) {
+        camp::sink(finalize_view(get<Is>(views))...);
+      };
+      view_finalizer(idx_seq_for(views));
+    }
     auto moment_generator = [&]
     <camp::idx_t...Is>
     (camp::idx_seq<Is...>) {
@@ -451,6 +453,7 @@ struct FormatDecisions {
   }
 
   void lock() {
+    locked=true;
     for(auto i= 0; i < NumMoments; i++) {
       for(auto j = 0; j < NumViews; j++) {
         user_decided[i][j] = true;

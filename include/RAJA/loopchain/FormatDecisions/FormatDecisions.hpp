@@ -386,8 +386,31 @@ struct FormatDecisions {
     return true;
   }
 
-  template <typename ViewType, typename LayoutType, typename KernelType>
-  bool set_format_for(ViewType & view, LayoutType layout, KernelType knl) {
+  
+
+  template <typename ViewType, typename KernelType>
+  bool set_format_for(ViewType & view, std::vector<camp::idx_t> permutation, KernelType knl) {
+    auto l = view.get_layout();
+    constexpr camp::idx_t NumDims = l.n_dims; 
+    std::array<camp::idx_t, NumDims> sizes;
+    std::array<camp::idx_t, NumDims> perm;
+    for(int i = 0; i < NumDims; i++) {
+      perm[i] = permutation[i];
+      sizes[i] = l.sizes[i];
+    }
+    auto new_layout = make_permuted_layout(sizes, perm);
+    return set_format_for(view, new_layout, knl);
+
+    
+    
+
+    
+    
+
+    
+  }
+  template <typename ViewType, typename KernelType, camp::idx_t... RangeInts, typename IdxLin, ptrdiff_t StrideOneDim>
+  bool set_format_for(ViewType & view, detail::LayoutBase_impl<camp::idx_seq<RangeInts...>, IdxLin, StrideOneDim> layout, KernelType knl) {
     camp::idx_t v_idx = view_index(view);
     camp::idx_t k_idx = kernel_index(knl);
     if(v_idx == -1) {
@@ -414,6 +437,21 @@ struct FormatDecisions {
     auto success = update_layout(moments[NumKernels+1], view, layout);
     user_decided[NumKernels+1][v_idx] = true;
     return success;
+  }
+  template <typename ViewType>
+  bool set_output_format(ViewType & view, std::vector<camp::idx_t> permutation) {
+    auto l = view.get_layout();
+    constexpr camp::idx_t NumDims = l.n_dims; 
+
+    std::array<camp::idx_t, NumDims> sizes;
+    std::array<camp::idx_t, NumDims> perm;
+    for(int i = 0; i < NumDims; i++) {
+      perm[i] = permutation[i];
+      sizes[i] = l.sizes[i];
+    }
+
+    auto new_layout = make_permuted_layout(sizes, perm);
+    return set_output_format(view, new_layout);
   }
 
   auto finalize() {

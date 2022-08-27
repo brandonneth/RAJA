@@ -203,7 +203,9 @@ struct FormatDecisions {
     }
     //std::cerr << "no cache\n";
     using V =  View<double, Layout<NumDims>>;
-    constexpr camp::idx_t n = 128;
+    constexpr camp::idx_t problem_size = 20000;
+    constexpr double root = std::pow(problem_size, 1.0/NumDims);
+    constexpr camp::idx_t n = (camp::idx_t) root;
     camp::idx_t s = 1;
     std::array<camp::idx_t, NumDims> sizes;
     for(auto i = 0; i < NumDims; i++) {

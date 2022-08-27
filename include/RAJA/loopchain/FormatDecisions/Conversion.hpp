@@ -1,6 +1,6 @@
 #ifndef RAJA_FDConversion_HPP
 #define RAJA_FDConversion_HPP
-
+#include <cmath>
 namespace RAJA {
 
 template <camp::idx_t CurrDim, camp::idx_t NumDims>
@@ -142,8 +142,9 @@ camp::idx_t estimate_conversion_cost(std::array<camp::idx_t, I> in_perm, std::ar
   }
 
   using V =  View<double, Layout<I>>;
-
-  camp::idx_t n = 128;
+  constexpr camp::idx_t problem_size = 20000;
+  constexpr double root = std::pow(problem_size, 1.0/I);
+  constexpr camp::idx_t n = (camp::idx_t) root;
 
   camp::idx_t s = 1;
   std::array<camp::idx_t, I> sizes;

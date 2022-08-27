@@ -157,8 +157,8 @@ AndConstraint<NumDims>* binary_choice_constraints(std::string viewName, camp::id
 
 
 
-  auto zero = new Constant<2>(0);
-  auto one = new Constant<2>(1);
+  auto zero = new Constant<NumDims>(0);
+  auto one = new Constant<NumDims>(1);
   for(auto v : vars) {
    constraints->add(new LeqConstraint<NumDims>(v, one));
    constraints->add(new GeqConstraint<NumDims>(v, zero));

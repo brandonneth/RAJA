@@ -482,7 +482,7 @@ struct FormatDecisions {
     camp::idx_t elapsed = std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count();
 
     
-    if constexpr (I % (NumViews+1) == 0) {
+    if constexpr ((I+1) % (NumViews+1) != 0) {
       camp::get<0>(totals) += elapsed;
     } else {
       camp::get<1>(totals) += elapsed;

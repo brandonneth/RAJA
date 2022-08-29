@@ -310,13 +310,13 @@ struct FormatDecisions {
     auto space_start = std::chrono::system_clock::now();
     isl_union_set * all_choices = decision_space(ctx, decision_variables, all_constraints);
     auto space_end = std::chrono::system_clock::now();
-    space_time += std::chrono::duration_cast<std::chrono::microseconds>(space_stop - space_start).count();
+    space_time += std::chrono::duration_cast<std::chrono::microseconds>(space_end - space_start).count();
     //auto time_space = std::chrono::system_clock::now();
 
     auto map_start = std::chrono::system_clock::now();
     isl_union_map * objective_map = objective_function(ctx, decision_variables, all_constraints, cost_function);
     auto map_end = std::chrono::system_clock::now();
-    map_time += std::chrono::duration_cast<std::chrono::microseconds>(map_stop - map_start).count();
+    map_time += std::chrono::duration_cast<std::chrono::microseconds>(map_end - map_start).count();
  
     auto solve_start = std::chrono::high_resolution_clock::now();
     isl_union_set * applied = isl_union_set_apply(all_choices, objective_map);

@@ -94,7 +94,7 @@ AndConstraint<NumDims>* conversion_input_constraint(std::string viewName, camp::
       std::vector<camp::idx_t> out_p;
       for(int i = 0; i < NumDims; i++) {out_p.push_back(out_perm[i]);}
       
-      sum->add(new ConversionDecision<2>(viewName, conv_idx, in_p, out_p));
+      sum->add(new ConversionDecision<NumDims>(viewName, conv_idx, in_p, out_p));
     }
     
     constraints->add(new EqualityConstraint<NumDims>(format, sum));           

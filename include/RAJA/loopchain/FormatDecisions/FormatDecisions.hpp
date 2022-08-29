@@ -38,6 +38,8 @@ struct FormatDecisions {
   idx_t setup_time = 0;
   idx_t solve_time = 0;
   idx_t isl_time = 0;
+  idx_t space_time = 0;
+  idx_t map_time = 0;
   idx_t cost = 0;
 
   template <idx_t...Is>
@@ -304,16 +306,20 @@ struct FormatDecisions {
     //auto start = std::chrono::system_clock::now();
     isl_ctx * ctx = isl_ctx_alloc();
      
-    //auto time_alloc = std::chrono::system_clock::now();
+
+    auto space_start = std::chrono::system_clock::now();
     isl_union_set * all_choices = decision_space(ctx, decision_variables, all_constraints);
+    auto space_end = std::chrono::system_clock::now();
+    space_time += std::chrono::duration_cast<std::chrono::microseconds>(space_stop - space_start).count();
     //auto time_space = std::chrono::system_clock::now();
+
+    auto map_start = std::chrono::system_clock::now();
     isl_union_map * objective_map = objective_function(ctx, decision_variables, all_constraints, cost_function);
-    auto isl_stop = std::chrono::high_resolution_clock::now();
-    isl_time +=  std::chrono::duration_cast<std::chrono::microseconds>(isl_stop - isl_start).count();
+    auto map_end = std::chrono::system_clock::now();
+    map_time += std::chrono::duration_cast<std::chrono::microseconds>(map_stop - map_start).count();
+ 
     auto solve_start = std::chrono::high_resolution_clock::now();
-    //auto time_create = std::chrono::system_clock::now();
     isl_union_set * applied = isl_union_set_apply(all_choices, objective_map);
-    //auto time_applied = std::chrono::system_clock::now();
     isl_union_set * best_score = isl_union_set_lexmin(applied);
     isl_point * choice = isl_union_set_sample_point(best_score);
     auto solve_stop = std::chrono::high_resolution_clock::now();
@@ -399,6 +405,8 @@ struct FormatDecisions {
     isl_time = 0;
     setup_time = 0;
     solve_time = 0;
+    map_time = 0;
+    space_time = 0;
     auto view_finalizer = [&]
     <camp::idx_t...Is>
     (camp::idx_seq<Is...>) {

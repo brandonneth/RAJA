@@ -33,37 +33,6 @@ isl_union_pw_qpolynomial * objective_function(isl_ctx * ctx, TermList<NumDims> *
   return map;
 }
 
-isl_point * find_best_choice(isl_union_set * choices, isl_union_pw_qpolynomial * objective) {
-  struct OptStruct {
-    isl_union_pw_qpolynomial * obj;
-    isl_point * lowest_point;
-    camp::idx_t lowest_val;
-  } fn_struct;
-  fn_struct.obj = objective;
-  fn_struct.lowest_point = isl_union_set_sample_point(isl_union_set_copy(choices));
-  fn_struct.lowest_val = INT_MAX;
-
-  auto fn = [](isl_point * pnt, void * user) {
-    OptStruct * fn_struct = (OptStruct*) user;
-    isl_union_pw_qpolynomial * obj = isl_union_pw_qpolynomial_copy(fn_struct->obj);
-    camp::idx_t lowest_val = fn_struct->lowest_val;
-
-    isl_val * val = isl_union_pw_qpolynomial_eval(obj, isl_point_copy(pnt));
-    camp::idx_t v =  isl_val_get_num_si(val);
-
-    if ( v < lowest_val) {
-      fn_struct->lowest_val = v;
-      fn_struct->lowest_point = pnt;
-    }
-
-    return isl_stat_ok;
-  };
-
-  isl_union_set_foreach_point(choices, fn, &fn_struct);
-
-  return fn_struct.lowest_point;
-}
-
 
 
 

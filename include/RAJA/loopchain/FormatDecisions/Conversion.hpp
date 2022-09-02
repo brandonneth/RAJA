@@ -143,8 +143,8 @@ camp::idx_t estimate_conversion_cost(std::array<camp::idx_t, I> in_perm, std::ar
 
   using V =  View<double, Layout<I>>;
   constexpr camp::idx_t problem_size = 20000;
-  constexpr double root = std::pow(problem_size, 1.0/I);
-  constexpr camp::idx_t n = (camp::idx_t) root;
+ double root = std::pow(problem_size, 1.0/I);
+ camp::idx_t n = (camp::idx_t) root;
 
   camp::idx_t s = 1;
   std::array<camp::idx_t, I> sizes;

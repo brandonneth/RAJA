@@ -181,7 +181,7 @@ struct KernelWrapper {
   }
 
   RAJA_INLINE
-  void operator() (SegmentTuple segs) {
+  void operator() (SegmentTuple) {
     //TODO: Enable the kernel to be executed with a different segment
   }
 

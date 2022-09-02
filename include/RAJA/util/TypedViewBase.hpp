@@ -307,6 +307,12 @@ class ViewBase {
     }
 
     RAJA_HOST_DEVICE
+    RAJA_INLINE void replace_data(PointerType data_ptr){
+      delete[] m_data;
+      m_data = data_ptr;
+    }
+
+    RAJA_HOST_DEVICE
     RAJA_INLINE void set_layout(layout_type layout){
       m_layout = layout;
     }

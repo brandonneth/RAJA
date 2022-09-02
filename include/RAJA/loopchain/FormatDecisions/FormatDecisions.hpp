@@ -4,6 +4,7 @@
 #include <typeinfo>
 #include <cmath>
 #include <chrono>
+#include <climits>
 #include "RAJA/loopchain/FormatDecisions/Model/Constraint.hpp"
 #include "RAJA/loopchain/FormatDecisions/Model/DecisionVariable.hpp"
 #include "RAJA/loopchain/FormatDecisions/Model/ISLTranslation.hpp"

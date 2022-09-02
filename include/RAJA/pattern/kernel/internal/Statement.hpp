@@ -33,7 +33,7 @@ template <typename ExecPolicy, typename... EnclosedStmts>
 struct Statement {
   static_assert(std::is_same<ExecPolicy, camp::nil>::value || sizeof...(EnclosedStmts) > 0,
       "Executable statement with no enclosed statements, this is almost certainly a bug");
-  Statement() = delete;
+ //Statement() = delete;
 
   using enclosed_statements_t = StatementList<EnclosedStmts...>;
   using execution_policy_t = ExecPolicy;

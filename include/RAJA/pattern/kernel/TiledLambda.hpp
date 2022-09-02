@@ -53,7 +53,7 @@ namespace statement
 template <camp::idx_t BodyIdx, typename... Args >
 struct TiledLambda : internal::Statement<camp::nil> {
   
-  TiledLambda() = delete;
+  //TiledLambda() = delete;
   const static camp::idx_t loop_body_index = BodyIdx;
 };
 

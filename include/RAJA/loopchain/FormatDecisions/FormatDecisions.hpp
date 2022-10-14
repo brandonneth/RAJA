@@ -4,7 +4,7 @@
 #include <typeinfo>
 #include <cmath>
 #include <chrono>
-#include <climits>
+#include <limits>
 #include "RAJA/loopchain/FormatDecisions/Model/Constraint.hpp"
 #include "RAJA/loopchain/FormatDecisions/Model/DecisionVariable.hpp"
 #include "RAJA/loopchain/FormatDecisions/Model/ISLTranslation.hpp"
@@ -314,7 +314,6 @@ struct FormatDecisions {
     cost_function->add(use_cost);
     cost_function->add(conversion_cost);
 
-
     
     auto base_constraints_ = base_constraints<NumDims>(view_name(view), NumKernels); 
     auto extra_constraints = user_constraints<0>(view);
@@ -510,7 +509,7 @@ struct FormatDecisions {
     } fn_struct;
     fn_struct.obj = objective;
     fn_struct.lowest_point = isl_union_set_sample_point(isl_union_set_copy(choices));
-    fn_struct.lowest_val = INT_MAX;
+    fn_struct.lowest_val = std::numeric_limits<camp::idx_t>::max();
 
     auto fn = [](isl_point * pnt, void * user) {
       OptStruct * fn_struct = (OptStruct*) user;
@@ -519,7 +518,6 @@ struct FormatDecisions {
 
       isl_val * val = isl_union_pw_qpolynomial_eval(obj, isl_point_copy(pnt));
       camp::idx_t v =  isl_val_get_num_si(val);
-
       if ( v < lowest_val) {
         fn_struct->lowest_val = v;
         fn_struct->lowest_point = pnt;

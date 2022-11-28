@@ -419,8 +419,8 @@ struct FormatDecisions {
 
     auto knls_and_conversions= stitcher(idx_seq_for(knls));
     return chain(knls_and_conversions);
- 
   }
+
 
 };
 

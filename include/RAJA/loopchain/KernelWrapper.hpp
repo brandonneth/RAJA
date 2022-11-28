@@ -333,6 +333,18 @@ struct KernelWrapper {
     return normalized_access; 
   }
 
+  template <idx_t I>
+  auto ni_helper() {
+    if constexpr (I == numArgs) { return 1;} else
+    {
+      auto s = get<I>(segments);
+      return s.size() * ni_helper<I+1>();
+    }
+  }
+ 
+  auto num_iterations() {
+    return ni_helper<0>();
+  }
 }; // KernelWrapper
 
 //creates a kernel object using the same interface as the kernel function

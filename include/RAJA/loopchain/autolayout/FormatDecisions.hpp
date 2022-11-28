@@ -35,7 +35,7 @@ struct FormatDecisions {
   std::array<LayoutTupleType, NumMoments> moments;
   std::array<std::array<bool, NumViews>, NumMoments> user_decided; 
 
-
+  idx_t cost = 0;
 
   template <idx_t...Is>
   FormatDecisions(tuple<ViewRefs...> _views, KernelTuple _knls, camp::idx_seq<Is...>) : 
@@ -48,6 +48,8 @@ struct FormatDecisions {
       for(auto i1 = 0; i1 < NumViews; i1++) {
         user_decided[i0][i1] = false;
       }
+      moments[i0] = make_tuple(get<Is>(views).get_layout()...);
+
     }
     for(int i = 0; i < NumViews; i++) {
       user_decided[0][i] = true;
@@ -235,6 +237,12 @@ struct FormatDecisions {
 
   template <idx_t NumDims>
   idx_t estimate_cost(std::array<idx_t, NumDims> layout_order) {
+    static std::map<std::array<idx_t,NumDims>,idx_t> cache;
+
+    if( cache[layout_order] != 0) {
+      return cache[layout_order];
+    }
+    //std::cerr << "no cache\n";
     using V =  View<double, Layout<NumDims>>;
 
     camp::idx_t n = 128;
@@ -271,12 +279,12 @@ struct FormatDecisions {
 
     auto start =std::chrono::high_resolution_clock::now();
     knl();
-    knl();
-    knl();
     auto stop =std::chrono::high_resolution_clock::now();
 
     auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
-    return t / 3;
+    cache[layout_order] = t;
+    //std::cerr << "compcost: " << cache[layout_order] << "\n";
+    return cache[layout_order];
   }
 
 
@@ -303,9 +311,10 @@ struct FormatDecisions {
             auto format_var = new FormatDecision<NumDims>(view_name(view), KnlIdx+1, perm);
           
             auto normalized_layout_perm = access.template normalized_layout_perm<KernelPolicy,NumDims>(perm);
+            //std::cerr << "estimating cost of " << format_var->rep() << "\n";
             auto cost = estimate_cost<NumDims>(normalized_layout_perm);
-          
-            auto cost_term = new MultExpression(format_var, new Constant<NumDims>(cost));
+            unsigned long coef = cost * knl.num_iterations();
+            auto cost_term = new MultExpression(format_var, new Constant<NumDims>(coef));
             term_sum->add(cost_term);
           }
         }
@@ -316,6 +325,7 @@ struct FormatDecisions {
 
   template <typename ViewType>
   auto finalize_view(ViewType & view) {
+    //std::cerr << "finalizing view\n";
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
     
@@ -328,31 +338,56 @@ struct FormatDecisions {
   
     auto all_constraints = new AndConstraint<NumDims>(base_constraints, extra_constraints);
 
-    auto cost_function = estimate_format_cost<0>(view);
+    SumExpression<NumDims> * cost_function = estimate_format_cost<0>(view);
 
     //TODO: this is a hack. The estimate_cost should probably take a policy or something and then that should be uniformized instead of doing format costs here. 
     for(auto v : decision_variables->variables) {
-      auto estimate = v->estimate_cost();
-      auto c = new Constant<NumDims>(estimate);
-      auto cost_term = new MultExpression<NumDims>(v, c);
+      auto estimate = v->estimate_cost() / 1000;
+      unsigned long coef = estimate * view.size();
+      auto c = new Constant<NumDims>(coef);
+      MultExpression<NumDims> * cost_term = new MultExpression<NumDims>(v, c);
       cost_function->add(cost_term);
     }
 
+    //std::cerr << "cost function: " << cost_function->rep() << "\n";
+    //std::cerr << "Setting up and solving ILP problem\n";
+    //std::cerr << "User Constraints: " << extra_constraints->rep() << "\n";
+    //auto start = std::chrono::system_clock::now();
     isl_ctx * ctx = isl_ctx_alloc();
-   
+     
+    //auto time_alloc = std::chrono::system_clock::now();
     isl_union_set * all_choices = decision_space(ctx, decision_variables, all_constraints);
+    //auto time_space = std::chrono::system_clock::now();
     isl_union_map * objective_map = objective_function(ctx, decision_variables, all_constraints, cost_function);
-
+   
+    //auto time_create = std::chrono::system_clock::now();
     isl_union_set * applied = isl_union_set_apply(all_choices, objective_map);
+    //auto time_applied = std::chrono::system_clock::now();
     isl_union_set * best_score = isl_union_set_lexmin(applied);
     isl_point * choice = isl_union_set_sample_point(best_score);
 
+/*
+    std::cerr << "Made choice\n";
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> solve_time = end-start;
+    std::chrono::duration<double> apply_time = time_applied-start;
+    std::chrono::duration<double> create_time = time_create-start;
+    std::chrono::duration<double> space_time = time_space-start;
+    std::chrono::duration<double> alloc_time = time_space-start;
+    std::cerr << "Elasped Time: " << solve_time.count() << "\n";
+    std::cerr << "Time to create the ctx: " << alloc_time.count() << "\n";
+    std::cerr << "Time to create the set : " << space_time.count() << "\n";
+    std::cerr << "Time to create the set and  map: " << create_time.count() << "\n";
+    std::cerr << "Time to create and apply the map: " << apply_time.count() << "\n";*/
     if(isl_point_is_void(choice)) {
       std::cerr << "No point found. Not making any modeling choices.\n";
-      isl_ctx_free(ctx); 
+     // isl_ctx_free(ctx); 
       return false;
     } 
- 
+
+    isl_val * score = isl_point_get_coordinate_val(choice, isl_dim_out, 0);
+    cost += isl_val_get_num_si(score);
+
     int num_format_decisions = NumMoments * tgamma(NumDims+1);
     for(int i = 0; i < num_format_decisions; i++) {
       Term<NumDims> * var = decision_variables->variables.at(i);
@@ -375,7 +410,7 @@ struct FormatDecisions {
       }
     }
 
-    isl_ctx_free(ctx); 
+    //isl_ctx_free(ctx); 
     return true;
   }
 
@@ -383,7 +418,7 @@ struct FormatDecisions {
    
    
   auto finalize() {
-    
+    cost = 0;
     //finalize all the views
     auto view_finalizer = [&]
     <camp::idx_t...Is>
@@ -421,7 +456,66 @@ struct FormatDecisions {
     return chain(knls_and_conversions);
   }
 
+  template <idx_t I>
+  void print_to_stream_helper(std::ostream & o, LayoutTupleType t) {
+    if constexpr (I >= NumViews) {
+      return;
+    } else {
+      auto curr_layout = get<I>(t);
 
+      auto perm = layout_to_perm(curr_layout);
+      auto s = "";
+      o << "(";
+      for(int i = 0; i < perm.size(); i++) {
+        o << s << perm[i];
+        s  = ",";
+      }
+        o << ")";
+      print_to_stream_helper<I+1>(o,t);
+    }
+  }
+  auto print_to_stream(std::ostream & o) {
+    o << "[";
+    for(auto i = 0; i < NumMoments; i++) {
+      print_to_stream_helper<0>(o, moments[i]);
+    }
+    o << "]";
+  }
+
+  void lock() {
+    for(auto i= 0; i < NumMoments; i++) {
+      for(auto j = 0; j < NumViews; j++) {
+        user_decided[i][j] = true;
+      }
+    }
+  }
+
+  template <typename ViewType>
+  std::string model_for_view(ViewType & view) {
+    using LayoutType = typename ViewType::layout_type;
+    constexpr camp::idx_t NumDims = LayoutType().n_dims;
+    
+    auto decision_variables = all_decision_variables<NumDims>(view_name(view), NumKernels);
+   
+    
+    auto base_constraints = all_constraints<NumDims>(view_name(view), NumKernels); 
+
+    auto extra_constraints = user_constraints<0>(view);
+  
+    auto all_constraints = new AndConstraint<NumDims>(base_constraints, extra_constraints);
+
+    SumExpression<NumDims> * cost_function = estimate_format_cost<0>(view);
+
+    //TODO: this is a hack. The estimate_cost should probably take a policy or something and then that should be uniformized instead of doing format costs here. 
+    for(auto v : decision_variables->variables) {
+      auto estimate = v->estimate_cost() / 1000;
+      unsigned long coef = estimate * view.size();
+      auto c = new Constant<NumDims>(coef);
+      MultExpression<NumDims> * cost_term = new MultExpression<NumDims>(v, c);
+      cost_function->add(cost_term);
+    }
+      return cost_function->rep();
+  }
 };
 
 template <typename ViewRefTuple, typename...KernelTypes>

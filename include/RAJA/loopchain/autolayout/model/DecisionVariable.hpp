@@ -96,9 +96,30 @@ virtual camp::idx_t estimate_cost() {
       }
       return s.str();
     }
+    std::string key() const {
+      std::stringstream s;
+      for(auto i = 0; i < in_perm.size(); i++) {
+        s << "_" << in_perm[i];
+      }
+      s << "_out";
+      for(auto i = 0; i < out_perm.size(); i++) {
+        s << "_" << out_perm[i];
+      }
+      return s.str();
 
+    }
 
 virtual camp::idx_t estimate_cost() {
+  static std::map<std::string,idx_t> cache;
+  
+  if(cache[key()] != 0) {
+    return cache[key()];
+  }
+  if (in_perm == out_perm) {
+    cache[key()] = 1;
+    return cache[key()];
+  }
+
   using V =  View<double, Layout<I>>;
 
   camp::idx_t n = 128;
@@ -109,10 +130,9 @@ virtual camp::idx_t estimate_cost() {
     sizes[i] = n;
     s *= n;
   }
-
   Layout<I> in_layout = make_permuted_layout(sizes, in_perm);
   Layout<I> out_layout = make_permuted_layout(sizes, out_perm);
-
+  
   using kpol = typename nest<I>::pol;
 
   auto start =std::chrono::high_resolution_clock::now(); 
@@ -137,8 +157,9 @@ T * _v = in.get_data();
   auto stop =std::chrono::high_resolution_clock::now();
 
   auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
-
-  return t;
+  cache[key()] = t;
+  //std::cerr << "convcost " << key() << ": " << t << "\n";
+  return cache[key()];
 
 } 
 

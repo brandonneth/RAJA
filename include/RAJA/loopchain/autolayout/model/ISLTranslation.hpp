@@ -34,7 +34,8 @@ isl_union_map * objective_function(isl_ctx * ctx, TermList<NumDims> * vars, Cons
   }
 
   std::stringstream s; 
-  s << "{" << vars->rep() << " -> " << out_vars->rep() << " : " << constraints->rep() << " && " << obj_func->rep() << "}";
+  //s << "{" << vars->rep() << " -> " << out_vars->rep() << " : " << constraints->rep() << " && " << obj_func->rep() << "}";
+  s << "{" << vars->rep() << " -> " << out_vars->rep() << " : " << obj_func->rep() << "}";
   isl_union_map * map = isl_union_map_read_from_str(ctx, s.str().c_str());
 
   return map;

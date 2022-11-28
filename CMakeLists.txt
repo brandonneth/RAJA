@@ -1,6 +1,6 @@
 ###############################################################################
 # Copyright (c) 2016-21, Lawrence Livermore National Security, LLC
-# and RAJA project contributors. See the RAJA/COPYRIGHT file for details.
+# and RAJA project contributors. See the RAJA/LICENSE file for details.
 # SPDX-License-Identifier: (BSD-3-Clause)
 ###############################################################################
 set  (CMAKE_CXX_STANDARD 17)
@@ -17,7 +17,7 @@ include(CMakeDependentOption)
 
 # Set version number
 set(RAJA_VERSION_MAJOR 0)
-set(RAJA_VERSION_MINOR 13)
+set(RAJA_VERSION_MINOR 14)
 set(RAJA_VERSION_PATCHLEVEL 0)
 
 if (RAJA_LOADED AND (NOT RAJA_LOADED STREQUAL "${RAJA_VERSION_MAJOR}.${RAJA_VERSION_MINOR}.${RAJA_VERSION_PATCHLEVEL}"))
@@ -62,6 +62,7 @@ option(ENABLE_NV_TOOLS_EXT "Build with NV_TOOLS_EXT support" Off)
 option(ENABLE_TBB "Build TBB support" Off)
 option(ENABLE_TARGET_OPENMP "Build OpenMP on target device support" Off)
 option(ENABLE_CLANG_CUDA "Use Clang's native CUDA support" Off)
+option(ENABLE_SYCL "Build SYCL support" Off)
 option(ENABLE_EXTERNAL_CUB "Use an external cub" Off)
 option(ENABLE_EXTERNAL_ROCPRIM "Use an external rocPRIM" Off)
 
@@ -216,6 +217,18 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel" AND CMAKE_CXX_COMPILER_VERSION V
   message(WARNING "RAJA::simd_exec support requires Intel-17 or greater")
 endif()
 
+if(ENABLE_CUDA)
+  if("${CUDA_VERSION_STRING}" VERSION_LESS "9.2")
+    message(FATAL_ERROR "Trying to use CUDA version ${CUDA_VERSION_STRING}. RAJA dependency Googletest requires CUDA version 9.2.x or newer.")
+  endif()
+endif()
+
+if(ENABLE_HIP)
+  if("${HIP_VERSION_STRING}" VERSION_LESS "3.5")
+    message(FATAL_ERROR "Trying to use HIP/ROCm version ${HIP_VERSION_STRING}. RAJA requires HIP/ROCm version 3.5 or newer. ")
+  endif()
+endif()
+
 if (ENABLE_CUDA)
   set(raja_depends
     ${raja_depends}
@@ -243,6 +256,12 @@ if (ENABLE_EXTERNAL_ROCPRIM)
   set(raja_depends
     ${raja_depends}
     rocPRIM)
+endif ()
+
+if (ENABLE_SYCL)
+  set (raja_depends
+    ${raja_depends}
+    sycl)
 endif ()
 
 if (ENABLE_TBB)

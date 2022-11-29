@@ -2,7 +2,9 @@
 #ifndef RAJA_LoopChainUtils_HPP
 #define RAJA_LoopChainUtils_HPP
 
+#include "RAJA/config.hpp"
 #include "RAJA/pattern/kernel.hpp"
+#include "RAJA/pattern/kernel/Lambda.hpp"
 
 namespace RAJA
 {
@@ -58,7 +60,6 @@ auto idx_seq_from_to() {
 //  - tuple_len 
 //  - tuple_reverse
 //  - tuple_zip
-//  - tuple_repeat
 
 // tuple_cat: Concatenates an arbitrary number of tuples
 
@@ -163,14 +164,13 @@ auto tuple_zip(camp::tuple<InnerTupleTypes...> t) {
   return tuple_zip(t, idx_seq_for(t));
 }
 
-
-template <camp::idx_t Reps, typename VType>
-auto tuple_repeat(VType v) {
-  if constexpr(0 >= Reps) {
-    return make_tuple();
+template <idx_t N, typename T>
+auto tuple_repeat(T element) {
+  if constexpr (N <= 0) {
+    return camp::tuple{};
   } else {
-    return tuple_cat(make_tuple(v), tuple_repeat<Reps-1>(v));
-  }  
+    return tuple_cat(camp::tuple{element}, tuple_repeat<N-1>(element));
+  }
 }
 
 // Vararg utilities, implemented for both tuples and parameter packs
@@ -197,47 +197,9 @@ auto vmin(T val, Ts...rest) {
   return std::min(val, vmin(rest...));
 }
 
-// Policy utilities
-// - policy_to_nesting_order
 
-template <typename T>
-struct policy_to_nesting_order_struct {
 
-};
 
-template <typename InnerPolicy>
-struct policy_to_nesting_order_struct<KernelPolicy<InnerPolicy>> {
-
-  auto operator()() {
-    return policy_to_nesting_order_struct<InnerPolicy>{}();
-  }
-
-};
-
-template <camp::idx_t NestDepth, typename ExecPolicy, typename InnerPolicy>
-struct policy_to_nesting_order_struct<statement::For<NestDepth, ExecPolicy, InnerPolicy>> {
-  std::vector<camp::idx_t> operator()() {
-    std::vector<camp::idx_t> v = policy_to_nesting_order_struct<InnerPolicy>{}();
-    v.insert(v.begin(), NestDepth);
-
-    return v;
-  }
-};
-
-template <camp::idx_t LambdaId>
-struct policy_to_nesting_order_struct<statement::Lambda<LambdaId>> {
-  auto operator()() {
-    return std::vector<camp::idx_t>{};
-  }
-};
-
-template <typename KernelPolicy>
-auto policy_to_nesting_order() {
-  return policy_to_nesting_order_struct<KernelPolicy>{}();
 }
-
-
-
-} //namespace RAJA
 
 #endif

@@ -5,7 +5,7 @@
 #define RAJA_Chain_HPP
 
 #include "RAJA/config.hpp"
-#include "RAJA/loopchain/Utils.hpp"
+
 
 namespace RAJA
 {
@@ -125,8 +125,8 @@ struct LoopChain {
     }
   }
 
-  void operator() (){
 
+  void operator() (){
     execute(idx_seq_from_to<0,sizeof...(KernelTypes)>());
   }
 }; //LoopChain

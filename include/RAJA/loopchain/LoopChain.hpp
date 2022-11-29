@@ -11,6 +11,7 @@
 #include "RAJA/loopchain/Chain.hpp"
 
 
+
 #include "RAJA/loopchain/Transformations.hpp"
 //#include "RAJA/loopchain/ISLAnalysis.hpp"
 #include "RAJA/loopchain/KernelConversion.hpp"
@@ -24,8 +25,8 @@
 #include "RAJA/pattern/kernel/OverlappedTile.hpp"
 
 
-#include "RAJA/loopchain/autolayout/AutoLayout.hpp"
-#include "RAJA/loopchain/autolayout/model/Modeling.hpp"
+#include "RAJA/loopchain/FormatDecisions/Conversion.hpp"
+#include "RAJA/loopchain/FormatDecisions/FormatDecisions.hpp"
 namespace RAJA
 {
 

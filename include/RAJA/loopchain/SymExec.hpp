@@ -6,7 +6,7 @@
 #include "RAJA/config.hpp"
 #include "RAJA/util/Operators.hpp"
 #include "RAJA/util/Layout.hpp"
-#include "RAJA/loopchain/Utils.hpp"
+#include "RAJA/loopchain/PolicyToNestingOrder.hpp"
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -136,17 +136,17 @@ SymIterator operator * (const T & other, const SymIterator & iterator) {
 }
 
 template <typename LayoutType> 
-std::vector<size_t> layout_to_perm(const LayoutType & layout) {
+std::vector<idx_t> layout_to_perm(const LayoutType & layout) {
 
   const size_t n_dims = layout.n_dims;
   
-  std::vector<size_t> perm = std::vector<size_t>(n_dims);
+  std::vector<idx_t> perm = std::vector<idx_t>(n_dims);
 
   auto strides = layout.strides;
   std::set<int> strided = std::set<int>();
   for(size_t i = 0; i < n_dims; i++) {
-    int biggestIndex = -1;
-    int biggestStride = -1;
+    camp::idx_t biggestIndex = -1;
+    camp::idx_t biggestStride = -1;
     for(size_t j = 0; j < n_dims; j++) {
       if(strided.find(strides[j]) != strided.end()) { continue; }
       if(strides[j] > biggestStride) {
@@ -162,25 +162,11 @@ std::vector<size_t> layout_to_perm(const LayoutType & layout) {
 
 }//layout_to_perm
 
-template <size_t NumDims, typename LayoutType>
-std::array<camp::idx_t, NumDims> layout_to_perm_array(LayoutType &layout) {
-  
-  auto vec = layout_to_perm(layout);
-
-  std::array<camp::idx_t, NumDims> perm;
-  for(auto i = 0; i < NumDims; i++) {
-    perm[i] = vec[i];
-  }
-
-  return perm;
-
-}
-
 struct SymAccess {
   
   void * view;
   std::vector<SymIterator> iterators;
-  std::vector<size_t> layout_permutation;
+  std::vector<idx_t> layout_permutation;
 
   bool isRead;
   bool isWrite;
@@ -219,7 +205,7 @@ struct SymAccess {
     b << other;
     return 0 == a.str().compare(b.str());
   }
-  
+
   auto argument_order() {
     std::vector<camp::idx_t> argument_indices;
     for(auto iterator : iterators) {

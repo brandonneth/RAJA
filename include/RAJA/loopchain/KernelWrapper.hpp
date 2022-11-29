@@ -5,10 +5,11 @@
 
 #include "RAJA/config.hpp"
 #include "RAJA/loopchain/SymExec.hpp"
-#include "RAJA/loopchain/autolayout/AutoLayout.hpp"
 #include "RAJA/pattern/kernel.hpp"
 
 #include "RAJA/pattern/kernel/TiledLambda.hpp"
+
+#include "RAJA/loopchain/PolicyToNestingOrder.hpp"
 #include <vector>
 #include <string>
 namespace RAJA
@@ -130,7 +131,7 @@ struct KernelWrapper {
      
       using segment_tuple_t = typename IterableWrapperTuple<camp::decay<SegmentTuple>>::type;
 
-      auto params = make_tuple();
+      auto params = RAJA::make_tuple();
       using param_tuple_t = camp::decay<decltype(params)>;
 
       auto res = resources::get_default_resource<KPol>();
@@ -151,7 +152,7 @@ struct KernelWrapper {
 
       util::callPostLaunchPlugins(context);
     } else {
-      kernel<KernelPol>(segments, camp::get<Is>(bodies)...);
+      RAJA::kernel<KernelPol>(segments, camp::get<Is>(bodies)...);
     }
 
   } //execute
@@ -171,7 +172,7 @@ struct KernelWrapper {
       } else {
 
         using ExecPol = typename ForType::execution_policy_t;
-        forall<ExecPol>(camp::get<0>(segments), camp::get<0>(bodies));
+        RAJA::forall<ExecPol>(camp::get<0>(segments), camp::get<0>(bodies));
       }
     } else {
       auto seq = camp::make_idx_seq_t<sizeof...(Bodies)>{};
@@ -254,7 +255,7 @@ struct KernelWrapper {
       o << separator;
       o << "[";
       o << "\"" << get_array_name(access) << "\"" << ",";
-      std::string _s = "";
+      char * _s = "";
       for(auto iterator : access.iterators) {
         o << _s << "\"" << iterator << "\"";
         _s = ",";
@@ -301,10 +302,7 @@ struct KernelWrapper {
     return o.str();
   }
 
-  //given an access (which contains layout permutation information)
-  // returns the "equivalent" access order if the kernel was nested 
-  // monotonically and the view had the identity layout.
-  std::vector<camp::idx_t> normalize_access(SymAccess a) {
+    std::vector<camp::idx_t> normalize_access(SymAccess a) {
     auto layout_perm = a.layout_permutation;
     auto policy_order = policy_to_nesting_order<KPol>();
 
@@ -345,6 +343,8 @@ struct KernelWrapper {
   auto num_iterations() {
     return ni_helper<0>();
   }
+
+
 }; // KernelWrapper
 
 //creates a kernel object using the same interface as the kernel function
@@ -359,7 +359,7 @@ make_kernel(const SegmentTuple & segment,   Bodies const &... bodies) {
 template <typename ExecPol, typename Segment, typename Body> 
 auto make_forall(Segment segment, const Body & body) {
   using KernPol = 
-    KernelPolicy<
+    RAJA::KernelPolicy<
       statement::For<0,ExecPol,
         statement::Lambda<0>
       >

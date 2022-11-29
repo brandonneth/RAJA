@@ -1,31 +1,32 @@
 #ifndef RAJA_FormatDecisions_HPP
 #define RAJA_FormatDecisions_HPP
 
-#include "RAJA/config.hpp"
-#include "RAJA/loopchain/Utils.hpp"
-#include "RAJA/loopchain/autolayout/Utils.hpp"
-#include "RAJA/loopchain/autolayout/model/DecisionVariable.hpp"
-#include "RAJA/loopchain/autolayout/model/Constraint.hpp"
-#include "RAJA/loopchain/autolayout/model/ISLTranslation.hpp"
 #include <typeinfo>
-namespace RAJA {
+#include <cmath>
+#include <chrono>
+#include <limits>
+#include "RAJA/loopchain/FormatDecisions/Model/Constraint.hpp"
+#include "RAJA/loopchain/FormatDecisions/Model/DecisionVariable.hpp"
+#include "RAJA/loopchain/FormatDecisions/Model/ISLTranslation.hpp"
+#include "RAJA/loopchain/FormatDecisions/Conversion.hpp"
+#include "RAJA/loopchain/FormatDecisions/Enumerate.hpp"
+#include "RAJA/loopchain/Utils.hpp"
+namespace RAJA
+{
 
 
 template <typename T>
 T get_array_name(SymAccess a);
 
 
-
-
-
-
-template <typename KernelTuple, typename...ViewRefs>
+template <typename KernelTuple, typename... ViewRefs>
 struct FormatDecisions {
   constexpr static idx_t NumViews = sizeof...(ViewRefs);
   constexpr static idx_t NumKernels = camp::tuple_size<KernelTuple>::value;
-  constexpr static idx_t NumMoments = NumKernels+2;
+  constexpr static idx_t NumMoments = NumKernels + 2;
 
-  using LayoutTupleType = tuple<typename std::remove_reference<ViewRefs>::type::layout_type...>;
+  using LayoutTupleType =
+      tuple<typename std::remove_reference<ViewRefs>::type::layout_type...>;
 
   tuple<ViewRefs...> views;
   KernelTuple knls;
@@ -35,6 +36,12 @@ struct FormatDecisions {
   std::array<LayoutTupleType, NumMoments> moments;
   std::array<std::array<bool, NumViews>, NumMoments> user_decided; 
 
+  bool locked = 0;
+  idx_t setup_time = 0;
+  idx_t solve_time = 0;
+  idx_t isl_time = 0;
+  idx_t space_time = 0;
+  idx_t map_time = 0;
   idx_t cost = 0;
 
   template <idx_t...Is>
@@ -56,11 +63,8 @@ struct FormatDecisions {
     }
   }
 
-  
-
   template <camp::idx_t I, typename ViewType, typename InternalViewType>
   camp::idx_t view_index_helper(ViewType & view, InternalViewType & internal_view) {
-   
     if constexpr (std::is_same<ViewType, InternalViewType>::value) {
       if (&view == &internal_view) {
         return I;
@@ -71,10 +75,8 @@ struct FormatDecisions {
       return -1;
     }
   }
-
   template <typename ViewType>
   camp::idx_t view_index(ViewType & view) {
-
     auto helper = [&]
     <camp::idx_t...Is>
     (ViewType & view, camp::idx_seq<Is...>) {
@@ -82,8 +84,6 @@ struct FormatDecisions {
     };
     return helper(view, idx_seq_for(views));
   }
-
-    
 
   template <typename KernelType>
   camp::idx_t kernel_index(KernelType) {
@@ -105,10 +105,9 @@ struct FormatDecisions {
 
     return helper2(idx_seq_for(knls));
   }
-
+  
   template <typename ViewType, typename LayoutType>
   int update_layout(LayoutTupleType & layouts, ViewType & view, LayoutType layout) {
-     
     auto helper1 = [&]
     <camp::idx_t I>
     () {
@@ -128,57 +127,7 @@ struct FormatDecisions {
     };
 
     auto success = helper2(idx_seq_for(views));
-
     return success;
-  }
-
-  template <typename ViewType, typename LayoutType, typename KernelType>
-  bool set_format_before(ViewType & view, LayoutType layout, KernelType knl) {
-    camp::idx_t v_idx = view_index(view);
-    camp::idx_t k_idx = kernel_index(knl);
-    if(v_idx == -1) {
-      std::cerr << "View not found in tuple of views for this decision object\n";
-      return false;
-    }
-    if(k_idx == -1) {
-      std::cerr << "Kernel not found in this decision object\n";
-      return false;
-    }
-
-    auto success = update_layout(moments[k_idx+1], view, layout);
-    user_decided[k_idx+1][v_idx] = true;
-    
-    return success;
-  }
-  
-  template <typename ViewType, typename LayoutType, typename KernelType>
-  bool set_format_after(ViewType & view, LayoutType layout, KernelType knl) {
-    camp::idx_t v_idx = view_index(view);
-    camp::idx_t k_idx = kernel_index(knl);
-    if(v_idx == -1) {
-      std::cerr << "View not found in tuple of views for this decision object\n";
-      return false;
-    }
-    if(k_idx == -1) {
-      std::cerr << "Kernel not found in this decision object\n";
-      return false;
-    }
-
-    auto success = update_layout(moments[k_idx+2], view, layout);
-    user_decided[k_idx+2][v_idx] = true;
-    return success;
-  }
-
-  template <typename ViewType>
-  auto view_name(ViewType & view) {
-    auto idx = view_index(view);
-    std::stringstream s;
-    if (idx == -1) {
-      s << "false_array";
-    } else {
-      s << "arr" << idx;
-    }
-    return s.str();
   }
 
   template <idx_t MomentIndex, typename ViewType>
@@ -193,7 +142,7 @@ struct FormatDecisions {
       if constexpr (std::is_same<ViewType&,decltype(get<I>(views))>::value) {
         if(view_index(view) == I) {
           auto p = layout_to_perm(get<I>(layouts));
-          for(int i = 0; i < p.size(); i++) {
+          for(unsigned long int i = 0; i < p.size(); i++) {
             perm.push_back(p[i]);
           }
         }
@@ -234,9 +183,20 @@ struct FormatDecisions {
     }
   }
 
+  template <typename ViewType>
+  auto view_name(ViewType & view) {
+    auto idx = view_index(view);
+    std::stringstream s;
+    if (idx == -1) {
+      s << "false_array";
+    } else {
+      s << "arr" << idx;
+    }
+    return s.str();
+  }
 
   template <idx_t NumDims>
-  idx_t estimate_cost(std::array<idx_t, NumDims> layout_order) {
+  idx_t estimate_use_cost(std::array<idx_t, NumDims> layout_order) {
     static std::map<std::array<idx_t,NumDims>,idx_t> cache;
 
     if( cache[layout_order] != 0) {
@@ -244,9 +204,9 @@ struct FormatDecisions {
     }
     //std::cerr << "no cache\n";
     using V =  View<double, Layout<NumDims>>;
-
-    camp::idx_t n = 128;
-
+    constexpr camp::idx_t problem_size = 20000;
+    double root = std::pow(problem_size, 1.0/NumDims);
+    camp::idx_t n = (camp::idx_t) root;
     camp::idx_t s = 1;
     std::array<camp::idx_t, NumDims> sizes;
     for(auto i = 0; i < NumDims; i++) {
@@ -270,11 +230,8 @@ struct FormatDecisions {
 
     
     auto l = f_lambda(in1, in2);
-
     auto seg = RangeSegment(0,n);
-
     auto segs = tuple_repeat<NumDims>(seg);
-
     auto knl = make_kernel<kpol>(segs, l);
 
     auto start =std::chrono::high_resolution_clock::now();
@@ -287,17 +244,15 @@ struct FormatDecisions {
     return cache[layout_order];
   }
 
-
   template <idx_t KnlIdx, typename ViewType>
-  auto estimate_format_cost(ViewType & view) {
+  auto estimate_use_costs(ViewType & view) {
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
-
 
     if constexpr (KnlIdx >= NumKernels) {
       return new SumExpression<NumDims>();
     } else {
-      SumExpression<NumDims> * term_sum = estimate_format_cost<KnlIdx+1>(view);
+      SumExpression<NumDims> * term_sum = estimate_use_costs<KnlIdx+1>(view);
       
       auto knl = get<KnlIdx>(knls);
       using KernelType = decltype(knl);    
@@ -312,7 +267,7 @@ struct FormatDecisions {
           
             auto normalized_layout_perm = access.template normalized_layout_perm<KernelPolicy,NumDims>(perm);
             //std::cerr << "estimating cost of " << format_var->rep() << "\n";
-            auto cost = estimate_cost<NumDims>(normalized_layout_perm);
+            auto cost = estimate_use_cost<NumDims>(normalized_layout_perm);
             unsigned long coef = cost * knl.num_iterations();
             auto cost_term = new MultExpression(format_var, new Constant<NumDims>(coef));
             term_sum->add(cost_term);
@@ -322,77 +277,96 @@ struct FormatDecisions {
       return term_sum;
     }
   }
+  template <typename ViewType>
+  auto estimate_conversion_costs(ViewType & view) {
+    using LayoutType = typename ViewType::layout_type;
+    constexpr camp::idx_t NumDims = LayoutType().n_dims;
 
+    auto conversion_costs = new SumExpression<NumDims>();
+
+    const std::vector<std::array<camp::idx_t, NumDims>> all_perms = enumerate_perms<NumDims>();
+    for(int i = 0; i < NumKernels+1; i++) {
+      for(auto in_perm : all_perms) {
+        for(auto out_perm : all_perms) {
+          auto in_var = new FormatDecision<NumDims>(view_name(view), i, in_perm);
+          auto out_var = new FormatDecision<NumDims>(view_name(view), i+1, out_perm);
+          auto estimated_cost = estimate_conversion_cost<NumDims>(in_perm, out_perm);
+          auto c = new Constant<NumDims>(estimated_cost);
+          MultExpression<NumDims> * m = new MultExpression<NumDims>(in_var, out_var);
+          MultExpression<NumDims> * term = new MultExpression<NumDims>(m, c);
+          conversion_costs->add(term);
+        }
+      }
+    }
+    return conversion_costs;
+  }
   template <typename ViewType>
   auto finalize_view(ViewType & view) {
-    //std::cerr << "finalizing view\n";
+    auto setup_start = std::chrono::high_resolution_clock::now();
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
     
     auto decision_variables = all_decision_variables<NumDims>(view_name(view), NumKernels);
-   
+
+    SumExpression<NumDims> * use_cost = estimate_use_costs<0>(view);
+    SumExpression<NumDims> * conversion_cost = estimate_conversion_costs(view);
+    SumExpression<NumDims> * cost_function = new SumExpression<NumDims>();
+    cost_function->add(use_cost);
+    cost_function->add(conversion_cost);
+
     
-    auto base_constraints = all_constraints<NumDims>(view_name(view), NumKernels); 
-
+    auto base_constraints_ = base_constraints<NumDims>(view_name(view), NumKernels); 
     auto extra_constraints = user_constraints<0>(view);
-  
-    auto all_constraints = new AndConstraint<NumDims>(base_constraints, extra_constraints);
+    auto all_constraints = new AndConstraint<NumDims>(base_constraints_, extra_constraints);
 
-    SumExpression<NumDims> * cost_function = estimate_format_cost<0>(view);
+    
+    
+    auto setup_stop = std::chrono::high_resolution_clock::now();
+    setup_time += std::chrono::duration_cast<std::chrono::microseconds>(setup_stop - setup_start).count();
 
-    //TODO: this is a hack. The estimate_cost should probably take a policy or something and then that should be uniformized instead of doing format costs here. 
-    for(auto v : decision_variables->variables) {
-      auto estimate = v->estimate_cost() / 1000;
-      unsigned long coef = estimate * view.size();
-      auto c = new Constant<NumDims>(coef);
-      MultExpression<NumDims> * cost_term = new MultExpression<NumDims>(v, c);
-      cost_function->add(cost_term);
-    }
-
-    //std::cerr << "cost function: " << cost_function->rep() << "\n";
-    //std::cerr << "Setting up and solving ILP problem\n";
-    //std::cerr << "User Constraints: " << extra_constraints->rep() << "\n";
-    //auto start = std::chrono::system_clock::now();
+    auto isl_start = std::chrono::high_resolution_clock::now();
+    
     isl_ctx * ctx = isl_ctx_alloc();
      
-    //auto time_alloc = std::chrono::system_clock::now();
-    isl_union_set * all_choices = decision_space(ctx, decision_variables, all_constraints);
-    //auto time_space = std::chrono::system_clock::now();
-    isl_union_map * objective_map = objective_function(ctx, decision_variables, all_constraints, cost_function);
-   
-    //auto time_create = std::chrono::system_clock::now();
-    isl_union_set * applied = isl_union_set_apply(all_choices, objective_map);
-    //auto time_applied = std::chrono::system_clock::now();
-    isl_union_set * best_score = isl_union_set_lexmin(applied);
-    isl_point * choice = isl_union_set_sample_point(best_score);
 
-/*
-    std::cerr << "Made choice\n";
-    auto end = std::chrono::system_clock::now();
-    std::chrono::duration<double> solve_time = end-start;
-    std::chrono::duration<double> apply_time = time_applied-start;
-    std::chrono::duration<double> create_time = time_create-start;
-    std::chrono::duration<double> space_time = time_space-start;
-    std::chrono::duration<double> alloc_time = time_space-start;
-    std::cerr << "Elasped Time: " << solve_time.count() << "\n";
-    std::cerr << "Time to create the ctx: " << alloc_time.count() << "\n";
-    std::cerr << "Time to create the set : " << space_time.count() << "\n";
-    std::cerr << "Time to create the set and  map: " << create_time.count() << "\n";
-    std::cerr << "Time to create and apply the map: " << apply_time.count() << "\n";*/
+    auto space_start = std::chrono::high_resolution_clock::now();
+    isl_union_set * all_choices = decision_space(ctx, decision_variables, all_constraints);
+    auto space_stop = std::chrono::high_resolution_clock::now();
+    space_time += std::chrono::duration_cast<std::chrono::microseconds>(space_stop - space_start).count();
+    
+    auto map_start = std::chrono::high_resolution_clock::now();
+    isl_union_pw_qpolynomial * polynomial = objective_function(ctx, decision_variables, cost_function);
+    auto map_stop = std::chrono::high_resolution_clock::now();
+    map_time += std::chrono::duration_cast<std::chrono::microseconds>(map_stop - map_start).count();
+
+    
+
+    auto solve_start = std::chrono::high_resolution_clock::now();
+    isl_point * choice = find_best_choice(all_choices, polynomial);
+    auto solve_stop = std::chrono::high_resolution_clock::now();
+    solve_time += std::chrono::duration_cast<std::chrono::microseconds>(solve_stop - solve_start).count();
+
+    auto isl_stop = std::chrono::high_resolution_clock::now();
+    isl_time +=  std::chrono::duration_cast<std::chrono::microseconds>(isl_stop - isl_start).count();
+
     if(isl_point_is_void(choice)) {
       std::cerr << "No point found. Not making any modeling choices.\n";
-     // isl_ctx_free(ctx); 
+      isl_printer * pp = isl_printer_to_file(ctx, stderr);
+      std::cerr << "Decision Space: ";
+      isl_printer_print_union_set(pp, all_choices);
+      std::cerr << "\n";
+      std::cerr << "Objective Function: ";
+      isl_printer_print_union_pw_qpolynomial(pp, polynomial);
+      std::cerr << "\n";
       return false;
     } 
-
-    isl_val * score = isl_point_get_coordinate_val(choice, isl_dim_out, 0);
-    cost += isl_val_get_num_si(score);
-
+  
+    
     int num_format_decisions = NumMoments * tgamma(NumDims+1);
     for(int i = 0; i < num_format_decisions; i++) {
       Term<NumDims> * var = decision_variables->variables.at(i);
       //std::cout << "Getting output value for " << var->rep() << ": ";
-      isl_val * val_ = isl_point_get_coordinate_val(choice, isl_dim_out, i+1);
+      isl_val * val_ = isl_point_get_coordinate_val(choice, isl_dim_out, i);
       long val = isl_val_get_num_si(val_);
        //std::cout << val << "\n";
 
@@ -414,28 +388,91 @@ struct FormatDecisions {
     return true;
   }
 
+  
 
-   
-   
-  auto finalize() {
-    cost = 0;
-    //finalize all the views
-    auto view_finalizer = [&]
-    <camp::idx_t...Is>
-    (camp::idx_seq<Is...>) {
-      camp::sink(finalize_view(get<Is>(views))...);
-    };
+  template <typename ViewType, typename KernelType>
+  bool set_format_for(ViewType & view, std::vector<camp::idx_t> permutation, KernelType knl) {
+    auto l = view.get_layout();
+    constexpr camp::idx_t NumDims = l.n_dims; 
+    std::array<camp::idx_t, NumDims> sizes;
+    std::array<camp::idx_t, NumDims> perm;
+    for(int i = 0; i < NumDims; i++) {
+      perm[i] = permutation[i];
+      sizes[i] = l.sizes[i];
+    }
+    auto new_layout = make_permuted_layout(sizes, perm);
+    return set_format_for(view, new_layout, knl);
 
-    view_finalizer(idx_seq_for(views));
     
+    
+
+    
+    
+
+    
+  }
+  template <typename ViewType, typename KernelType, camp::idx_t... RangeInts, typename IdxLin, ptrdiff_t StrideOneDim>
+  bool set_format_for(ViewType & view, detail::LayoutBase_impl<camp::idx_seq<RangeInts...>, IdxLin, StrideOneDim> layout, KernelType knl) {
+    camp::idx_t v_idx = view_index(view);
+    camp::idx_t k_idx = kernel_index(knl);
+    if(v_idx == -1) {
+      std::cerr << "View not found in tuple of views for this decision object\n";
+      return false;
+    }
+    if(k_idx == -1) {
+      std::cerr << "Kernel not found in this decision object\n";
+      return false;
+    }
+    auto success = update_layout(moments[k_idx+1], view, layout);
+    user_decided[k_idx+1][v_idx] = true;
+    return success;
+
+  }
+
+  template <typename ViewType, typename LayoutType>
+  bool set_output_format(ViewType & view, LayoutType layout) {
+    camp::idx_t v_idx = view_index(view);
+    if(v_idx == -1) {
+      std::cerr << "View not found in tuple of views for this decision object\n";
+      return false;
+    }
+    auto success = update_layout(moments[NumKernels+1], view, layout);
+    user_decided[NumKernels+1][v_idx] = true;
+    return success;
+  }
+  template <typename ViewType>
+  bool set_output_format(ViewType & view, std::vector<camp::idx_t> permutation) {
+    auto l = view.get_layout();
+    constexpr camp::idx_t NumDims = l.n_dims; 
+
+    std::array<camp::idx_t, NumDims> sizes;
+    std::array<camp::idx_t, NumDims> perm;
+    for(int i = 0; i < NumDims; i++) {
+      perm[i] = permutation[i];
+      sizes[i] = l.sizes[i];
+    }
+
+    auto new_layout = make_permuted_layout(sizes, perm);
+    return set_output_format(view, new_layout);
+  }
+
+  auto finalize() {
+    isl_time = 0;
+    setup_time = 0;
+    solve_time = 0;
+    if(!locked) {
+      auto view_finalizer = [&]
+      <camp::idx_t...Is>
+      (camp::idx_seq<Is...>) {
+        camp::sink(finalize_view(get<Is>(views))...);
+      };
+      view_finalizer(idx_seq_for(views));
+    }
     auto moment_generator = [&]
     <camp::idx_t...Is>
     (camp::idx_seq<Is...>) {
       return make_tuple(permute_views(views, moments[Is])...);
     };
-
-    //we only need from 1 to NumMoments becasue they come in with the first.
-    // We now have NumKernel+1 conversion collections.
     auto conversions = moment_generator(idx_seq_from_to<1,NumMoments>());
 
     auto stitch = [&]
@@ -443,7 +480,6 @@ struct FormatDecisions {
     () {
       return tuple_cat(get<CurrStitch>(conversions), make_tuple(get<CurrStitch>(knls)));
     };
-
     auto stitcher = [&]
     <camp::idx_t...Is>
     (camp::idx_seq<Is...>) {
@@ -451,9 +487,48 @@ struct FormatDecisions {
       auto all_but_final = tuple_cat(stitch.template operator()<Is>()...);
       return tuple_cat(all_but_final, final_conversion);
     };
-
     auto knls_and_conversions= stitcher(idx_seq_for(knls));
-    return chain(knls_and_conversions);
+
+    return loop_chain(knls_and_conversions);
+  }
+
+  void lock() {
+    locked=true;
+    for(auto i= 0; i < NumMoments; i++) {
+      for(auto j = 0; j < NumViews; j++) {
+        user_decided[i][j] = true;
+      }
+    }
+  }
+
+  isl_point * find_best_choice(isl_union_set * choices, isl_union_pw_qpolynomial * objective) {
+    struct OptStruct {
+      isl_union_pw_qpolynomial * obj;
+      isl_point * lowest_point;
+      camp::idx_t lowest_val;
+    } fn_struct;
+    fn_struct.obj = objective;
+    fn_struct.lowest_point = isl_union_set_sample_point(isl_union_set_copy(choices));
+    fn_struct.lowest_val = std::numeric_limits<camp::idx_t>::max();
+
+    auto fn = [](isl_point * pnt, void * user) {
+      OptStruct * fn_struct = (OptStruct*) user;
+      isl_union_pw_qpolynomial * obj = isl_union_pw_qpolynomial_copy(fn_struct->obj);
+      camp::idx_t lowest_val = fn_struct->lowest_val;
+
+      isl_val * val = isl_union_pw_qpolynomial_eval(obj, isl_point_copy(pnt));
+      camp::idx_t v =  isl_val_get_num_si(val);
+      if ( v < lowest_val) {
+        fn_struct->lowest_val = v;
+        fn_struct->lowest_point = pnt;
+      }
+
+      return isl_stat_ok;
+    };
+
+    isl_union_set_foreach_point(choices, fn, &fn_struct);
+
+    return fn_struct.lowest_point;
   }
 
   template <idx_t I>
@@ -466,7 +541,7 @@ struct FormatDecisions {
       auto perm = layout_to_perm(curr_layout);
       auto s = "";
       o << "(";
-      for(int i = 0; i < perm.size(); i++) {
+      for(size_t i = 0; i < perm.size(); i++) {
         o << s << perm[i];
         s  = ",";
       }
@@ -481,40 +556,33 @@ struct FormatDecisions {
     }
     o << "]";
   }
+  
+  template <typename KnlTuple, camp::idx_t I, camp::idx_t...Is>
+  camp::tuple<idx_t, idx_t> te_helper(KnlTuple knlTuple, camp::idx_seq<I, Is...>, camp::tuple<idx_t, idx_t> totals) {
+    
 
-  void lock() {
-    for(auto i= 0; i < NumMoments; i++) {
-      for(auto j = 0; j < NumViews; j++) {
-        user_decided[i][j] = true;
-      }
+    auto start = std::chrono::high_resolution_clock::now();
+    camp::get<I>(knlTuple)();
+    auto stop = std::chrono::high_resolution_clock::now();
+    camp::idx_t elapsed = std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count();
+
+    
+    if constexpr ((I+1) % (NumViews+1) != 0) {
+      camp::get<0>(totals) += elapsed;
+    } else {
+      camp::get<1>(totals) += elapsed;
+    } 
+    if constexpr (sizeof...(Is) == 0) {
+      return totals;
+    } else {
+      return te_helper(knlTuple, camp::idx_seq<Is...>{}, totals);
     }
   }
+  camp::tuple<idx_t, idx_t> time_execution() {
+    auto loopchain = finalize();
+    auto knlTuple = loopchain.knlTuple;
 
-  template <typename ViewType>
-  std::string model_for_view(ViewType & view) {
-    using LayoutType = typename ViewType::layout_type;
-    constexpr camp::idx_t NumDims = LayoutType().n_dims;
-    
-    auto decision_variables = all_decision_variables<NumDims>(view_name(view), NumKernels);
-   
-    
-    auto base_constraints = all_constraints<NumDims>(view_name(view), NumKernels); 
-
-    auto extra_constraints = user_constraints<0>(view);
-  
-    auto all_constraints = new AndConstraint<NumDims>(base_constraints, extra_constraints);
-
-    SumExpression<NumDims> * cost_function = estimate_format_cost<0>(view);
-
-    //TODO: this is a hack. The estimate_cost should probably take a policy or something and then that should be uniformized instead of doing format costs here. 
-    for(auto v : decision_variables->variables) {
-      auto estimate = v->estimate_cost() / 1000;
-      unsigned long coef = estimate * view.size();
-      auto c = new Constant<NumDims>(coef);
-      MultExpression<NumDims> * cost_term = new MultExpression<NumDims>(v, c);
-      cost_function->add(cost_term);
-    }
-      return cost_function->rep();
+    return te_helper(knlTuple, idx_seq_for(knlTuple), camp::tuple<idx_t, idx_t>{0,0});
   }
 };
 
@@ -531,7 +599,8 @@ auto format_decisions(ViewRefTuple views, KernelTypes...knls) {
   return helper(views);
 }
 
-} //namespace RAJA 
 
+
+}  // namespace RAJA
 
 #endif

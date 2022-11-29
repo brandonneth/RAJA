@@ -142,7 +142,7 @@ auto shift_constraints_helper(isl_ctx * ctx, T1 knlTuple) {
 
 // Returns the string containing the constraints on shift amounts using the dependences between the kernels
 template <typename...KernelTypes, camp::idx_t...Is>
-auto shift_constraints(isl_ctx * ctx, camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...>) {
+auto shift_constraints(isl_ctx * ctx, camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> seq) {
   return shift_constraints_helper<0,1,sizeof...(Is)>(ctx, knlTuple);
 } //shift_constraint
 
@@ -154,10 +154,14 @@ auto valid_shift_set(camp::tuple<KernelTypes...> knlTuple, camp::idx_seq<Is...> 
   constexpr int numDims = camp::get<0>(knlTuple).numArgs;
 
   isl_ctx * ctx = isl_ctx_alloc();
+  isl_printer * p = isl_printer_to_file(ctx, stdout);
   auto deprel = dependence_relation_from_kernels(ctx, knlTuple, seq);
 
 
-  
+  //std::cout << "Dependence relation among kernels\n";
+  //p= isl_printer_print_union_map(p,deprel);
+  //std::cout << "\n";
+
   //First, we create the string for the shift variables and the constraint that they are all greater than = 0.
   std::string shiftSet = "[";
   std::string nonNegConstraint = "";
@@ -223,7 +227,7 @@ auto shift_vector_to_shift_tuples(std::vector<int> shiftVector, camp::idx_seq<Di
   } else {
     auto currTuple = make_tuple(shiftVector.at(Dims)...);
     std::vector<int> remainingShifts = {};
-    for(auto i = sizeof...(Dims); i < shiftVector.size(); i++) {
+    for(int i = sizeof...(Dims); i < shiftVector.size(); i++) {
       remainingShifts.push_back(shiftVector.at(i));
     }
     auto restTuple = shift_vector_to_shift_tuples<NumKnls-1>(remainingShifts, dimSeq);

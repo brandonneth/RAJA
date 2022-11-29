@@ -111,7 +111,7 @@ struct FormatDecisions {
     auto helper1 = [&]
     <camp::idx_t I>
     () {
-      if constexpr (std::is_same<ViewType&,decltype(get<I>(views))>::value) {
+      if constexpr (std::is_same<ViewType&,decltype(get<I>(this->views))>::value) {
         if(view_index(view) == I) {
           get<I>(layouts) = layout;
           return 1;
@@ -139,7 +139,7 @@ struct FormatDecisions {
     auto helper1 = [&]
     <camp::idx_t I>
     () {
-      if constexpr (std::is_same<ViewType&,decltype(get<I>(views))>::value) {
+      if constexpr (std::is_same<ViewType&,decltype(get<I>(this->views))>::value) {
         if(view_index(view) == I) {
           auto p = layout_to_perm(get<I>(layouts));
           for(unsigned long int i = 0; i < p.size(); i++) {
@@ -269,7 +269,7 @@ struct FormatDecisions {
             //std::cerr << "estimating cost of " << format_var->rep() << "\n";
             auto cost = estimate_use_cost<NumDims>(normalized_layout_perm);
             unsigned long coef = cost * knl.num_iterations();
-            auto cost_term = new MultExpression(format_var, new Constant<NumDims>(coef));
+            auto cost_term = new MultExpression<NumDims>(format_var, new Constant<NumDims>(coef));
             term_sum->add(cost_term);
           }
         }

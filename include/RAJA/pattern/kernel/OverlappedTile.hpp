@@ -43,13 +43,15 @@ namespace statement
  *
  */
 template <camp::idx_t ArgumentId,
-          std::size_t OverlapAmount,
           typename TilePolicy,
           typename ExecPolicy,
           typename... EnclosedStmts>
 struct OverlappedTile : public internal::Statement<ExecPolicy, EnclosedStmts...> {
   using tile_policy_t = TilePolicy;
   using exec_policy_t = ExecPolicy;
+
+  OverlappedTile() = delete;
+
 };
 
 
@@ -59,14 +61,12 @@ namespace internal
 {
 
 /*!
- * A generic RAJA::kernel forall_impl tile wrapper for statement::For
- * Assigns the tile segment to segment ArgumentId
  *
  */
-template <camp::idx_t ArgumentId, typename Data, typename... EnclosedStmts>
-struct OverlappedTileWrapper : public GenericWrapper<Data, EnclosedStmts...> {
+template <camp::idx_t ArgumentId, typename Data, typename Types, typename... EnclosedStmts>
+struct OverlappedTileWrapper : public GenericWrapper<Data, Types, EnclosedStmts...> {
 
-  using Base = GenericWrapper<Data, EnclosedStmts...>;
+  using Base = GenericWrapper<Data, Types, EnclosedStmts...>;
   using Base::Base;
   using privatizer = NestedPrivatizer<OverlappedTileWrapper>;
 
@@ -75,7 +75,7 @@ struct OverlappedTileWrapper : public GenericWrapper<Data, EnclosedStmts...> {
   {
     // Assign the tile's segment to the tuple
     camp::get<ArgumentId>(Base::data.segment_tuple) = si.s;
-
+    //Base::data.template assign_offset<ArgumentId>(si);
     // Execute enclosed statements
     //std::cout << "calling Base::exec()\n";
     Base::exec();
@@ -87,7 +87,6 @@ template <typename Iterable>
 struct IterableOverlappedTiler {
   using value_type = camp::decay<Iterable>;
 
-  std::size_t overlapAmount;
   struct iterate
   {
     value_type s;
@@ -99,7 +98,6 @@ struct IterableOverlappedTiler {
     // NOTE: this must be held by value for NVCC support, *even on the host*
     const IterableOverlappedTiler itiler;
     const Index_type block_id;
-    const std::size_t overlapAmount;
   public:
     using value_type = iterate;
     using difference_type = camp::idx_t;
@@ -109,17 +107,16 @@ struct IterableOverlappedTiler {
 
     RAJA_HOST_DEVICE
     RAJA_INLINE
-    constexpr iterator(IterableOverlappedTiler const &itiler_, Index_type block_id_, std::size_t overlapAmount_)
-        : itiler{itiler_}, block_id{block_id_}, overlapAmount{overlapAmount_}
-    {
+    constexpr iterator(IterableOverlappedTiler const &itiler_, Index_type block_id_)
+        : itiler{itiler_}, block_id{block_id_}    {
     }
 
     RAJA_HOST_DEVICE
     RAJA_INLINE
     value_type operator*()
     {
-      auto start = block_id * itiler.block_size - overlapAmount;
-      return iterate{itiler.it.slice(start, itiler.block_size + overlapAmount), block_id};
+      auto start = block_id * itiler.block_size;
+      return iterate{itiler.it.slice(start, itiler.block_size), block_id};
     }
 
     RAJA_HOST_DEVICE
@@ -132,7 +129,7 @@ struct IterableOverlappedTiler {
     RAJA_HOST_DEVICE
     RAJA_INLINE iterator operator-(const difference_type &rhs) const
     {
-      return iterator(itiler, block_id - rhs, overlapAmount);
+      return iterator(itiler, block_id - rhs);
     }
 
     RAJA_HOST_DEVICE
@@ -140,7 +137,7 @@ struct IterableOverlappedTiler {
     {
       return iterator(itiler,
                       block_id + rhs >= itiler.num_blocks ? itiler.num_blocks
-                                                          : block_id + rhs, overlapAmount);
+                                                          : block_id + rhs);
     }
 
     RAJA_HOST_DEVICE
@@ -164,9 +161,8 @@ struct IterableOverlappedTiler {
 
   RAJA_HOST_DEVICE
   RAJA_INLINE
-  IterableOverlappedTiler(const Iterable &it_, camp::idx_t block_size_, std::size_t overlapAmount_)
-      : it{it_}, block_size{block_size_}, overlapAmount(overlapAmount_)
-  {
+  IterableOverlappedTiler(const Iterable &it_, camp::idx_t block_size_)
+      : it{it_}, block_size{block_size_}  {
     using std::begin;
     using std::distance;
     using std::end;
@@ -180,11 +176,11 @@ struct IterableOverlappedTiler {
 
   RAJA_HOST_DEVICE
   RAJA_INLINE
-  iterator begin() const { return iterator(*this, 0, overlapAmount); }
+  iterator begin() const { return iterator(*this, 0); }
 
   RAJA_HOST_DEVICE
   RAJA_INLINE
-  iterator end() const { return iterator(*this, num_blocks, overlapAmount); }
+  iterator end() const { return iterator(*this, num_blocks); }
 
   value_type it;
   camp::idx_t block_size;
@@ -198,12 +194,12 @@ struct IterableOverlappedTiler {
  *
  */
 template <camp::idx_t ArgumentId,
-          std::size_t OverlapAmount,
           typename TPol,
           typename EPol,
-          typename... EnclosedStmts>
+          typename... EnclosedStmts,
+          typename Types>
 struct StatementExecutor<
-    statement::OverlappedTile<ArgumentId, OverlapAmount, TPol, EPol, EnclosedStmts...>> {
+    statement::OverlappedTile<ArgumentId, TPol, EPol, EnclosedStmts...>, Types> {
 
 
   template <typename Data>
@@ -215,25 +211,26 @@ struct StatementExecutor<
     // Get the tiling policies chunk size
     auto chunk_size = TPol::chunk_size;
     
-    auto overlapAmounts = data.overlaps;
-    int overlapAmount;
-    if(overlapAmounts.size() > ArgumentId) {
-
-      std::cout << "overlap amount: " << overlapAmounts.at(ArgumentId) << "\n";
-      overlapAmount = overlapAmounts.at(ArgumentId);
+    auto tileSizes = data.tileSizes;
+    auto tileSize = chunk_size; 
+    if (tileSizes.size() > ArgumentId) {
+      //std::cout << "tileSize: " << tileSizes.at(ArgumentId) << "\n";
+      tileSize = tileSizes.at(ArgumentId);
     } else {
-      overlapAmount = 0;
+      tileSize = chunk_size;
     }
+
     // Create a tile iterator, needs to survive until the forall is
     // done executing.
-    IterableOverlappedTiler<decltype(segment)> tiled_iterable(segment, chunk_size, overlapAmount);
-
+    IterableOverlappedTiler<decltype(segment)> tiled_iterable(segment, tileSize);
+ 
     // Wrap in case forall_impl needs to thread_privatize
-    OverlappedTileWrapper<ArgumentId, Data,
+    OverlappedTileWrapper<ArgumentId, Data, Types,
                 EnclosedStmts...> tile_wrapper(data);
 
+    auto r = resources::get_resource<EPol>::type::get_default();
     // Loop over tiles, executing enclosed statement list
-    forall_impl(EPol{}, tiled_iterable, tile_wrapper);
+    forall_impl(r, EPol{}, tiled_iterable, tile_wrapper);
 
     // Set range back to original values
     camp::get<ArgumentId>(data.segment_tuple) = tiled_iterable.it;

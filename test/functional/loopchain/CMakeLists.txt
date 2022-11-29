@@ -12,10 +12,8 @@ add_subdirectory(apply-fuse)
 add_subdirectory(apply-shift-and-fuse)
 
 add_subdirectory(apply-overlapped-tile)
-add_subdirectory(auto-layout)
-add_subdirectory(decision-object)
-add_subdirectory(enumerate-decision-objects)
-add_subdirectory(evaluate-decision-objects)
-add_subdirectory(isl-decision)
-add_subdirectory(format-converter)
-add_subdirectory(symbolic-segment)
+
+add_subdirectory(policy-to-nesting-order)
+
+add_subdirectory(format-decisions)
+add_subdirectory(ilp-model)

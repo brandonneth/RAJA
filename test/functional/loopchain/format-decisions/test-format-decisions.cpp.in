@@ -7,9 +7,9 @@
 #include "RAJA_test-indexset-build.hpp"
 #include "RAJA_test-forall-execpol.hpp"
 
-#include "test-auto-layout.hpp"
+#include "test-format-decisions.hpp"
 
 
 using @BACKEND@ExecTypes = Test<camp::cartesian_product<@BACKEND@ForallExecPols>>::Types;
 
-INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, AutoLayoutTest, @BACKEND@ExecTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, FormatDecisionsTest, @BACKEND@ExecTypes);

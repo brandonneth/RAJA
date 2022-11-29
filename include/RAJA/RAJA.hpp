@@ -18,7 +18,7 @@
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 // Copyright (c) 2016-21, Lawrence Livermore National Security, LLC
-// and RAJA project contributors. See the RAJA/LICENSE file for details.
+// and RAJA project contributors. See the RAJA/COPYRIGHT file for details.
 //
 // SPDX-License-Identifier: (BSD-3-Clause)
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
@@ -35,6 +35,7 @@
 #include "RAJA/util/types.hpp"
 #include "RAJA/util/plugins.hpp"
 #include "RAJA/util/Registry.hpp"
+
 
 
 //
@@ -71,10 +72,6 @@
 
 #if defined(RAJA_ENABLE_HIP)
 #include "RAJA/policy/hip.hpp"
-#endif
-
-#if defined(RAJA_ENABLE_SYCL)
-#include "RAJA/policy/sycl.hpp"
 #endif
 
 #if defined(RAJA_ENABLE_OPENMP)
@@ -182,6 +179,8 @@
 #include "RAJA/util/PluginLinker.hpp"
 #endif
 
+
+#include "RAJA/loopchain/LoopChain.hpp"
 #include "RAJA/pattern/sort.hpp"
 
 #endif  // closing endif for header file include guard

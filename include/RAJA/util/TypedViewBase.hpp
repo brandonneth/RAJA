@@ -26,7 +26,7 @@
 
 #include "RAJA/util/Layout.hpp"
 #include "RAJA/util/OffsetLayout.hpp"
-
+#include "RAJA/loopchain/SymExec.hpp"
 namespace RAJA
 {
 
@@ -230,7 +230,7 @@ class ViewBase {
 
   protected:
     pointer_type m_data;
-    layout_type const m_layout;
+    layout_type  m_layout;
 
   public:
 
@@ -321,7 +321,18 @@ class ViewBase {
     {
       return m_layout;
     }
+    
+    RAJA_HOST_DEVICE
+    RAJA_INLINE void replace_data(PointerType data_ptr){
+      delete[] m_data;
+      m_data = data_ptr;
+    }
 
+    RAJA_HOST_DEVICE
+    RAJA_INLINE void set_layout(layout_type layout){
+      m_layout = layout;
+    }
+ 
     RAJA_HOST_DEVICE
     RAJA_INLINE
     constexpr
@@ -372,7 +383,39 @@ class ViewBase {
 
       return ShiftedView(m_data, shift_layout);
     }
+    //RAJALC
+    template <typename... Args>
+  void sym_eval(std::vector<SymIterator>&) const {}
 
+  template <typename... Args>
+  void sym_eval(std::vector<SymIterator>& allIterators, SymIterator sym_iterator, Args... args) const
+  {
+     allIterators.push_back(sym_iterator);
+     sym_eval(allIterators, args...);
+  }
+
+  template <typename... Args>
+  void sym_eval(std::vector<SymIterator>& allIterators, int sym_int, Args... args) const {
+    SymIterator result = SymIterator("0") + sym_int;
+    allIterators.push_back(result);
+    sym_eval(allIterators, args...);
+  }
+
+
+
+  template <typename... Args>
+  SymAccessList operator () (SymIterator symIterator, Args... args) const
+  {
+    std::vector<SymIterator> allIterators;
+
+    sym_eval(allIterators, symIterator, args...);
+
+    
+    SymAccess thisAccess = SymAccess(m_data, m_layout, allIterators);
+    SymAccessList l = SymAccessList(thisAccess);
+    return l ;
+  }
+  //END RAJALC
 };
 
 

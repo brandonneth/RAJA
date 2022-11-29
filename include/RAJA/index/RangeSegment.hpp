@@ -132,7 +132,6 @@ struct TypedRangeSegment {
   {
   }
 
-
   //! Disable compiler generated constructor
   RAJA_HOST_DEVICE TypedRangeSegment() = delete;
 

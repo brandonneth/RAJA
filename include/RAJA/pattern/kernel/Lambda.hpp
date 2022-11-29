@@ -229,7 +229,6 @@ struct LambdaArgExtractor<Types, LambdaArg<lambda_arg_seg_t, id>>
 
 };
 
-
 template<typename Types, camp::idx_t id>
 struct LambdaArgExtractor<Types, LambdaArg<lambda_arg_param_t, id>>
 {
@@ -288,8 +287,6 @@ struct StatementExecutor<statement::Lambda<LambdaIndex, Args...>, Types> {
     invoke_lambda_with_args<LambdaIndex, Types>(std::forward<Data>(data), targList{});
   }
 };
-
-
 
 }  // namespace internal
 

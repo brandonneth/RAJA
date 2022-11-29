@@ -32,7 +32,7 @@
 
 #include <iterator>
 #include <type_traits>
-#include <vector>
+
 namespace RAJA
 {
 namespace internal
@@ -121,20 +121,6 @@ struct LoopData {
   using BodiesTuple = camp::tuple<Bodies...>;
   const BodiesTuple bodies;
   offset_tuple_t offset_tuple;
-
-
-  //RAJALC
-  std::vector<camp::idx_t> overlapAmounts;
-  std::vector<camp::idx_t> tileSizes;
-
-  RAJA_INLINE RAJA_HOST_DEVICE
-  LoopData(std::vector<camp::idx_t> const & overlaps, std::vector<camp::idx_t> const& tiles, SegmentTuple const &s, ParamTuple const &p, Resource r, Bodies const &... b)
-      : segment_tuple(s), param_tuple(p), res(r), bodies(b...), overlapAmounts(overlaps), tileSizes(tiles)
-  {
-    //assign_begin_all();
-  }
-
-  //END RAJALC
 
   RAJA_INLINE RAJA_HOST_DEVICE constexpr
   LoopData(SegmentTuple const &s, ParamTuple const &p, Resource r, Bodies const &... b)

@@ -1,23 +1,23 @@
 #include "RAJA_test-base.hpp"
 
 template <typename EXEC_POLICY>
-void SymbolicSegmentTestImpl() {
+void SymSegmentTestImpl() {
 
-  EXPECT_EQ(1,1);
+  EXPECT_EQ(1,0);
 }
 
-TYPED_TEST_SUITE_P(SymbolicSegmentTest);
+TYPED_TEST_SUITE_P(SymSegmentTest);
 template <typename T>
-class SymbolicSegmentTest : public ::testing::Test
+class SymSegmentTest : public ::testing::Test
 {
 };
 
-TYPED_TEST_P(SymbolicSegmentTest, SymbolicSegment)
+TYPED_TEST_P(SymSegmentTest, SymSegment)
 {
   using EXEC_POLICY = typename camp::at<TypeParam, camp::num<0>>::type;
 
-  SymbolicSegmentTestImpl<EXEC_POLICY>();
+  SymSegmentTestImpl<EXEC_POLICY>();
 
 }
 
-REGISTER_TYPED_TEST_SUITE_P(SymbolicSegmentTest, SymbolicSegment);
+REGISTER_TYPED_TEST_SUITE_P(SymSegmentTest, SymSegment);

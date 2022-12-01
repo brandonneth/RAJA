@@ -7,9 +7,9 @@
 #include "RAJA_test-indexset-build.hpp"
 #include "RAJA_test-forall-execpol.hpp"
 
-#include "test-forall-exec.hpp"
+#include "test-symbolic-segment.hpp"
 
 
 using @BACKEND@ExecTypes = Test<camp::cartesian_product<@BACKEND@ForallExecPols>>::Types;
 
-INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@,SymbolicSegmentTest, @BACKEND@ExecTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@,SymSegmentTest, @BACKEND@ExecTypes);

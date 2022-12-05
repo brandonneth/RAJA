@@ -29,12 +29,15 @@
 
 #include "RAJA/pattern/detail/privatizer.hpp"
 #include "RAJA/pattern/kernel/internal/StatementList.hpp"
-
+//#include "RAJA/loopchain/SymbolicSegment/SymbolicSegment.hpp"
 #include <iterator>
 #include <type_traits>
 
+
 namespace RAJA
 {
+struct SymbolicSegment;
+struct SymbolicIter;
 namespace internal
 {
 
@@ -144,6 +147,15 @@ struct LoopData {
   RAJA_HOST_DEVICE RAJA_INLINE void assign_offset(IndexT const &i)
   {
     camp::get<Idx>(offset_tuple) = i;
+    
+    using SegmentType = decltype(camp::get<Idx>(segment_tuple));
+    using SymIterSpanType = Span<SymbolicIter, Index_type>;
+   
+    if constexpr (std::is_same<SegmentType,SymIterSpanType&>::value) {
+      auto seg = camp::get<Idx>(segment_tuple);
+      seg.begin().update(i);
+    } 
+    
   }
 
   template <typename ParamId, typename IndexT>

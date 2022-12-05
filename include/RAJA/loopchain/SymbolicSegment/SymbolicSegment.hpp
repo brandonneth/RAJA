@@ -39,26 +39,81 @@ struct SymbolicBoundSegment : SymbolicBound {
 
   virtual idx_t const value();  
 };
-struct SymbolicSegment {
+
+
+struct SymbolicIter {
+  SymbolicBound * bound;
+  const SymbolicSegment * seg;
+  Index_type offset;
+
+  SymbolicIter(SymbolicBound * b, const SymbolicSegment * s) : bound(b), seg(s), offset(0) {}
+  Index_type operator* () {
+    return bound->value() + offset;
+  }
+
+  SymbolicIter operator + (Index_type i) {
+    SymbolicIter newIter = SymbolicIter(bound, seg);
+    newIter.offset = offset + i;
+    return newIter;
+  }
  
+  Index_type operator - (SymbolicIter other) {
+    return *(*this) - *(other);
+  } 
+  
+  Index_type operator[](Index_type i) {
+    return *(*this) + i;
+  }
+
+  void update(Index_type i);
+};
+
+struct SymbolicSegment {
+  using iterator = SymbolicIter;
+  using value_type = Index_type;
+  using IndexType = Index_type;
   SymbolicBound *low;
   SymbolicBound *high; 
- 
-  idx_t currVal;
-  SymbolicSegment() : low(NULL), high(NULL) {
+  std::string name;
+    SymbolicSegment() : low(NULL), high(NULL) {
   }
 
-  SymbolicSegment(SymbolicBound * l, SymbolicBound * h) : low(l), high(h) {
-    currVal = low->value();
+  SymbolicSegment(SymbolicBound * l, SymbolicBound * h, std::string n) : low(l), high(h), name(n) {
+    currVal = new IndexType[1];
+    currVal[0] = low->value();
   }
-  SymbolicBound * operator * (idx_t c);
+  
+  SymbolicBound* operator * (idx_t c);
 
+  void update_offset(IndexType i) const {
+    currVal[0] = low->value() + i;
+  }
   idx_t value() const {
-    return currVal;
+    return currVal[0];
   }
+
+  SymbolicIter begin() const {
+    return SymbolicIter(low, this);
+  }
+
+  SymbolicIter end() const {
+    return SymbolicIter(high, this);
+  }
+  
+  void increment() {
+    currVal[0] += 1;
+  }
+  void decrement() {
+    currVal[0] -= 1;
+  }
+
+  void reset() {
+    currVal[0] = low->value();
+  }
+private:
+idx_t * currVal;
+
 }; //SymbolicSegment
-
-
 
 
 struct SymbolicBoundAdd {
@@ -89,6 +144,10 @@ SymbolicBound * SymbolicSegment::operator * (idx_t c) {
 }
 
 
+void SymbolicIter::update(Index_type i) {
+    seg->update_offset(i);
+  }
+
 
 SymbolicBound * make_symbolic_bound(idx_t x) {
   return new SymbolicBoundConstant(x);
@@ -105,14 +164,30 @@ SymbolicBound * make_symbolic_bound(SymbolicBound * x) {
   return x;
 }
 template <typename T1, typename T2>
-SymbolicSegment make_symbolic_segment(T1 l, T2 r) {
+SymbolicSegment make_symbolic_segment(const T1 & l, const T2 r, std::string n) {
   
-  auto low = make_symbolic_bound(l);
-  auto high = make_symbolic_bound(r); 
-  return SymbolicSegment(low,high);
+  SymbolicBound * low = make_symbolic_bound(l);
+  SymbolicBound * high = make_symbolic_bound(r); 
+  return SymbolicSegment(low,high,n);
 }
 
-
+template <typename T1, typename T2>
+SymbolicSegment make_symbolic_segment(const T1 & l, const T2 r) {
+  
+  SymbolicBound * low = make_symbolic_bound(l);
+  SymbolicBound * high = make_symbolic_bound(r); 
+  return SymbolicSegment(low,high,"");
+}
 } //namespace RAJA
+
+template <>
+struct std::iterator_traits<RAJA::SymbolicIter> {
+  typedef RAJA::Index_type value_type;
+  typedef RAJA::Index_type difference_type;
+  typedef std::random_access_iterator_tag iterator_category;
+  typedef RAJA::Index_type* pointer;
+  typedef RAJA::Index_type& reference;
+};
+
 
 #endif 

@@ -84,6 +84,49 @@ void SymSegmentTestImpl() {
   EXPECT_STREQ(s.str().c_str(), "000102111222");
   i_seg.reset();
   j1_seg.reset();
+
+
+  using VIEW2 = RAJA::View<double, RAJA::Layout<2,RAJA::idx_t>>;
+  idx_t N = 10;
+  VIEW2 a(new double[N*N], N,N);
+  VIEW2 b(new double[N*N], N,N);
+
+
+  auto seg1 = make_symbolic_segment(0,N,"seg1");
+  auto seg2 = make_symbolic_segment(seg1, N, "seg2");
+  
+  auto parlam = [&](auto i, auto j) {
+    b(i,j) = a(i,j);
+  };
+
+  for(int i = 0; i < N; i++) {
+    for(int j = 0; j < N; j++) {
+      a(i,j) = 1;
+      b(i,j) = 2;
+    }
+  }
+
+  using pol2d_par = KernelPolicy<
+   statement::For<0,omp_parallel_for_exec,
+      statement::For<1,loop_exec,
+        statement::Lambda<0>
+      >
+    >
+  >;
+
+  auto par_knl = make_kernel<pol2d_par>(make_tuple(seg1,seg2), parlam);
+
+  par_knl();
+
+  for(int i = 0; i < N; i++) {
+    for(int j = 0; j < i; j++) {
+      EXPECT_EQ(b(i,j), 2) << "B view assigned on iteration " << i << ", " << j ;
+    }
+    for(int j = i; j < N; j++) {
+      EXPECT_EQ(b(i,j), 1) << "B view not assigned on iteration " << i << ", " << j ;
+    }
+  }
+
 }
 
 TYPED_TEST_SUITE_P(SymSegmentTest);

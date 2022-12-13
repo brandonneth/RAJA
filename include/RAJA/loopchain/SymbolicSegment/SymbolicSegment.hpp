@@ -75,21 +75,49 @@ struct SymbolicSegment {
   SymbolicBound *low;
   SymbolicBound *high; 
   std::string name;
-    SymbolicSegment() : low(NULL), high(NULL) {
+  size_t numThreads;
+  SymbolicSegment() : low(NULL), high(NULL) {}
+
+  SymbolicSegment(SymbolicBound * l, SymbolicBound * h) : low(l), high(h), name(std::string()) {
+    init_val();
   }
 
   SymbolicSegment(SymbolicBound * l, SymbolicBound * h, std::string n) : low(l), high(h), name(n) {
-    currVal = new IndexType[1];
-    currVal[0] = low->value();
+    init_val();
+      }
+
+  void init_val() {
+#ifdef RAJA_ENABLE_OPENMP
+    numThreads = omp_get_max_threads();
+#else
+    numThreads = 1;
+#endif
+    currVal = new IndexType[numThreads];
+    for(size_t i = 0; i < numThreads; i++) {
+      currVal[i] = low->value();
+    }
+ 
+    
   }
   
   SymbolicBound* operator * (idx_t c);
 
   void update_offset(IndexType i) const {
-    currVal[0] = low->value() + i;
+#ifdef RAJA_ENABLE_OPENMP
+    int thread = omp_get_thread_num();
+#else
+    int thread = 0;
+#endif
+   currVal[thread] = low->value() + i;
   }
+
   idx_t value() const {
-    return currVal[0];
+#ifdef RAJA_ENABLE_OPENMP
+    int thread = omp_get_thread_num();
+#else
+    int thread = 0;
+#endif
+   return currVal[thread];
   }
 
   SymbolicIter begin() const {
@@ -101,14 +129,27 @@ struct SymbolicSegment {
   }
   
   void increment() {
-    currVal[0] += 1;
+#ifdef RAJA_ENABLE_OPENMP
+    int thread = omp_get_thread_num();
+#else
+    int thread = 0;
+#endif
+   currVal[thread] += 1;
   }
   void decrement() {
-    currVal[0] -= 1;
+#ifdef RAJA_ENABLE_OPENMP
+    int thread = omp_get_thread_num();
+#else
+    int thread = 0;
+#endif
+
+    currVal[thread] -= 1;
   }
 
   void reset() {
-    currVal[0] = low->value();
+    for(size_t i = 0; i < numThreads; i++) {
+      currVal[0] = low->value();
+    }
   }
 private:
 idx_t * currVal;

@@ -208,6 +208,7 @@ RAJA_INLINE resources::EventProxy<resources::resource_from_pol_t<PolicyType>> ke
 #include "RAJA/pattern/kernel/Region.hpp"
 #include "RAJA/pattern/kernel/Tile.hpp"
 #include "RAJA/pattern/kernel/TileTCount.hpp"
-
+#include "RAJA/pattern/kernel/OverlappedTile.hpp"
+#include "RAJA/pattern/kernel/TiledLambda.hpp"
 
 #endif /* RAJA_pattern_kernel_HPP */

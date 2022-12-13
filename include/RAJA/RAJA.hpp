@@ -197,6 +197,8 @@
 
 #include "RAJA/pattern/sort.hpp"
 
+#include "RAJA/loopchain/LoopChain.hpp"
+
 namespace RAJA {
 namespace expt{}
 //  // provide a RAJA::expt namespace for experimental work, but bring alias

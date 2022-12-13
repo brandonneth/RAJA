@@ -24,3 +24,5 @@ if (RAJA_ENABLE_VECTORIZATION)
 endif()
 
 add_subdirectory(util)
+
+add_subdirectory(loopchain)

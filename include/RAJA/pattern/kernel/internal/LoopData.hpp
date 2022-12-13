@@ -36,6 +36,10 @@
 
 namespace RAJA
 {
+
+struct SymbolicSegment;
+struct SymbolicIter;
+
 namespace internal
 {
 
@@ -138,6 +142,14 @@ struct LoopData {
   using vector_sizes_t = tuple_of_n<int, camp::tuple_size<SegmentTuple>::value>;
   vector_sizes_t vector_sizes;
 
+  std::vector<camp::idx_t> overlapAmounts;
+  std::vector<camp::idx_t> tileSizes;
+
+  RAJA_INLINE RAJA_HOST_DEVICE
+  LoopData(std::vector<camp::idx_t> const & overlaps, std::vector<camp::idx_t> const& tiles, SegmentTuple const &s, ParamTuple const &p, Resource r, Bodies const &... b)
+      : segment_tuple(s), param_tuple(p), res(r), bodies(b...), overlapAmounts(overlaps), tileSizes(tiles)
+  {}
+
   RAJA_INLINE RAJA_HOST_DEVICE constexpr
   LoopData(SegmentTuple const &s, ParamTuple const &p, Resource r, Bodies const &... b)
       : segment_tuple(s), param_tuple(p), res(r), bodies(b...)
@@ -150,6 +162,14 @@ struct LoopData {
   RAJA_HOST_DEVICE RAJA_INLINE void assign_offset(IndexT const &i)
   {
     camp::get<Idx>(offset_tuple) = i;
+
+    using SegmentType = decltype(camp::get<Idx>(segment_tuple));
+    using SymIterSpanType = Span<SymbolicIter, Index_type>;
+   
+    if constexpr (std::is_same<SegmentType,SymIterSpanType&>::value) {
+      auto seg = camp::get<Idx>(segment_tuple);
+      seg.begin().update(i);
+    } 
   }
 
   template <typename ParamId, typename IndexT>

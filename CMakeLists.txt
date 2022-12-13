@@ -147,7 +147,8 @@ set (raja_sources
   src/MemUtils_CUDA.cpp
   src/MemUtils_HIP.cpp
   src/MemUtils_SYCL.cpp
-  src/PluginStrategy.cpp)
+  src/PluginStrategy.cpp
+  src/SymExec.cpp)
 
 if (RAJA_ENABLE_RUNTIME_PLUGINS)
   set (raja_sources
@@ -162,6 +163,12 @@ if (RAJA_ENABLE_OPENMP)
   set (raja_depends
     openmp)
 endif()
+
+include(FindPkgConfig)
+pkg_check_modules(ISL REQUIRED IMPORTED_TARGET isl)
+set (raja_depends
+    ${raja_depends}
+    PkgConfig::ISL)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17)
   message(WARNING "RAJA::simd_exec support requires Intel-17 or greater")

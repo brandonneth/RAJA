@@ -19,3 +19,4 @@ add_subdirectory(format-decisions)
 add_subdirectory(ilp-model)
 
 add_subdirectory(symbolic-segment)
+add_subdirectory(imperfect-nesting)

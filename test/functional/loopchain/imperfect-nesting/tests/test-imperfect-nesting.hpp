@@ -4,15 +4,14 @@
 template <typename EXEC_POLICY>
 void ImperfectNestingTestImpl() {
   
-  //permute_view
   using namespace RAJA;
   double * _a = new double[9];
 
-  size_t N = 8;
   for(int i = 0; i < 9; i++) {
     _a[i] = i;
   }
 
+  size_t N = 8;
   using VIEW2 = RAJA::View<double, RAJA::Layout<2,RAJA::idx_t>>;
 
 
@@ -22,7 +21,7 @@ void ImperfectNestingTestImpl() {
     statement::For<0,loop_exec,
       statement::For<1,loop_exec,
         statement::Lambda<0>,
-        statmeent::Lambda<1>
+        statement::Lambda<1>
       >
     >
   >;
@@ -34,8 +33,8 @@ void ImperfectNestingTestImpl() {
     s << j;
   };
   std::stringstream correct;
-  for(int i = 0; i < N; i++) {
-    for(int j = 0; j  <N; j++) {
+  for(size_t i = 0; i < N; i++) {
+    for(size_t j = 0; j  <N; j++) {
       correct << i;
       correct << j;
     }
@@ -45,7 +44,7 @@ void ImperfectNestingTestImpl() {
 
   knl1();
 
-  EXPECT_STREQ(correct.str(), s.str());
+  EXPECT_STREQ(correct.str().c_str(), s.str().c_str());
  
   correct.str("");
   correct.clear();
@@ -55,21 +54,21 @@ void ImperfectNestingTestImpl() {
     statement::For<0,loop_exec,
       statement::Lambda<0>,
       statement::For<1,loop_exec,
-        statmeent::Lambda<1>
+        statement::Lambda<1>
       >
     >
   >;
 
-  for(int i = 0; i < N; i++) {
+  for(size_t i = 0; i < N; i++) {
     correct << i;
-    for(int j = 0; j < N; j++) {
+    for(size_t j = 0; j < N; j++) {
       correct << j;
     }
   }
 
   auto knl2 = make_kernel<forlamforlam>(segs, lam1, lam2);
   knl2();
-  EXPECT_STREQ(correct.str(), s.str());
+  EXPECT_STREQ(correct.str().c_str(), s.str().c_str());
 
 }
 
@@ -87,4 +86,4 @@ TYPED_TEST_P(ImperfectNestingTest, ImperfectNesting)
 
 }
 
-REGISTER_TYPED_TEST_SUITE_P(ImperfectNestingTest, FormatDecisions);
+REGISTER_TYPED_TEST_SUITE_P(ImperfectNestingTest, ImperfectNesting);

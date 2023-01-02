@@ -19,6 +19,13 @@ struct SymbolicBound {
   virtual idx_t value() const {
     return 0;
   }
+
+  virtual std::ostream & write(std::ostream& s) {
+    return s;
+  }
+  friend std::ostream& operator<<(std::ostream & s, SymbolicBound& b) {
+    return b.write(s);
+  }
   
 }; //SymbolicBound
 
@@ -27,8 +34,13 @@ struct SymbolicBoundConstant :SymbolicBound {
 
   SymbolicBoundConstant(idx_t val) : c(val) {}
 
-  virtual idx_t  value() const {
+  idx_t  value() const {
     return c;
+  }
+
+  std::ostream& write(std::ostream & s) {
+    s << c;
+    return s;
   }
 };
 
@@ -38,7 +50,10 @@ struct SymbolicBoundSegment : SymbolicBound {
   SymbolicBoundSegment(const SymbolicSegment &s) : seg(s) {}
 
   virtual idx_t value() const;  
+
+  std::ostream& write(std::ostream & s); 
 };
+
 
 
 struct SymbolicIter {
@@ -66,7 +81,8 @@ struct SymbolicIter {
   }
 
   void update(Index_type i);
-};
+
+  };
 
 struct SymbolicSegment {
   using iterator = SymbolicIter;
@@ -151,6 +167,12 @@ struct SymbolicSegment {
       currVal[0] = low->value();
     }
   }
+  
+  friend std::ostream& operator<< (std::ostream& s, SymbolicSegment i) {
+    s << *(i.low) << " <= " << i.name << " < " << *(i.high);
+    return s;
+  }
+
 private:
 idx_t * currVal;
 
@@ -163,6 +185,11 @@ struct SymbolicBoundAdd {
 
   idx_t value() {
     return left->value() + right->value();
+  }
+
+  std::ostream& write(std::ostream & s) {
+    s << left << "+" << right;
+    return s;
   }
 };
 struct SymbolicBoundMult : SymbolicBound {
@@ -178,6 +205,10 @@ struct SymbolicBoundMult : SymbolicBound {
 
 idx_t SymbolicBoundSegment::value() const {
     return seg.value();
+}
+std::ostream & SymbolicBoundSegment::write(std::ostream & s) {
+  s << seg.name;
+  return s;
 }
 
 SymbolicBound * SymbolicSegment::operator * (idx_t c) {

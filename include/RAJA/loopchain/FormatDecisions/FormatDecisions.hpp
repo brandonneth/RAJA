@@ -268,7 +268,7 @@ struct FormatDecisions {
             auto normalized_layout_perm = access.template normalized_layout_perm<KernelPolicy,NumDims>(perm);
             //std::cerr << "estimating cost of " << format_var->rep() << "\n";
             auto cost = estimate_use_cost<NumDims>(normalized_layout_perm);
-            unsigned long coef = cost * knl.num_iterations();
+            unsigned long coef = cost * access.numIterations;
             auto cost_term = new MultExpression<NumDims>(format_var, new Constant<NumDims>(coef));
             term_sum->add(cost_term);
           }

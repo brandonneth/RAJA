@@ -50,6 +50,10 @@ struct SymIterator {
     return std::stoi(indexStart);
   }
 
+  int clear() {
+    accesses->clear();
+    return 0;
+  }
   bool operator == (const int) {
     return 0;
   }
@@ -171,6 +175,8 @@ struct SymAccess {
   bool isRead;
   bool isWrite;
 
+  size_t numIterations;
+
   template <typename LayoutType>
   SymAccess(void * _view, const LayoutType & layout, std::vector<SymIterator>& _iterators) {
     view = _view;
@@ -190,6 +196,12 @@ struct SymAccess {
   operator SymAccessList();
 
   friend std::ostream& operator<< (std::ostream& s, SymAccess a);
+  
+  template <typename T>
+  bool is_view(T v) {
+    return view == v.get_data();
+  }
+
   
   int operator < (const SymAccess & other) {
     std::stringstream a, b;

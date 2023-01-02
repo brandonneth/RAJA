@@ -6,7 +6,6 @@ void SymBoundTestImpl() {
 
   using namespace RAJA;
   idx_t Ni = 10;
-  idx_t Nj = 10;
   
   
   auto lo = make_symbolic_bound(0);
@@ -127,6 +126,19 @@ void SymSegmentTestImpl() {
     }
   }
 
+  auto accesses = par_knl.execute_symbolically();
+
+  size_t numIterations =N*(N+1) / 2;
+  for (auto access : accesses) {
+    if (access.is_view(a)) {
+      EXPECT_EQ(access.numIterations, numIterations) << "Access to a counted iterations wrong.";
+    }
+    else if (access.is_view(b)) {
+      EXPECT_EQ(access.numIterations, numIterations) << "Access to b counted iterations wrong.";
+    } else {
+      EXPECT_EQ(0,1) << "Access object's view reference is not a or b.";
+    }
+  }
 }
 
 TYPED_TEST_SUITE_P(SymSegmentTest);

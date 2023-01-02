@@ -12,11 +12,24 @@
 #include "RAJA/loopchain/PolicyToNestingOrder.hpp"
 #include <vector>
 #include <string>
+
+#include "RAJA/util/all-isl.hpp"
 namespace RAJA
 {
 
 template <typename T>
 T get_array_name(SymAccess a);
+
+template <typename T>
+void mergeVectors(std::vector<T> &v1, std::vector<T> &v2) {
+  for(long unsigned int i = 0; i < v2.size(); i++) {
+    auto t = v2.at(i);
+    auto search = std::find(v1.begin(), v1.end(), t);
+    if(search == v1.end()) {       
+      v1.push_back(t);
+    }
+  }
+}
 
 //KernelWrapper wraps a kernel execution so it can be transformed before execution
 //The type and constructor parameters are the same as the kernel function.
@@ -56,8 +69,67 @@ struct KernelWrapper {
     return SymIterator(iteratorName);
   }
 
-
+  template <typename T, typename...Ts>
+  std::string segment_names(T seg, Ts... segs) {
+    if constexpr (sizeof...(Ts) == 0) {
+      return seg.name;
+    } else {
+      return seg.name + std::string(",") + segment_names(segs...);
+    } 
+  }
   
+  template <typename T, typename...Ts>
+  std::string segment_bounds(T seg, Ts... segs) {
+    if constexpr(sizeof...(Ts) == 0) {
+      std::stringstream s;
+      s << seg;
+      return s.str();
+    } else {
+      std::stringstream s;
+      s << seg << " and " << segment_bounds(segs...);
+      return s.str();
+    }
+  }
+
+
+  template <typename TupleType, idx_t...Is>
+  size_t symbolic_size(TupleType segs, camp::idx_seq<Is...>) {
+    std::stringstream s;
+    s << "{";
+    s <<  "[" << segment_names(camp::get<Is>(segs)...) << "]";
+    s << " : ";
+    s << segment_bounds(camp::get<Is>(segs)...);
+    s << "}";
+    std::cout << s.str() << "\n";
+    
+    isl_ctx * ctx = isl_ctx_alloc();
+
+    isl_union_set * ispace = isl_union_set_read_from_str(ctx, s.str().c_str());
+
+    std::cout << "got the iteration space objcet made.";
+    isl_printer * p = isl_printer_to_file(ctx, stdout);
+    p = isl_printer_print_union_set(p, ispace);
+
+    return 0;
+  }
+
+  template <typename TupleType>
+  size_t calculate_iteration_space_size(TupleType segs) {
+    return calculate_iteration_space_size(segs, idx_seq_for(segs));
+  }
+  template <typename TupleType, idx_t...Is>
+  size_t calculate_iteration_space_size(TupleType segs, camp::idx_seq<Is...> seq) {
+    if constexpr (sizeof...(Is) == 0) {
+      return 0;
+    } else {
+      using SegType = decltype(camp::get<0>(segs));
+      if constexpr (std::is_same<SymbolicSegment&,SegType>::value) {
+        return symbolic_size(segs, seq);
+     } else {
+        return vmult(camp::get<Is>(segs).size() ...);
+      }
+    }
+  }
 
   template <camp::idx_t... Is>
   RAJA_INLINE
@@ -76,9 +148,13 @@ struct KernelWrapper {
     std::vector<SymAccess> accesses = collect_accesses(std::forward<Iterators>(rest)...);
 
     for(long unsigned int i = 0; i < iterator.accesses->size(); i++) {
-      accesses.push_back(iterator.accesses->at(i));
+      auto access = iterator.accesses->at(i);
+      auto search = std::find(accesses.begin(), accesses.end(), access);
+      if(search == accesses.end()) {
+        accesses.push_back(access);
+      }
     }
- 
+    
     return accesses;
   }
 
@@ -89,33 +165,78 @@ struct KernelWrapper {
   }
 
   template <typename T1, typename T2, camp::idx_t...Is>
-  void es_helper(T1 function, T2 iterators, camp::idx_seq<Is...>) {
+  std::vector<SymAccess> es_helper(T1 function, T2 iterators, camp::idx_seq<Is...> seq) {
+   
     function(camp::get<Is>(iterators)...);
+    auto accesses = collect_accesses_from_iterators(iterators, seq);
+   
+    auto segsForThisLambda = make_tuple(camp::get<Is>(segments)...);
+
+    size_t iterationSpaceSize = calculate_iteration_space_size(segsForThisLambda);
+    
+    for(auto & access : accesses ) {
+      access.numIterations = iterationSpaceSize;
+    }
+    
+    camp::sink(camp::get<Is>(iterators).clear()...);
+
+    return accesses;
   }  
+
+  template <typename CurrTupleType, typename FullTupleType, idx_t I, typename ExecPol, typename...NestedPol>
+  std::vector<SymAccess> es_traverse(const CurrTupleType, FullTupleType fullTuple, statement::For<I,ExecPol,NestedPol...>) {
+
+    //expand the current tuple
+    constexpr long int currSize = camp::tuple_size<CurrTupleType>::value;//tuple_len(currTuple);
+    constexpr idx_t newSize = currSize+1;
+    auto newTuple = tuple_slice<0,newSize>(fullTuple);
+ 
+    //recurse
+    auto policyTuple = make_tuple(NestedPol{}...);
+    return es_traverse(newTuple, fullTuple, policyTuple);
+  }
+
+  template <typename CurrTupleType, typename FullTupleType, typename Pol1, typename...NestedPol>
+  std::vector<SymAccess> es_traverse(CurrTupleType currTuple, FullTupleType fullTuple, camp::tuple<Pol1, NestedPol...> ) {
+    
+    //execute the first one
+    std::vector<SymAccess> accesses = es_traverse(currTuple, fullTuple, Pol1{});
+    //recurse
+    if constexpr (sizeof...(NestedPol)) {
+      std::vector<SymAccess> moreAccesses = es_traverse(currTuple, fullTuple, make_tuple(NestedPol{}...));
+      mergeVectors(accesses, moreAccesses);
+      
+    }
+    return accesses;
+  }
+
+  template <typename CurrTupleType, typename FullTupleType, idx_t LamNum, typename...LamDetails>
+  std::vector<SymAccess> es_traverse(CurrTupleType currTuple, FullTupleType, statement::Lambda<LamNum,LamDetails...> ) {
+    return es_helper(camp::get<LamNum>(bodies), currTuple, idx_seq_for(currTuple));
+  }
+
+  template <typename CurrTupleType, typename FullTupleType, typename Statement, typename...Statements>
+  std::vector<SymAccess> es_traverse(CurrTupleType currTuple, FullTupleType fullTuple, camp::list<Statement, Statements...>) {
+    return es_traverse(currTuple, fullTuple, make_tuple(Statement{}, Statements{}...));
+  }
+
+
+
   std::vector<SymAccess> execute_symbolically() {
     return _execute_symbolically();
     //return accesses;
   }
   std::vector<SymAccess> _execute_symbolically() {
+    
+    
     auto iterators = make_iterator_tuple(camp::make_idx_seq_t<numArgs>());
 
-    auto func = camp::get<0>(bodies);
-
-    es_helper(func, iterators, camp::make_idx_seq_t<numArgs>());
-
+    return es_traverse(make_tuple(), iterators, KPol{});
+    
     auto _accesses = collect_accesses_from_iterators(iterators, camp::make_idx_seq_t<numArgs>());
-
     auto accesses = std::vector<SymAccess>();
 
-    for(auto & access : _accesses) {
-      
-      auto search = std::find(accesses.begin(), accesses.end(), access);
-      if(search == accesses.end()) {
-        accesses.push_back(access);
-      }
-    }
-
-
+    
     return accesses;
   }
 

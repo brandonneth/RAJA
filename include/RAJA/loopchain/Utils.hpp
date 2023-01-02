@@ -198,7 +198,15 @@ auto vmin(T val, Ts...rest) {
   return std::min(val, vmin(rest...));
 }
 
+template <typename T>
+auto vmult(T val) {
+  return val;
+}
 
+template <typename T, typename...Ts>
+auto vmult(T val, Ts...rest) {
+  return val * vmult(rest...);
+}
 
 
 }

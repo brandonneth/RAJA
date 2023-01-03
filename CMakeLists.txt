@@ -148,7 +148,7 @@ set (raja_sources
   src/MemUtils_HIP.cpp
   src/MemUtils_SYCL.cpp
   src/PluginStrategy.cpp
-  src/SymExec.cpp)
+  src/SymExec.cpp src/SymbolicSegment.cpp)
 
 if (RAJA_ENABLE_RUNTIME_PLUGINS)
   set (raja_sources

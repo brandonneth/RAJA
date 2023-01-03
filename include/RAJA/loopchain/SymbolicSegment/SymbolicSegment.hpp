@@ -5,7 +5,6 @@
 #include "RAJA/util/Operators.hpp"
 #include "RAJA/util/Layout.hpp"
 #include "RAJA/loopchain/PolicyToNestingOrder.hpp"
-
 namespace RAJA 
 {
 
@@ -203,38 +202,12 @@ struct SymbolicBoundMult : SymbolicBound {
 };
 
 
-idx_t SymbolicBoundSegment::value() const {
-    return seg.value();
-}
-std::ostream & SymbolicBoundSegment::write(std::ostream & s) {
-  s << seg.name;
-  return s;
-}
 
-SymbolicBound * SymbolicSegment::operator * (idx_t c) {
-  return new SymbolicBoundMult(new SymbolicBoundSegment(*this), new SymbolicBoundConstant(c));
-}
+SymbolicBound * make_symbolic_bound(idx_t x);
+SymbolicBound * make_symbolic_bound(int x);
+SymbolicBound * make_symbolic_bound(const SymbolicSegment &x);
+SymbolicBound * make_symbolic_bound(SymbolicBound * x);
 
-
-void SymbolicIter::update(Index_type i) {
-    seg->update_offset(i);
-  }
-
-
-SymbolicBound * make_symbolic_bound(idx_t x) {
-  return new SymbolicBoundConstant(x);
-}
-
-SymbolicBound * make_symbolic_bound(int x) {
-  return new SymbolicBoundConstant(x);
-}
-
-SymbolicBound * make_symbolic_bound(const SymbolicSegment &x) {
-  return new SymbolicBoundSegment(x);
-}
-SymbolicBound * make_symbolic_bound(SymbolicBound * x) {
-  return x;
-}
 template <typename T1, typename T2>
 SymbolicSegment make_symbolic_segment(const T1 & l, const T2 r, std::string n) {
   
@@ -245,10 +218,13 @@ SymbolicSegment make_symbolic_segment(const T1 & l, const T2 r, std::string n) {
 
 template <typename T1, typename T2>
 SymbolicSegment make_symbolic_segment(const T1 & l, const T2 r) {
-  
+  static int i = 0;
+  i += 1; 
   SymbolicBound * low = make_symbolic_bound(l);
   SymbolicBound * high = make_symbolic_bound(r); 
-  return SymbolicSegment(low,high,"");
+  std::stringstream name;
+  name << "tmpname" << i;
+  return SymbolicSegment(low,high,name.str());
 }
 } //namespace RAJA
 

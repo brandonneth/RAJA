@@ -823,8 +823,8 @@ TEST(Kernel, FissionFusion_Conditional)
   // Loop Fission if param == 1
 
   using Pol = KernelPolicy<
-      If<Equals<Param<0>, Value<0>>, For<0, seq_exec, Lambda<0, Segs<0>>, Lambda<1, Segs<0>>>>,
-      If<Equals<Param<0>, Value<1>>,
+      If<Equals<Param<0>, RAJA::statement::Value<0>>, For<0, seq_exec, Lambda<0, Segs<0>>, Lambda<1, Segs<0>>>>,
+      If<Equals<Param<0>, RAJA::statement::Value<1>>,
          For<0, seq_exec, Lambda<0, Segs<0>>>,
          For<0, seq_exec, Lambda<1, Segs<0>>>>>;
 

@@ -166,9 +166,13 @@ endif()
 
 include(FindPkgConfig)
 pkg_check_modules(ISL REQUIRED IMPORTED_TARGET isl)
+pkg_check_modules(BARVINOK REQUIRED IMPORTED_TARGET barvinok)
 set (raja_depends
     ${raja_depends}
     PkgConfig::ISL)
+set (raja_depends
+    ${raja_depends}
+    PkgConfig::BARVINOK)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17)
   message(WARNING "RAJA::simd_exec support requires Intel-17 or greater")

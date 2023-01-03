@@ -14,6 +14,7 @@
 #include <string>
 
 #include "RAJA/util/all-isl.hpp"
+#include <barvinok/barvinok.h>
 namespace RAJA
 {
 
@@ -100,17 +101,23 @@ struct KernelWrapper {
     s << " : ";
     s << segment_bounds(camp::get<Is>(segs)...);
     s << "}";
-    std::cout << s.str() << "\n";
     
     isl_ctx * ctx = isl_ctx_alloc();
+    isl_set * ispace = isl_set_read_from_str(ctx, s.str().c_str());
+    isl_pw_qpolynomial * cardinality = isl_set_card(ispace);
 
-    isl_union_set * ispace = isl_union_set_read_from_str(ctx, s.str().c_str());
-
-    std::cout << "got the iteration space objcet made.";
-    isl_printer * p = isl_printer_to_file(ctx, stdout);
-    p = isl_printer_print_union_set(p, ispace);
-
-    return 0;
+    auto valueExtractor = [](isl_set*, isl_qpolynomial * qp, void * user) {
+      isl_val * value = isl_qpolynomial_get_constant_val(qp);
+      long size = isl_val_get_num_si(value);
+      *((long*)user) = size;
+      return isl_stat_ok;
+    };
+    
+    long size;
+    isl_pw_qpolynomial_foreach_piece(cardinality, valueExtractor, (void*) (&size));
+    isl_pw_qpolynomial_free(cardinality); 
+    //isl_ctx_free(ctx);
+    return (size_t) size;
   }
 
   template <typename TupleType>

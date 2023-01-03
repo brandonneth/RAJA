@@ -30,7 +30,7 @@
 //
 // Tile size value must match that used in exec policy.
 //
-using TileSizes = camp::list< Value<@TILESIZE@> >;
+using TileSizes = camp::list< _Value<@TILESIZE@> >;
 
 //
 // Num reduction policies must match num exec policies.

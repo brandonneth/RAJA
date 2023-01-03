@@ -12,7 +12,7 @@
 // Value struct for manipulating tile sizes in parameterized tests.
 //
 template<int VALUE>
-struct Value {
+struct _Value {
   static constexpr int value = VALUE;
 };
 

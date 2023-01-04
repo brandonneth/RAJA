@@ -183,6 +183,7 @@ struct SymbolicBoundAdd : SymbolicBound {
   SymbolicBound *left;
   SymbolicBound * right;
 
+  SymbolicBoundAdd(SymbolicBound * l, SymbolicBound * r) : left(l), right(r) {}
   idx_t value() {
     return left->value() + right->value();
   }

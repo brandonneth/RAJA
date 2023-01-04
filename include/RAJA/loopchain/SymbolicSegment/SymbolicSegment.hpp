@@ -179,7 +179,7 @@ idx_t * currVal;
 }; //SymbolicSegment
 
 
-struct SymbolicBoundAdd {
+struct SymbolicBoundAdd : SymbolicBound {
   SymbolicBound *left;
   SymbolicBound * right;
 
@@ -200,6 +200,12 @@ struct SymbolicBoundMult : SymbolicBound {
   idx_t value() const {
     return left->value() * right->value();
   }
+
+  std::ostream& write(std::ostream & s) {
+    s << left << "*" << right;
+    return s;
+  }
+
 };
 
 

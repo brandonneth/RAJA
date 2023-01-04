@@ -116,6 +116,7 @@ struct SymbolicSegment {
   }
   
   SymbolicBound* operator * (idx_t c);
+  SymbolicBound* operator + (idx_t c);
 
   void update_offset(IndexType i) const {
 #ifdef RAJA_ENABLE_OPENMP
@@ -196,7 +197,7 @@ struct SymbolicBoundMult : SymbolicBound {
   SymbolicBound * right;
 
   SymbolicBoundMult(SymbolicBound * l, SymbolicBound * r) : left(l), right(r) {}
-  virtual idx_t value() const {
+  idx_t value() const {
     return left->value() * right->value();
   }
 };

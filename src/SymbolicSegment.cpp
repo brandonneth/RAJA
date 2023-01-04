@@ -13,6 +13,9 @@ std::ostream & SymbolicBoundSegment::write(std::ostream & s) {
 SymbolicBound * SymbolicSegment::operator * (idx_t c) {
   return new SymbolicBoundMult(new SymbolicBoundSegment(*this), new SymbolicBoundConstant(c));
 }
+SymbolicBound * SymbolicSegment::operator + (idx_t c) {
+  return new SymbolicBoundAdd(new SymbolicBoundSegment(*this), new SymbolicBoundConstant(c));
+}
 
 
 void SymbolicIter::update(Index_type i) {

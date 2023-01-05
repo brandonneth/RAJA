@@ -168,6 +168,7 @@ auto tuple_zip(camp::tuple<InnerTupleTypes...> t) {
 template <idx_t N, typename T>
 auto tuple_repeat(T element) {
   if constexpr (N <= 0) {
+    camp::sink(element); // quiets use-def warning
     return camp::tuple{};
   } else {
     return tuple_cat(camp::tuple{element}, tuple_repeat<N-1>(element));

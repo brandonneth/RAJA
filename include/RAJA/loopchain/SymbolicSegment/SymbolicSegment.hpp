@@ -44,11 +44,11 @@ struct SymbolicBoundConstant :SymbolicBound {
 };
 
 struct SymbolicBoundSegment : SymbolicBound {
-  const SymbolicSegment & seg;
+  const SymbolicSegment * seg;
 
-  SymbolicBoundSegment(const SymbolicSegment &s) : seg(s) {}
+  SymbolicBoundSegment(const SymbolicSegment &s) { seg = &s;}
 
-  virtual idx_t value() const;  
+  idx_t value() const;  
 
   std::ostream& write(std::ostream & s); 
 };
@@ -217,7 +217,7 @@ SymbolicBound * make_symbolic_bound(const SymbolicSegment &x);
 SymbolicBound * make_symbolic_bound(SymbolicBound * x);
 
 template <typename T1, typename T2>
-SymbolicSegment make_symbolic_segment(const T1 & l, const T2 r, std::string n) {
+SymbolicSegment make_symbolic_segment(const T1 & l, const T2 & r, std::string n) {
   
   SymbolicBound * low = make_symbolic_bound(l);
   SymbolicBound * high = make_symbolic_bound(r); 
@@ -225,7 +225,7 @@ SymbolicSegment make_symbolic_segment(const T1 & l, const T2 r, std::string n) {
 }
 
 template <typename T1, typename T2>
-SymbolicSegment make_symbolic_segment(const T1 & l, const T2 r) {
+SymbolicSegment make_symbolic_segment(const T1 & l, const T2 & r) {
   static int i = 0;
   i += 1; 
   SymbolicBound * low = make_symbolic_bound(l);

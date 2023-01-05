@@ -78,7 +78,6 @@ void SymSegmentTestImpl() {
   auto knl2 = make_kernel<pol2d>(make_tuple(i_seg, j1_seg), [&](auto i, auto j) {
     s << i << j;
   });
-  std::cout << "Launching kernel with two symbolic segments\n";
   knl2();
   EXPECT_STREQ(s.str().c_str(), "000102111222");
   i_seg.reset();
@@ -139,6 +138,40 @@ void SymSegmentTestImpl() {
       EXPECT_EQ(0,1) << "Access object's view reference is not a or b.";
     }
   }
+  
+
+  std::stringstream symm_correct;
+  for(int i = 0; i < N; i++) {
+    for(int j = 0; j < N; j++) {
+      for(int k = 0; k < i; k++) {
+        symm_correct << i << j << k;
+  }}}
+  auto symm_seg1 = make_symbolic_segment(0,N,"i");
+  auto symm_seg2 = make_symbolic_segment(0,N,"j");
+  auto symm_seg3 = make_symbolic_segment(0,symm_seg1,"k");
+  auto symm_segs = make_tuple(symm_seg1, symm_seg2, symm_seg3);
+  
+  using pol3d = KernelPolicy<
+    statement::For<0,loop_exec,
+      statement::For<1,loop_exec,
+        statement::For<2,loop_exec,
+          statement::Lambda<0>
+        >
+      >
+    >
+  >;
+
+  std::stringstream symm_test; 
+  auto symm_knl = make_kernel<pol3d>(symm_segs, [&](auto i, auto j, auto k) {
+    symm_test << i << j << k;
+  });
+
+  symm_knl();
+
+  EXPECT_STREQ(symm_correct.str().c_str(), symm_test.str().c_str()) << "iterations failed for i2 = 0..i0. segments: \n" <<"  " << symm_seg1 << "\n  " << symm_seg2 << "\n  " << symm_seg3 << "\n";
+
+
+  
 }
 
 TYPED_TEST_SUITE_P(SymSegmentTest);

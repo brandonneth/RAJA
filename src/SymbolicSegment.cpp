@@ -3,10 +3,10 @@
 namespace RAJA {
 
 idx_t SymbolicBoundSegment::value() const {
-    return seg.value();
+    return seg->value();
 }
 std::ostream & SymbolicBoundSegment::write(std::ostream & s) {
-  s << seg.name;
+  s << seg->name;
   return s;
 }
 

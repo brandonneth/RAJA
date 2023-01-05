@@ -28,6 +28,7 @@ template <camp::idx_t DimsLeft>
 auto layout_to_bounds_helper(std::array<camp::idx_t, DimsLeft> sizes) {
 
   if constexpr (DimsLeft == 0) {
+    camp::sink(sizes); // quiets use-def warning
     return make_tuple();
   } else {
     auto thisdim = make_tuple(RangeSegment(0,sizes[0]));

@@ -211,6 +211,7 @@ SymAccessList operator % (const SymAccessList & l0, const SymIterator & i1) {ret
 SymAccessList operator + (int scalar, const SymAccessList & l1) {return int_op_list(scalar,l1);}
 SymAccessList operator - (int scalar, const SymAccessList & l1) {return int_op_list(scalar,l1);}
 SymAccessList operator * (int scalar, const SymAccessList & l1) {return int_op_list(scalar,l1);}
+SymAccessList operator * (long int scalar, const SymAccessList & l1) {return int_op_list(scalar,l1);}
 SymAccessList operator / (int scalar, const SymAccessList & l1) {return int_op_list(scalar,l1);}
 SymAccessList operator % (int scalar, const SymAccessList & l1) {return int_op_list(scalar,l1);}
 

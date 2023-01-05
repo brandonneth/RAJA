@@ -127,12 +127,14 @@ struct KernelWrapper {
   template <typename TupleType, idx_t...Is>
   size_t calculate_iteration_space_size(TupleType segs, camp::idx_seq<Is...> seq) {
     if constexpr (sizeof...(Is) == 0) {
+      camp::sink(seq); // quiets use-def warning
       return 0;
     } else {
       using SegType = decltype(camp::get<0>(segs));
       if constexpr (std::is_same<SymbolicSegment&,SegType>::value) {
         return symbolic_size(segs, seq);
      } else {
+        camp::sink(seq); // quiets use-def warning
         return vmult(camp::get<Is>(segs).size() ...);
       }
     }

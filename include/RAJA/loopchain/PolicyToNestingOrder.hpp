@@ -22,10 +22,10 @@ struct policy_to_nesting_order_s<RAJA::KernelPolicy<InnerPolicy>> {
 
 };
 
-template <camp::idx_t NestDepth, typename ExecPolicy, typename InnerPolicy>
-struct policy_to_nesting_order_s<statement::For<NestDepth, ExecPolicy, InnerPolicy>> {
+template <camp::idx_t NestDepth, typename ExecPolicy, typename...InnerPolicy>
+struct policy_to_nesting_order_s<statement::For<NestDepth, ExecPolicy, InnerPolicy...>> {
   std::vector<camp::idx_t> operator()() {
-    std::vector<camp::idx_t> v = policy_to_nesting_order_s<InnerPolicy>{}();
+    std::vector<camp::idx_t> v = policy_to_nesting_order_s<camp::tuple<InnerPolicy...>>{}();
     v.insert(v.begin(), NestDepth);
 
     return v;
@@ -34,6 +34,13 @@ struct policy_to_nesting_order_s<statement::For<NestDepth, ExecPolicy, InnerPoli
 
 template <camp::idx_t LambdaId>
 struct policy_to_nesting_order_s<statement::Lambda<LambdaId>> {
+  auto operator()() {
+    return std::vector<camp::idx_t>{};
+  }
+};
+
+template <typename Statement1, typename...Statements>
+struct policy_to_nesting_order_s<camp::tuple<Statement1, Statements...>> {
   auto operator()() {
     return std::vector<camp::idx_t>{};
   }

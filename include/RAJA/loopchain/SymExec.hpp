@@ -464,6 +464,7 @@ SymAccessList operator % (const SymAccessList & l0, const SymIterator & i1);
 SymAccessList operator + (int scalar, const SymAccessList & l1);
 SymAccessList operator - (int scalar, const SymAccessList & l1);
 SymAccessList operator * (int scalar, const SymAccessList & l1);
+SymAccessList operator * (long int scalar, const SymAccessList & l1);
 SymAccessList operator / (int scalar, const SymAccessList & l1);
 SymAccessList operator % (int scalar, const SymAccessList & l1);
 

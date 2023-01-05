@@ -93,6 +93,7 @@ struct FormatDecisions {
       if constexpr (std::is_same<Knl,KernelType>::value) {
          return i;
       } else {
+         camp::sink(i); // quiets use-def warning
          return -1;
       }
     };

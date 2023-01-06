@@ -236,11 +236,11 @@ struct FormatDecisions {
     auto seg = RangeSegment(0,n);
     auto segs = tuple_repeat<NumDims>(seg);
     auto knl = make_kernel<kpol>(segs, l);
-    std::cout << "about to time knl for use cost\n" << std::flush;
+    //std::cout << "about to time knl for use cost\n" << std::flush;
     auto start =std::chrono::high_resolution_clock::now();
     knl();
     auto stop =std::chrono::high_resolution_clock::now();
-    std::cout << "done timing knl\n" << std::flush;
+    //std::cout << "done timing knl\n" << std::flush;
     auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
     cache[layout_order] = t;
     //std::cerr << "compcost: " << cache[layout_order] << "\n";
@@ -249,6 +249,7 @@ struct FormatDecisions {
 
   template <idx_t KnlIdx, typename ViewType>
   auto estimate_use_costs(ViewType & view) {
+    //std::cout << "estimate_use_costs\n";
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
 
@@ -256,12 +257,12 @@ struct FormatDecisions {
       return new SumExpression<NumDims>();
     } else {
       SumExpression<NumDims> * term_sum = estimate_use_costs<KnlIdx+1>(view);
-      
+      //std::cout << "starting on use costs from kernel " << KnlIdx << "\n"; 
       auto knl = get<KnlIdx>(knls);
       using KernelType = decltype(knl);    
       using KernelPolicy = typename KernelType::KPol;
       auto accesses = knl.execute_symbolically();
-    
+      //std::cout << "executed symbolically\n"; 
       for(auto access: accesses) {
         if(access.view == view.get_data()) {
           auto all_perms = enumerate_perms<NumDims>();
@@ -318,15 +319,17 @@ struct FormatDecisions {
     auto setup_start = std::chrono::high_resolution_clock::now();
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
-    
+   
+    //std::cout << "starting setup time\n"; 
     auto decision_variables = all_decision_variables<NumDims>(view_name(view), NumKernels);
 
     SumExpression<NumDims> * use_cost = estimate_use_costs<0>(view);
+    //std::cout << "done with use costs, starrting conversion costs\n";
     SumExpression<NumDims> * conversion_cost = estimate_conversion_costs(view);
     SumExpression<NumDims> * cost_function = new SumExpression<NumDims>();
     cost_function->add(use_cost);
     cost_function->add(conversion_cost);
-
+    //std::cout << "done with costs, starting on constraints\n";
     
     auto base_constraints_ = base_constraints<NumDims>(view_name(view), NumKernels); 
     auto extra_constraints = user_constraints<0>(view);
@@ -336,7 +339,7 @@ struct FormatDecisions {
     
     auto setup_stop = std::chrono::high_resolution_clock::now();
     setup_time += std::chrono::duration_cast<std::chrono::microseconds>(setup_stop - setup_start).count();
-
+    //std::cout << "done with setup, starting isl\n";
     auto isl_start = std::chrono::high_resolution_clock::now();
     
     isl_ctx * ctx = isl_ctx_alloc();
@@ -361,7 +364,7 @@ struct FormatDecisions {
 
     auto isl_stop = std::chrono::high_resolution_clock::now();
     isl_time +=  std::chrono::duration_cast<std::chrono::microseconds>(isl_stop - isl_start).count();
-
+    //std::cout << "done with isl\n";
     if(isl_point_is_void(choice)) {
       std::cerr << "No point found. Not making any modeling choices.\n";
       isl_printer * pp = isl_printer_to_file(ctx, stderr);
@@ -374,7 +377,7 @@ struct FormatDecisions {
       return false;
     } 
   
-    
+     
     int num_format_decisions = NumMoments * tgamma(NumDims+1);
     for(int i = 0; i < num_format_decisions; i++) {
       Term<NumDims> * var = decision_variables->variables.at(i);
@@ -396,7 +399,7 @@ struct FormatDecisions {
 
       }
     }
-
+    //std::cout << "leaving finalize\n";
     //isl_ctx_free(ctx); 
     return true;
   }

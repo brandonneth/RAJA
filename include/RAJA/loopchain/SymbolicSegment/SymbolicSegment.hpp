@@ -189,7 +189,7 @@ struct SymbolicBoundAdd : SymbolicBound {
   }
 
   std::ostream& write(std::ostream & s) {
-    s << left << "+" << right;
+    s << *left << "+" << *right;
     return s;
   }
 };
@@ -203,7 +203,7 @@ struct SymbolicBoundMult : SymbolicBound {
   }
 
   std::ostream& write(std::ostream & s) {
-    s << left << "*" << right;
+    s << *left << "*" << *right;
     return s;
   }
 

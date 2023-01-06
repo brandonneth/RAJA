@@ -95,13 +95,14 @@ struct KernelWrapper {
 
   template <typename TupleType, idx_t...Is>
   size_t symbolic_size(TupleType segs, camp::idx_seq<Is...>) {
+    //std::cout << "symbolic size start\n";
     std::stringstream s;
     s << "{";
     s <<  "[" << segment_names(camp::get<Is>(segs)...) << "]";
     s << " : ";
     s << segment_bounds(camp::get<Is>(segs)...);
     s << "}";
-    
+    //std::cout << "symbolic bounds expression: " << s.str() << "\n"; 
     isl_ctx * ctx = isl_ctx_alloc();
     isl_set * ispace = isl_set_read_from_str(ctx, s.str().c_str());
     isl_pw_qpolynomial * cardinality = isl_set_card(ispace);
@@ -117,6 +118,7 @@ struct KernelWrapper {
     isl_pw_qpolynomial_foreach_piece(cardinality, valueExtractor, (void*) (&size));
     isl_pw_qpolynomial_free(cardinality); 
     //isl_ctx_free(ctx);
+    //std::cout << "symbolic size end\n";
     return (size_t) size;
   }
 

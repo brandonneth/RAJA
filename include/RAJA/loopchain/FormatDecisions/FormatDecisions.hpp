@@ -166,10 +166,12 @@ struct FormatDecisions {
   auto user_constraints(ViewType & view) {
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
-    
+     
     if constexpr (CurrIdx >= NumMoments) {
+      //std::cout << "user_constarints, CurrIdx >= NumMoments: " << CurrIdx << " and " << NumMoments << "\n";
       return new EqualityConstraint<NumDims>(new Constant<NumDims>(1), new Constant<NumDims>(1));
     } else {
+      //std::cout << "user_constarints, CurrIdx < NumMoments: " << CurrIdx << " and " << NumMoments << "\n" << std::flush;
       auto next_constraint = user_constraints<CurrIdx+1>(view);
     
       if (!user_decided[CurrIdx][view_index(view)]) {
@@ -234,11 +236,11 @@ struct FormatDecisions {
     auto seg = RangeSegment(0,n);
     auto segs = tuple_repeat<NumDims>(seg);
     auto knl = make_kernel<kpol>(segs, l);
-
+    std::cout << "about to time knl for use cost\n" << std::flush;
     auto start =std::chrono::high_resolution_clock::now();
     knl();
     auto stop =std::chrono::high_resolution_clock::now();
-
+    std::cout << "done timing knl\n" << std::flush;
     auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
     cache[layout_order] = t;
     //std::cerr << "compcost: " << cache[layout_order] << "\n";
@@ -267,7 +269,17 @@ struct FormatDecisions {
             auto format_var = new FormatDecision<NumDims>(view_name(view), KnlIdx+1, perm);
           
             auto normalized_layout_perm = access.template normalized_layout_perm<KernelPolicy,NumDims>(perm);
-            //std::cerr << "estimating cost of " << format_var->rep() << "\n";
+            /*std::cerr << "estimating cost of " << format_var->rep() << "\n";
+            std::cerr << "initial perm: ";
+            for(auto i : perm) {
+              std::cerr << i << " ";
+            }
+            std::cerr << "access: " << access << "\n" << std::flush;
+            std::cerr << "\nnormalized layout perm: " ;
+            for(auto i : normalized_layout_perm) {
+              std::cerr << i << " ";
+            }
+            std::cerr << "\n" << std::flush;*/
             auto cost = estimate_use_cost<NumDims>(normalized_layout_perm);
             unsigned long coef = cost * access.numIterations;
             auto cost_term = new MultExpression<NumDims>(format_var, new Constant<NumDims>(coef));

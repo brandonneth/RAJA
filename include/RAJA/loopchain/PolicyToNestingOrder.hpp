@@ -8,47 +8,66 @@
 namespace RAJA {
 
 
-template <typename T>
+template <typename T, camp::idx_t SearchIdx>
 struct policy_to_nesting_order_s {
 
 };
 
-template <typename InnerPolicy>
-struct policy_to_nesting_order_s<RAJA::KernelPolicy<InnerPolicy>> {
+template <typename InnerPolicy, camp::idx_t SearchIdx>
+struct policy_to_nesting_order_s<RAJA::KernelPolicy<InnerPolicy>, SearchIdx> {
 
   auto operator()() {
-    return policy_to_nesting_order_s<InnerPolicy>{}();
+    return policy_to_nesting_order_s<InnerPolicy, SearchIdx>{}();
   }
 
 };
 
-template <camp::idx_t NestDepth, typename ExecPolicy, typename...InnerPolicy>
-struct policy_to_nesting_order_s<statement::For<NestDepth, ExecPolicy, InnerPolicy...>> {
+template <camp::idx_t NestDepth, typename ExecPolicy, typename...InnerPolicy, camp::idx_t SearchIdx>
+struct policy_to_nesting_order_s<statement::For<NestDepth, ExecPolicy, InnerPolicy...>, SearchIdx> {
   std::vector<camp::idx_t> operator()() {
-    std::vector<camp::idx_t> v = policy_to_nesting_order_s<camp::tuple<InnerPolicy...>>{}();
+    std::vector<camp::idx_t> v = policy_to_nesting_order_s<camp::tuple<InnerPolicy...>, SearchIdx>{}();
     v.insert(v.begin(), NestDepth);
 
     return v;
   }
 };
 
-template <camp::idx_t LambdaId>
-struct policy_to_nesting_order_s<statement::Lambda<LambdaId>> {
+template <camp::idx_t LambdaId, typename...LambdaOther, camp::idx_t SearchIdx>
+struct policy_to_nesting_order_s<statement::Lambda<LambdaId, LambdaOther...>, SearchIdx> {
   auto operator()() {
-    return std::vector<camp::idx_t>{};
+    if constexpr (LambdaId == SearchIdx) {
+      return std::vector<camp::idx_t>{};
+    } else {
+      return std::vector<camp::idx_t>{{-1}};
+    }
   }
 };
 
-template <typename Statement1, typename...Statements>
-struct policy_to_nesting_order_s<camp::tuple<Statement1, Statements...>> {
+template <typename Statement1, typename...Statements, camp::idx_t SearchIdx>
+struct policy_to_nesting_order_s<camp::tuple<Statement1, Statements...>, SearchIdx> {
   auto operator()() {
-    return std::vector<camp::idx_t>{};
+    std::vector<camp::idx_t> statement1Piece = policy_to_nesting_order_s<Statement1, SearchIdx>{}();
+    if (statement1Piece.size() == 0 || statement1Piece.back() != -1) {
+      return statement1Piece;
+    } else {
+      if constexpr (sizeof...(Statements) != 0) {
+        return policy_to_nesting_order_s<camp::tuple<Statements...>, SearchIdx>{}();
+      } else {
+        return std::vector<camp::idx_t>{{-1}};
+      }
+    }
   }
 };
+
+template <typename T, idx_t SearchIdx> 
+auto policy_to_nesting_order() {
+    return policy_to_nesting_order_s<T, SearchIdx>{}();
+}
 
 template <typename T> 
 auto policy_to_nesting_order() {
-    return policy_to_nesting_order_s<T>{}();
+    return policy_to_nesting_order<T,0>();
 }
+
 }
 #endif

@@ -2,6 +2,112 @@
 
 #include <unordered_set>
 template <typename EXEC_POLICY>
+void NestingOrderTestImpl() {
+  using namespace RAJA;
+  using pol1 = KernelPolicy<
+    statement::For<0,loop_exec,
+      statement::For<1,loop_exec,
+        statement::For<2,loop_exec,
+          statement::Lambda<0>,
+          statement::Lambda<1>
+        >,
+        statement::Lambda<2>
+      >
+    >
+  >;
+  std::vector<idx_t> correct1_0{{0,1,2}};
+  std::vector<idx_t> correct1_1 = correct1_0;
+  std::vector<idx_t> correct1_2{{0,1}};
+  auto order1_0 = policy_to_nesting_order<pol1,0>(); 
+  auto order1_1 = policy_to_nesting_order<pol1,1>(); 
+  auto order1_2 = policy_to_nesting_order<pol1,2>(); 
+
+  EXPECT_EQ(order1_0, correct1_0);
+  EXPECT_EQ(order1_1, correct1_1);
+  EXPECT_EQ(order1_1, correct1_1);
+
+  using pol2 = KernelPolicy<
+    statement::For<2,loop_exec,
+      statement::For<0,loop_exec,
+        statement::Lambda<0>
+      >,
+      statement::For<1,loop_exec,
+        statement::Lambda<1>
+      >,
+      statement::For<0,loop_exec,
+        statement::Lambda<2>
+      >
+    >
+  >;
+  std::vector<idx_t> correct2_0{{2,0}};
+  std::vector<idx_t> correct2_1{{2,1}};
+  std::vector<idx_t> correct2_2{{2,0}};
+  auto order2_0 = policy_to_nesting_order<pol2,0>(); 
+  auto order2_1 = policy_to_nesting_order<pol2,1>(); 
+  auto order2_2 = policy_to_nesting_order<pol2,2>(); 
+
+  EXPECT_EQ(order2_0, correct2_0);
+  EXPECT_EQ(order2_1, correct2_1);
+  EXPECT_EQ(order2_1, correct2_1);
+
+}
+template <typename EXEC_POLICY>
+void ImperfectILPModelTestImpl() {
+  using namespace RAJA;
+  using MEANPOL = KernelPolicy<
+        statement::For<0, omp_parallel_for_exec,
+          statement::Lambda<0, Segs<0>>,
+          statement::For<1, loop_exec,
+            statement::Lambda<1, Segs<0,1>>
+          >,
+          statement::Lambda<2, Segs<0>>
+        >
+      >;
+  std::array<RAJA::idx_t, 2> perm_01 {{0,1}};
+  std::array<RAJA::idx_t, 2> perm_10 {{1,0}};
+  std::array<RAJA::idx_t, 1> perm_0 {{0}};
+
+  using VIEW2 = RAJA::View<double, RAJA::Layout<2,RAJA::idx_t>>;
+  using VIEW1 = RAJA::View<double, RAJA::Layout<1,RAJA::idx_t>>;
+
+  idx_t ni = 10;
+  idx_t nj = 7;
+
+  double * _mean = new double[ni];
+  double * _data = new double[ni*nj];
+  VIEW1 mean(_mean, make_permuted_layout({{nj}}, perm_0));
+  VIEW2 data(_data, make_permuted_layout({{ni,nj}}, perm_01));
+  
+  for(int i = 0; i < ni; i++) {
+    for(int j = 0; j < nj; j++) {
+      data(i,j) = j;
+    }
+  } 
+  
+  auto correlation_lam1 = [&](auto j) {mean(j) = 0.0;};
+
+  auto correlation_lam2 = [&](auto j, auto i) { mean(j) += data(i,j);  };
+
+  auto correlation_lam3 = [&](auto j) {mean(j) /= ni;}; 
+        
+  auto mean_segs = make_tuple(RangeSegment(0,nj), RangeSegment(0,ni));
+  auto mean_knl = make_kernel<MEANPOL>(mean_segs, correlation_lam1, correlation_lam2, correlation_lam3);
+
+  auto dec1 = format_decisions(tie(data), mean_knl);
+  
+  std::cout << "finalizing view\n";
+  dec1.finalize_view(data);
+
+  std::cerr << "calling finalize\n";
+  auto comp1 = dec1.finalize();
+
+  comp1();
+ 
+  EXPECT_EQ(mean(0), 0);
+ 
+}
+
+template <typename EXEC_POLICY>
 void ILPModelTestImpl() {
   
   //permute_view
@@ -50,11 +156,11 @@ void ILPModelTestImpl() {
   auto knl2 = make_kernel<KPOL>(segs, [&](auto i, auto j) {v2(i,j) = v1(i,j) * 2;});
 
   auto choices1 = format_decisions(tie(v1), knl1);
-
+  std::cout << "made choices1\n";
   //testing representation for various components
   auto formatVariable = new FormatDecision<2>("view", 0, perm_01);
   EXPECT_EQ(formatVariable->rep(), "view_comp0_0_1");
-
+  
   auto termList = new TermList<2>();
   termList->add(formatVariable);
   EXPECT_EQ(termList->rep(), "[ view_comp0_0_1 ]");
@@ -83,7 +189,7 @@ void ILPModelTestImpl() {
     std::string r = v->rep();
     EXPECT_EQ(expectedVars.count(r), 1) << "failed for variable " << r;
   }
-  
+  std::cout << "testing modelVars and expectedVars\n";
   //make sure that something gets chosen.
 
   using VIEW = View<double, Layout<2>>;
@@ -169,18 +275,20 @@ void ILPModelTestImpl() {
   auto dec = format_decisions(tie(B, D, F), init_e, comp1, init_f, comp2, init_g, comp3);
   
   dec.set_format_for(B, blayout, comp1);
-  dec.set_format_for(D, blayout, comp2);
+  dec.set_format_for(D, dlayout, comp2);
   dec.set_format_for(F, flayout01, init_f);
   dec.set_format_for(F, flayout10, comp3);
-  
+  std::cout << "set the variables for the 3mm situation\n"; 
   auto decision_variables = all_decision_variables<2>(dec.view_name(B), 6);
-
+  std::cout << "created the decision variable list\n";
   SumExpression<2> * use_cost = dec.template estimate_use_costs<0>(B);
+  std::cout << "created use costs\n" << std::flush;
   SumExpression<2> * conversion_cost = dec.template estimate_conversion_costs(B);
+  std::cout << "created use and conversion costs\n";
   SumExpression<2> * cost_function = new SumExpression<2>();
   cost_function->add(use_cost);
   cost_function->add(conversion_cost);
-
+  std::cout << "created and added to the cost function\n";
   auto base_constraints_ = base_constraints<2>(dec.view_name(B), 6); 
   auto extra_constraints = dec.template user_constraints<0>(B);
   auto all_constraints = new AndConstraint<2>(base_constraints_, extra_constraints);
@@ -188,13 +296,14 @@ void ILPModelTestImpl() {
   isl_ctx * ctx2 = isl_ctx_alloc();
 
   isl_union_set * all_choices = decision_space(ctx2, decision_variables, all_constraints);
+  std::cout << "created the decision space\n";
   EXPECT_FALSE(isl_union_set_is_empty(all_choices)) << "No elements in the choices set.\n";
-  
+  std::cout << "tested all_choices\n";
   isl_union_pw_qpolynomial * polynomial = objective_function(ctx2, decision_variables, cost_function);
   isl_point * choice = dec.find_best_choice(all_choices, polynomial);
-
+  std::cout << "tested polynomial\n";
   EXPECT_FALSE(isl_point_is_void(choice)) << "Objective function did not generate any point.\n";
-
+  std::cout << "finished the first ilpmodel test function\n";
 }
 
 TYPED_TEST_SUITE_P(ILPModelTest);
@@ -207,8 +316,10 @@ TYPED_TEST_P(ILPModelTest, FormatDecisions)
 {
   using EXEC_POLICY = typename camp::at<TypeParam, camp::num<0>>::type;
 
+  NestingOrderTestImpl<EXEC_POLICY>();
   ILPModelTestImpl<EXEC_POLICY>();
-
+  
+  ImperfectILPModelTestImpl<EXEC_POLICY>();
 }
 
 REGISTER_TYPED_TEST_SUITE_P(ILPModelTest, FormatDecisions);

@@ -226,9 +226,9 @@ struct SymAccess {
     return argument_indices;
   }
 
-  template <typename KernelPolicy, camp::idx_t ViewDims>
+  template <typename KernelPolicy, camp::idx_t ViewDims, camp::idx_t SearchIdx>
   auto normalized_layout_perm(std::array<camp::idx_t, ViewDims> layout_perm) {
-    auto policy_order = policy_to_nesting_order<KernelPolicy>();
+    auto policy_order = policy_to_nesting_order<KernelPolicy, SearchIdx>();
     //std::cerr << "policy to nesting order: ";
     //for(auto i : policy_order) { std::cerr << i << " ";}
     //std::cerr << "\n" << std::flush;

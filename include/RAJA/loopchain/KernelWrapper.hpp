@@ -39,7 +39,7 @@ template <typename KernelPol, typename SegmentTuple, typename... Bodies>
 struct KernelWrapper {
   using KPol = KernelPol;
   using BodyTuple = camp::tuple<Bodies...>;
-
+  
   //these fields come from the kernel function
   const SegmentTuple segments;
   const BodyTuple bodies;
@@ -50,7 +50,7 @@ struct KernelWrapper {
   std::vector<camp::idx_t> tileSizes;
   std::vector<SymAccess> accesses;
   static constexpr int numArgs = camp::tuple_size<SegmentTuple>::value;
-
+  static constexpr int NumLambdas = sizeof...(Bodies);
   KernelWrapper(SegmentTuple  _segments, const Bodies&... _bodies) : 
     segments(_segments), bodies(_bodies...) {
      overlapAmounts = std::vector<camp::idx_t>();
@@ -195,7 +195,7 @@ struct KernelWrapper {
     return accesses;
   }  
 
-  template <typename CurrTupleType, typename FullTupleType, idx_t I, typename ExecPol, typename...NestedPol>
+  template <idx_t SearchIdx, typename CurrTupleType, typename FullTupleType, idx_t I, typename ExecPol, typename...NestedPol>
   std::vector<SymAccess> es_traverse(const CurrTupleType, FullTupleType fullTuple, statement::For<I,ExecPol,NestedPol...>) {
 
     //expand the current tuple
@@ -205,52 +205,49 @@ struct KernelWrapper {
  
     //recurse
     auto policyTuple = make_tuple(NestedPol{}...);
-    return es_traverse(newTuple, fullTuple, policyTuple);
+    return es_traverse<SearchIdx>(newTuple, fullTuple, policyTuple);
   }
 
-  template <typename CurrTupleType, typename FullTupleType, typename Pol1, typename...NestedPol>
+  template <idx_t SearchIdx, typename CurrTupleType, typename FullTupleType, typename Pol1, typename...NestedPol>
   std::vector<SymAccess> es_traverse(CurrTupleType currTuple, FullTupleType fullTuple, camp::tuple<Pol1, NestedPol...> ) {
     
     //execute the first one
-    std::vector<SymAccess> accesses = es_traverse(currTuple, fullTuple, Pol1{});
+    std::vector<SymAccess> accesses = es_traverse<SearchIdx>(currTuple, fullTuple, Pol1{});
     //recurse
     if constexpr (sizeof...(NestedPol)) {
-      std::vector<SymAccess> moreAccesses = es_traverse(currTuple, fullTuple, make_tuple(NestedPol{}...));
+      std::vector<SymAccess> moreAccesses = es_traverse<SearchIdx>(currTuple, fullTuple, make_tuple(NestedPol{}...));
       mergeVectors(accesses, moreAccesses);
       
     }
     return accesses;
   }
 
-  template <typename CurrTupleType, typename FullTupleType, idx_t LamNum, typename...LamDetails>
+  template <idx_t SearchIdx, typename CurrTupleType, typename FullTupleType, idx_t LamNum, typename...LamDetails>
   std::vector<SymAccess> es_traverse(CurrTupleType currTuple, FullTupleType, statement::Lambda<LamNum,LamDetails...> ) {
-    return es_helper(camp::get<LamNum>(bodies), currTuple, idx_seq_for(currTuple));
+    if constexpr (SearchIdx == -1 || LamNum == SearchIdx) {
+      return es_helper(camp::get<LamNum>(bodies), currTuple, idx_seq_for(currTuple));
+    } else {
+      return std::vector<SymAccess>{};
+    }
   }
 
-  template <typename CurrTupleType, typename FullTupleType, typename Statement, typename...Statements>
+  template <idx_t SearchIdx, typename CurrTupleType, typename FullTupleType, typename Statement, typename...Statements>
   std::vector<SymAccess> es_traverse(CurrTupleType currTuple, FullTupleType fullTuple, camp::list<Statement, Statements...>) {
-    return es_traverse(currTuple, fullTuple, make_tuple(Statement{}, Statements{}...));
+    return es_traverse<SearchIdx>(currTuple, fullTuple, make_tuple(Statement{}, Statements{}...));
   }
 
-
-
+  
+  template <idx_t LambdaIdx = -1>
   std::vector<SymAccess> execute_symbolically() {
-    return _execute_symbolically();
-    //return accesses;
-  }
-  std::vector<SymAccess> _execute_symbolically() {
-    
     
     auto iterators = make_iterator_tuple(camp::make_idx_seq_t<numArgs>());
-
-    return es_traverse(make_tuple(), iterators, KPol{});
-    
-    auto _accesses = collect_accesses_from_iterators(iterators, camp::make_idx_seq_t<numArgs>());
-    auto accesses = std::vector<SymAccess>();
-
-    
-    return accesses;
+    return es_traverse<LambdaIdx>(make_tuple(), iterators, KPol{});
   }
+
+  /*std::vector<SymAccess> execute_symbolically() {
+    auto iterators = make_iterator_tuple(camp::make_idx_seq_t<numArgs>());
+    return es_traverse<-1>(make_tuple(), iterators, KPol{});
+  }*/
 
   // Traditional execution. For normal kernels, this resolves to a call to kernel.
   // If the tile sizes or overlap tile amounts are specified at runtime,

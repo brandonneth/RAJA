@@ -247,6 +247,52 @@ struct FormatDecisions {
     return cache[layout_order];
   }
 
+  template <idx_t KnlIdx, typename ViewType, idx_t LambdaIdx>
+  auto estimate_use_costs_by_lambda(ViewType & view) {
+    using LayoutType = typename ViewType::layout_type;
+    constexpr camp::idx_t NumDims = LayoutType().n_dims;
+    
+    auto knl = get<KnlIdx>(knls);
+    using KernelType = decltype(knl);   
+    using KernelPolicy = typename KernelType::KPol;
+    constexpr size_t NumLambdas = knl.NumLambdas;
+    
+    auto all_perms = enumerate_perms<NumDims>();
+    if constexpr (LambdaIdx >= NumLambdas) {
+      return new SumExpression<NumDims>();
+    } else {
+      SumExpression<NumDims> * term_sum = estimate_use_costs_by_lambda<KnlIdx, ViewType, LambdaIdx+1>(view);
+      //std::cout << "estimate_use_costs_by_lambda<" << KnlIdx << ",_," << LambdaIdx << ">\n";
+      auto accesses = knl. template execute_symbolically<LambdaIdx>();
+      for(auto access : accesses) {
+
+        if(!access.is_view(view)) {continue;}
+        
+        //std::cerr << "\n" << "access: " << access << "\n" << std::flush;
+
+        for(auto perm : all_perms) {
+          //std::cerr << "initial perm: ";
+          //for(auto i : perm) {std::cerr << i << " ";}
+          //std::cerr << "\n" << std::flush; 
+
+          auto format_var = new FormatDecision<NumDims>(view_name(view), KnlIdx+1, perm);
+          //std::cerr << "estimating cost of " << format_var->rep() << "\n";
+          
+          auto normalized_layout_perm = access.template normalized_layout_perm<KernelPolicy,NumDims,LambdaIdx>(perm);
+          //std::cerr << "normalized layout perm: " ;
+          //for(auto i : normalized_layout_perm) {std::cerr << i << " ";}
+          //std::cerr << "\n" << std::flush;
+
+          auto cost = estimate_use_cost<NumDims>(normalized_layout_perm);
+          unsigned long coef = cost * access.numIterations;
+          auto cost_term = new MultExpression<NumDims>(format_var, new Constant<NumDims>(coef));
+          term_sum->add(cost_term);
+        }
+      }
+      return term_sum; 
+    }
+  }
+  
   template <idx_t KnlIdx, typename ViewType>
   auto estimate_use_costs(ViewType & view) {
     //std::cout << "estimate_use_costs\n";
@@ -256,41 +302,14 @@ struct FormatDecisions {
     if constexpr (KnlIdx >= NumKernels) {
       return new SumExpression<NumDims>();
     } else {
+
       SumExpression<NumDims> * term_sum = estimate_use_costs<KnlIdx+1>(view);
-      //std::cout << "starting on use costs from kernel " << KnlIdx << "\n"; 
-      auto knl = get<KnlIdx>(knls);
-      using KernelType = decltype(knl);    
-      using KernelPolicy = typename KernelType::KPol;
-      auto accesses = knl.execute_symbolically();
-      //std::cout << "executed symbolically\n"; 
-      for(auto access: accesses) {
-        if(access.view == view.get_data()) {
-          auto all_perms = enumerate_perms<NumDims>();
-          for (auto perm : all_perms) {
-            auto format_var = new FormatDecision<NumDims>(view_name(view), KnlIdx+1, perm);
-          
-            auto normalized_layout_perm = access.template normalized_layout_perm<KernelPolicy,NumDims>(perm);
-            /*std::cerr << "estimating cost of " << format_var->rep() << "\n";
-            std::cerr << "initial perm: ";
-            for(auto i : perm) {
-              std::cerr << i << " ";
-            }
-            std::cerr << "access: " << access << "\n" << std::flush;
-            std::cerr << "\nnormalized layout perm: " ;
-            for(auto i : normalized_layout_perm) {
-              std::cerr << i << " ";
-            }
-            std::cerr << "\n" << std::flush;*/
-            auto cost = estimate_use_cost<NumDims>(normalized_layout_perm);
-            unsigned long coef = cost * access.numIterations;
-            auto cost_term = new MultExpression<NumDims>(format_var, new Constant<NumDims>(coef));
-            term_sum->add(cost_term);
-          }
-        }
-      } 
+      auto costs_by_lambda = estimate_use_costs_by_lambda<KnlIdx, ViewType, 0>(view);
+      term_sum->add(costs_by_lambda);
       return term_sum;
     }
   }
+
   template <typename ViewType>
   auto estimate_conversion_costs(ViewType & view) {
     using LayoutType = typename ViewType::layout_type;
@@ -316,13 +335,14 @@ struct FormatDecisions {
   }
   template <typename ViewType>
   auto finalize_view(ViewType & view) {
+    //std::cout << "finalize_view\n";
     auto setup_start = std::chrono::high_resolution_clock::now();
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
    
-    //std::cout << "starting setup time\n"; 
+    //std::cout << "creating decision variables\n"; 
     auto decision_variables = all_decision_variables<NumDims>(view_name(view), NumKernels);
-
+    //std::cout << "estimating costs.\n";
     SumExpression<NumDims> * use_cost = estimate_use_costs<0>(view);
     //std::cout << "done with use costs, starrting conversion costs\n";
     SumExpression<NumDims> * conversion_cost = estimate_conversion_costs(view);

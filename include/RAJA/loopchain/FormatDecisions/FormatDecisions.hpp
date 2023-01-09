@@ -347,8 +347,11 @@ struct FormatDecisions {
     //std::cout << "done with use costs, starrting conversion costs\n";
     SumExpression<NumDims> * conversion_cost = estimate_conversion_costs(view);
     SumExpression<NumDims> * cost_function = new SumExpression<NumDims>();
+    //std::cout << "cost function without use or conversion costs added: " << cost_function->rep() << "\n" << std::flush;
     cost_function->add(use_cost);
     cost_function->add(conversion_cost);
+    //std::cout << "use costs: " << use_cost->rep() << "\n" << std::flush;
+    //std::cout << "conversion costs: " << conversion_cost->rep() << "\n" << std::flush; 
     //std::cout << "done with costs, starting on constraints\n";
     
     auto base_constraints_ = base_constraints<NumDims>(view_name(view), NumKernels); 
@@ -369,19 +372,19 @@ struct FormatDecisions {
     isl_union_set * all_choices = decision_space(ctx, decision_variables, all_constraints);
     auto space_stop = std::chrono::high_resolution_clock::now();
     space_time += std::chrono::duration_cast<std::chrono::microseconds>(space_stop - space_start).count();
-    
+    //std::cout << "created space\n"; 
     auto map_start = std::chrono::high_resolution_clock::now();
     isl_union_pw_qpolynomial * polynomial = objective_function(ctx, decision_variables, cost_function);
     auto map_stop = std::chrono::high_resolution_clock::now();
     map_time += std::chrono::duration_cast<std::chrono::microseconds>(map_stop - map_start).count();
-
+    //std::cout << "created polynomial\n";
     
 
     auto solve_start = std::chrono::high_resolution_clock::now();
     isl_point * choice = find_best_choice(all_choices, polynomial);
     auto solve_stop = std::chrono::high_resolution_clock::now();
     solve_time += std::chrono::duration_cast<std::chrono::microseconds>(solve_stop - solve_start).count();
-
+    //std::cout << "found best choice\n";
     auto isl_stop = std::chrono::high_resolution_clock::now();
     isl_time +=  std::chrono::duration_cast<std::chrono::microseconds>(isl_stop - isl_start).count();
     //std::cout << "done with isl\n";

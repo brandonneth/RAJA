@@ -26,7 +26,9 @@ template <camp::idx_t NumDims>
 isl_union_pw_qpolynomial * objective_function(isl_ctx * ctx, TermList<NumDims> * vars, Expression<NumDims> * cost_expression) {
 
   std::stringstream s; 
-
+  //std::cout << "objective_function.\n" << std::flush;
+  //std::cout << "variables: " << vars->rep() << "\n" << std::flush ;
+  //std::cout << "costs: " << cost_expression->rep() << "\n" << std::flush ;
   s << "{" << vars->rep() << " -> " << cost_expression->rep() << "}";
   isl_union_pw_qpolynomial * map = isl_union_pw_qpolynomial_read_from_str(ctx, s.str().c_str());
 

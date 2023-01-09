@@ -234,7 +234,23 @@ SymbolicSegment make_symbolic_segment(const T1 & l, const T2 & r) {
   name << "tmpname" << i;
   return SymbolicSegment(low,high,name.str());
 }
-} //namespace RAJA
+
+template <typename SegType>
+bool reset_symbolic_segment(SegType & seg) {
+  if constexpr (std::is_same<SegType, SymbolicSegment>::value) {
+    seg.reset();
+  }  
+    return true;
+}
+template <typename... Segs>
+void reset_symbolic_segments(camp::tuple<Segs...> segs) {
+  reset_symbolic_segments(segs, idx_seq_for(segs));
+}
+template <typename T, idx_t...Is>
+void reset_symbolic_segments(T segs, camp::idx_seq<Is...>) {
+  camp::sink(reset_symbolic_segment(camp::get<Is>(segs))...);
+}
+} //namespace RAJ
 
 template <>
 struct std::iterator_traits<RAJA::SymbolicIter> {

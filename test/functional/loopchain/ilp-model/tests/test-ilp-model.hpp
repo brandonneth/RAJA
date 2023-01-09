@@ -76,35 +76,105 @@ void ImperfectILPModelTestImpl() {
   double * _mean = new double[ni];
   double * _data = new double[ni*nj];
   VIEW1 mean(_mean, make_permuted_layout({{nj}}, perm_0));
+  VIEW1 stddev(new double[nj], make_permuted_layout({{nj}}, perm_0));
   VIEW2 data(_data, make_permuted_layout({{ni,nj}}, perm_01));
-  
+   RAJA::View<Real_type, RAJA::Layout<2>> corr(new double[nj*nj], nj, nj);\
   for(int i = 0; i < ni; i++) {
     for(int j = 0; j < nj; j++) {
       data(i,j) = j;
     }
   } 
-  
-  auto correlation_lam1 = [&](auto j) {mean(j) = 0.0;};
 
-  auto correlation_lam2 = [&](auto j, auto i) { mean(j) += data(i,j);  };
 
-  auto correlation_lam3 = [&](auto j) {mean(j) /= ni;}; 
-        
-  auto mean_segs = make_tuple(RangeSegment(0,nj), RangeSegment(0,ni));
-  auto mean_knl = make_kernel<MEANPOL>(mean_segs, correlation_lam1, correlation_lam2, correlation_lam3);
+      auto correlation_lam1 = [&](auto j) {mean(j) = 0.0;};
 
-  auto dec1 = format_decisions(tie(data), mean_knl);
-  
-  std::cout << "finalizing view\n";
-  dec1.finalize_view(data);
+      auto correlation_lam2 = [&](auto j, auto i) { mean(j) += data(i,j);  };
 
-  std::cerr << "calling finalize\n";
-  auto comp1 = dec1.finalize();
+      auto correlation_lam3 = [&](auto j) {mean(j) /= ni;};
 
-  comp1();
- 
-  EXPECT_EQ(mean(0), 0);
- 
+      auto correlation_lam4 = [&](auto j) {stddev(j) = 0.0;};
+
+      auto correlation_lam5 = [&](auto j, auto i) { stddev(j) += (data(i,j) - mean(j)) * (data(i,j) - mean(j));  };
+
+      auto correlation_lam6 = [&](auto j) {
+        stddev(j) /= ni;
+        stddev(j) = std::sqrt(stddev(j));
+        stddev(j) = stddev(j) <= 0.001 ? 1.0 : stddev(j);
+      };
+
+      auto correlation_lam7 = [&](auto i, auto j) {
+        data(i,j) -= mean(j);
+        data(i,j) /= ni * stddev(j);
+      };
+
+      auto correlation_lam8 = [&](auto i0) {
+         corr(i0,i0) = 1.0;
+      };
+
+      auto correlation_lam9 = [&](auto i0, auto i1) {
+         corr(i0,i1) = 0.0;
+      };
+
+      auto correlation_lam10 = [&](auto i, auto j, auto k) {
+         corr(i,j) += data(k,i) * data(k,j);
+      };
+
+      auto correlation_lam11 = [&](auto i, auto j) {
+        corr(j,i) = corr(i,j);
+      };
+
+      using MEANPOL = KernelPolicy<
+        statement::For<0, omp_parallel_for_exec,
+          statement::Lambda<0, Segs<0>>,
+          statement::For<1, loop_exec,
+            statement::Lambda<1, Segs<0,1>>
+          >,
+          statement::Lambda<2, Segs<0>>
+        >
+      >;
+      auto mean_segs = make_tuple(RangeSegment(0,nj), RangeSegment(0,ni));
+      auto mean_knl = make_kernel<MEANPOL>(mean_segs, correlation_lam1, correlation_lam2, correlation_lam3);
+      using DEVPOL=MEANPOL;
+      auto dev_segs = make_tuple(RangeSegment(0,nj), RangeSegment(0,ni));
+      auto dev_knl = make_kernel<DEVPOL>(dev_segs, correlation_lam4, correlation_lam5, correlation_lam6);
+
+      using CENTERPOL = KernelPolicy<
+        statement::For<0,omp_parallel_for_exec,
+          statement::For<1,loop_exec,
+            statement::Lambda<0>
+          >
+        >
+      >;
+      auto centersegs = make_tuple(RangeSegment(0,ni), RangeSegment(0,nj));
+      auto center_knl = make_kernel<CENTERPOL>(centersegs, correlation_lam7);
+       using CALCPOL = KernelPolicy<
+        statement::For<0,loop_exec,
+          statement::Lambda<0,Segs<0>>,
+          statement::For<1, loop_exec,
+            statement::Lambda<1,Segs<0,1>>,
+            statement::For<2,loop_exec,
+              statement::Lambda<2,Segs<0,1,2>>
+            >,
+            statement::Lambda<3,Segs<0,1>>
+          >
+        >
+      >;
+      auto calc_seg1 = make_symbolic_segment(0,nj-1);
+      auto calc_seg2 = make_symbolic_segment(calc_seg1 + 1, nj);
+      auto calc_seg3 = make_symbolic_segment(0,ni);
+      auto calc_segs = make_tuple(calc_seg1, calc_seg2, calc_seg3);
+      auto calc_knl = make_kernel<CALCPOL>(calc_segs, correlation_lam8, correlation_lam9, correlation_lam10, correlation_lam11);
+
+
+
+     auto dec = format_decisions(tie(data), mean_knl, dev_knl, center_knl, calc_knl);
+      auto comp = dec.finalize();
+
+   std::cout << "finalized computation for correlation: ";
+   dec.print_to_stream(std::cout);
+   std::cout << "\n";
+   comp();
+
 }
 
 template <typename EXEC_POLICY>

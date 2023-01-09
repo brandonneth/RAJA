@@ -5,6 +5,7 @@
 
 #include "RAJA/config.hpp"
 #include "RAJA/loopchain/SymExec.hpp"
+#include "RAJA/loopchain/SymbolicSegment/SymbolicSegment.hpp"
 #include "RAJA/pattern/kernel.hpp"
 
 #include "RAJA/pattern/kernel/TiledLambda.hpp"
@@ -286,6 +287,8 @@ struct KernelWrapper {
     } else {
       RAJA::kernel<KernelPol>(segments, camp::get<Is>(bodies)...);
     }
+
+    reset_symbolic_segments(segments);
 
   } //execute
   

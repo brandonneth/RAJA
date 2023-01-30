@@ -24,7 +24,7 @@ struct FormatDecisions {
   constexpr static idx_t NumViews = sizeof...(ViewRefs);
   constexpr static idx_t NumKernels = camp::tuple_size<KernelTuple>::value;
   constexpr static idx_t NumMoments = NumKernels + 2;
-  constexpr static idx_t MINDIMSIZE=64;
+  constexpr static idx_t MINDIMSIZE=65;
   using LayoutTupleType =
       tuple<typename std::remove_reference<ViewRefs>::type::layout_type...>;
 
@@ -315,13 +315,7 @@ struct FormatDecisions {
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
 
-    auto layout = view.get_layout();
-    for(int i = 0; i < NumDims; i++) {
-      if (layout.sizes[i] < MINDIMSIZE) {
-        return false;
-      }
-    }
-
+    
     auto conversion_costs = new SumExpression<NumDims>();
 
     const std::vector<std::array<camp::idx_t, NumDims>> all_perms = enumerate_perms<NumDims>();
@@ -346,7 +340,13 @@ struct FormatDecisions {
     auto setup_start = std::chrono::high_resolution_clock::now();
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
-   
+    auto layout = view.get_layout();
+    for(int i = 0; i < NumDims; i++) {
+      if (layout.sizes[i] < MINDIMSIZE) {
+        return false;
+      }
+    }
+
     //std::cout << "creating decision variables\n"; 
     auto decision_variables = all_decision_variables<NumDims>(view_name(view), NumKernels);
     //std::cout << "estimating costs.\n";

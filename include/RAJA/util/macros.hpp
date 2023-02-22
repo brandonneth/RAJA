@@ -9,7 +9,7 @@
  */
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-// Copyright (c) 2016-22, Lawrence Livermore National Security, LLC
+// Copyright (c) 2016-23, Lawrence Livermore National Security, LLC
 // and RAJA project contributors. See the RAJA/LICENSE file for details.
 //
 // SPDX-License-Identifier: (BSD-3-Clause)
@@ -36,7 +36,7 @@
 #if (defined(RAJA_ENABLE_CUDA) && defined(__CUDA_ARCH__)) \
   || (defined(RAJA_ENABLE_HIP) && defined(__HIP_DEVICE_COMPILE__)) \
   || (defined(RAJA_ENABLE_SYCL) && defined(__SYCL_DEVICE_ONLY__))
-#define RAJA_DEVICE_CODE
+#define RAJA_GPU_DEVICE_COMPILE_PASS_ACTIVE
 #endif
 
 #if defined(RAJA_ENABLE_CUDA) && defined(__CUDACC__)

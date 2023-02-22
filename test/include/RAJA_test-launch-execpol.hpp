@@ -1,16 +1,16 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-// Copyright (c) 2016-22, Lawrence Livermore National Security, LLC
+// Copyright (c) 2016-23, Lawrence Livermore National Security, LLC
 // and RAJA project contributors. See the RAJA/LICENSE file for details.
 //
 // SPDX-License-Identifier: (BSD-3-Clause)
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 
 //
-// Execution policy lists used throughout teams tests
+// Execution policy lists used throughout launch tests
 //
 
-#ifndef __RAJA_test_teams_execpol_HPP__
-#define __RAJA_test_teams_execpol_HPP__
+#ifndef __RAJA_test_launch_execpol_HPP__
+#define __RAJA_test_launch_execpol_HPP__
 
 #include "RAJA/RAJA.hpp"
 #include "camp/list.hpp"
@@ -28,7 +28,7 @@ using Sequential_launch_policies = camp::list<
 #if defined(RAJA_ENABLE_OPENMP)
 using omp_policies = camp::list<
          RAJA::LaunchPolicy<RAJA::omp_launch_t>,
-         RAJA::LoopPolicy<RAJA::omp_parallel_for_exec>  
+         RAJA::LoopPolicy<RAJA::omp_for_exec>
   >;
 
 using OpenMP_launch_policies = camp::list<
@@ -65,4 +65,4 @@ using Hip_launch_policies = camp::list<
 #endif // RAJA_ENABLE_HIP
 
 
-#endif  // __RAJA_test_teams_execpol_HPP__
+#endif  // __RAJA_test_launch_execpol_HPP__

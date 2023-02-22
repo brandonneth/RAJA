@@ -1,5 +1,5 @@
 [comment]: # (#################################################################)
-[comment]: # (Copyright 2016-22, Lawrence Livermore National Security, LLC)
+[comment]: # (Copyright 2016-23, Lawrence Livermore National Security, LLC)
 [comment]: # (and RAJA project contributors. See the RAJA/LICENSE file)
 [comment]: # (for details.)
 [comment]: # 
@@ -19,6 +19,13 @@ Notable changes include:
 
   * Bug fixes/improvements:
 
+Version 2022.10.4 -- Release date 2022-12-14
+============================================
+
+This release fixes an issue that was found after the v2022.10.3 release.
+
+  * Fixes device alignment bug in workgroups which led to missing symbol errors
+    with the AMD clang compiler.
 
 Version 2022.10.3 -- Release date 2022-12-01
 ============================================

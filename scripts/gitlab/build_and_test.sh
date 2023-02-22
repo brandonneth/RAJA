@@ -7,7 +7,7 @@ then
 fi
 
 ###############################################################################
-# Copyright (c) 2016-22, Lawrence Livermore National Security, LLC and RAJA
+# Copyright (c) 2016-23, Lawrence Livermore National Security, LLC and RAJA
 # project contributors. See the RAJA/LICENSE file for details.
 #
 # SPDX-License-Identifier: (BSD-3-Clause)
@@ -145,7 +145,7 @@ then
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
     # Map CPU core allocations
-    declare -A core_counts=(["lassen"]=40 ["ruby"]=28 ["corona"]=32 ["rzansel"]=48)
+    declare -A core_counts=(["lassen"]=40 ["ruby"]=28 ["corona"]=32 ["rzansel"]=48 ["tioga"]=32)
 
     # If building, then delete everything first
     # NOTE: 'cmake --build . -j core_counts' attempts to reduce individual build resources.
@@ -156,7 +156,7 @@ then
 
     date
 
-    if [[ "${truehostname}" == "corona" ]]
+    if [[ "${truehostname}" == "corona" || "${truehostname}" == "tioga" ]]
     then
         module unload rocm
     fi

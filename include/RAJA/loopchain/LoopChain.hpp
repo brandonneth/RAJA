@@ -29,6 +29,8 @@
 #include "RAJA/loopchain/FormatDecisions/FormatDecisions.hpp"
 
 #include "RAJA/loopchain/SymbolicSegment/SymbolicSegment.hpp"
+
+#include "RAJA/loopchain/Sparse/SparseView.hpp"
 namespace RAJA
 {
 

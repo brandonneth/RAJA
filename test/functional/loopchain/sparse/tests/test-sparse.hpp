@@ -4,28 +4,46 @@
 
 
 template <typename T>
-RAJA::SparseView<2,T> make_random_sparse_view2(camp::idx_t Ni, camp::idx_t Nj, size_t perRowL, size_t perRowH ) {
+RAJA::SparseView<T,2> make_random_sparse_view2(camp::idx_t Ni, camp::idx_t Nj, size_t perRowL, size_t perRowH ) {
   using namespace RAJA;
-  std::vector<camp::idx_t> row, col;
+  std::vector<camp::idx_t> row;
+  std::vector<camp::idx_t> col;
+
+  //create a vector that we'll shuffle to use fill each row's entries
+ 
+  auto fullCol = std::vector<camp::idx_t>(Nj);
+  for(idx_t i = 0; i < Nj; i++) {fullCol[i] = i;}
+
   for(idx_t i = 0; i < Ni; i++) {
     //for each row, how many elements?
     auto numInRow = rand() % (perRowH-perRowL) + perRowL;
     auto thisRow = std::vector<camp::idx_t>(numInRow, i);
-    auto thisCol = std::vector<camp::idx_t>(numInRow);
-    for(size_t j = 0; j < numInRow; j++) {
-      thisCol[j] = rand() % Nj;
-    }
+    
+    std::random_shuffle(fullCol.begin(), fullCol.end());
+    auto thisCol = std::vector<camp::idx_t>(fullCol.begin(), fullCol.begin() + numInRow);
+
+    std::sort(thisCol.begin(), thisCol.end());
 
     row.insert(row.end(), thisRow.begin(), thisRow.end());
     col.insert(col.end(), thisCol.begin(), thisCol.end());
-  }
 
+    //std::cout << "After inserting the " << i << "th row, we have:\n";
+    for(size_t j = 0; j < row.size(); j++) {
+    //  std::cout << "(" << row[j] << "," << col[j] << ")  ";
+    }
+    //std::cout << "\n";
+  }
+  
   std::vector<T> val(row.size());
   for(size_t i = 0; i < row.size(); i++) {
     T x = (T) rand() / (T) RAND_MAX;
-    val.push_back(x);
+    val[i] = x;
   }
-
+  //std::cout << "creating sparse view. Here's whats passed in:\n";
+  for(size_t i = 0; i < col.size(); i++) {
+  //    std::cout << "(" << row[i] << "," << col[i] << ", " << val[i] << ")  ";
+  }
+  //std::cout << "\n";
   return make_sparse_view<T>(row,col,val);
 }
 
@@ -39,7 +57,7 @@ void SparseTestSpMV() {
   camp::idx_t Ni = 20;
   camp::idx_t Nj = 30;
   
-  SparseView<2,double> A = make_random_sparse_view2<double>(Ni,Nj, 0,5);
+  SparseView<double, 2> A = make_random_sparse_view2<double>(Ni,Nj, 0,5);
   View1 x(new double[Nj], Nj);
   View1 y(new double[Ni], Ni);
 
@@ -74,7 +92,7 @@ void SparseTestGauSei() {
 
   camp::idx_t N = 20;
   
-  SparseView<2,double> A = make_random_sparse_view2<double>(N,N, 0,5);
+  SparseView<double, 2> A = make_random_sparse_view2<double>(N,N, 0,5);
   View1 b(new double[N], N);
   View1 phi(new double[N], N);
   View1 temp(new double[1], 1);
@@ -89,7 +107,7 @@ void SparseTestGauSei() {
     >
   >;
 
-  auto lam1 = [&](auto i) {
+  auto lam1 = [&](auto) {
     temp(0) = 0.0;
   };
   auto lam2 = [&](auto i, auto j) {
@@ -112,7 +130,7 @@ void SparseTestInCholFact() {
 
   camp::idx_t N = 20;
   
-  SparseView<2,double> A = make_random_sparse_view2<double>(N,N, 0,5);
+  SparseView<double, 2> A = make_random_sparse_view2<double>(N,N, 0,5);
   
   using POLICY = KernelPolicy<
     statement::For<0,loop_exec,
@@ -165,6 +183,15 @@ void SparseTestImpl() {
 
   for(size_t i = 0; i < r.size(); i++ ) {
     EXPECT_EQ(view1(r[i], c[i]), v[i]) << "Failed for i = " << i << ".";
+  }
+
+  auto perm10 = std::vector<camp::idx_t>{1,0};
+  auto view10 = make_sparse_view_permuted<double>(r,c,v,perm10);
+
+  EXPECT_EQ(r[0], 0);
+  EXPECT_EQ(r[3], 2);
+  for(size_t i = 0; i < r.size(); i++ ) {
+    EXPECT_EQ(v[i], view10(r[i], c[i])) << "Permutation 10 Failed for i = " << i << ".";
   }
 
 }

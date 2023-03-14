@@ -580,6 +580,7 @@ struct FormatDecisions {
   template <idx_t I>
   void print_to_stream_helper(std::ostream & o, LayoutTupleType t) {
     if constexpr (I >= NumViews) {
+      camp::sink(t); //silences use-def warning
       return;
     } else {
       auto curr_layout = get<I>(t);

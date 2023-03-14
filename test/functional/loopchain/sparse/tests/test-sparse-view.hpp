@@ -3,53 +3,8 @@
 #include <vector>
 
 
-template <typename T>
-RAJA::SparseView<T,2> make_random_sparse_view2(camp::idx_t Ni, camp::idx_t Nj, size_t perRowL, size_t perRowH ) {
-  using namespace RAJA;
-  std::vector<camp::idx_t> row;
-  std::vector<camp::idx_t> col;
-
-  //create a vector that we'll shuffle to use fill each row's entries
- 
-  auto fullCol = std::vector<camp::idx_t>(Nj);
-  for(idx_t i = 0; i < Nj; i++) {fullCol[i] = i;}
-
-  for(idx_t i = 0; i < Ni; i++) {
-    //for each row, how many elements?
-    auto numInRow = rand() % (perRowH-perRowL) + perRowL;
-    auto thisRow = std::vector<camp::idx_t>(numInRow, i);
-    
-    std::random_shuffle(fullCol.begin(), fullCol.end());
-    auto thisCol = std::vector<camp::idx_t>(fullCol.begin(), fullCol.begin() + numInRow);
-
-    std::sort(thisCol.begin(), thisCol.end());
-
-    row.insert(row.end(), thisRow.begin(), thisRow.end());
-    col.insert(col.end(), thisCol.begin(), thisCol.end());
-
-    //std::cout << "After inserting the " << i << "th row, we have:\n";
-    for(size_t j = 0; j < row.size(); j++) {
-    //  std::cout << "(" << row[j] << "," << col[j] << ")  ";
-    }
-    //std::cout << "\n";
-  }
-  
-  std::vector<T> val(row.size());
-  for(size_t i = 0; i < row.size(); i++) {
-    T x = (T) rand() / (T) RAND_MAX;
-    val[i] = x;
-  }
-  //std::cout << "creating sparse view. Here's whats passed in:\n";
-  for(size_t i = 0; i < col.size(); i++) {
-  //    std::cout << "(" << row[i] << "," << col[i] << ", " << val[i] << ")  ";
-  }
-  //std::cout << "\n";
-  return make_sparse_view<T>(row,col,val);
-}
-
-
 template <typename EXEC_POLICY>
-void SparseTestSpMV() {
+void SparseViewTestSpMV() {
   using namespace RAJA;
 
   using View1 = RAJA::View<double, RAJA::Layout<1, idx_t, 1>>;
@@ -85,7 +40,7 @@ void SparseTestSpMV() {
 
 
 template <typename EXEC_POLICY>
-void SparseTestGauSei() {
+void SparseViewTestGauSei() {
   using namespace RAJA;
 
   using View1 = RAJA::View<double, RAJA::Layout<1, idx_t, 1>>;
@@ -125,7 +80,7 @@ void SparseTestGauSei() {
 }
 
 template <typename EXEC_POLICY>
-void SparseTestInCholFact() {
+void SparseViewTestInCholFact() {
   using namespace RAJA;
 
   camp::idx_t N = 20;
@@ -171,7 +126,7 @@ void SparseTestInCholFact() {
 }
 
 template <typename EXEC_POLICY>
-void SparseTestImpl() {
+void SparseViewTestImpl() {
    using namespace RAJA;
   std::vector<camp::idx_t> r{0,1,1,2,2,2,2,3,5,5};
   std::vector<camp::idx_t> c{3,1,4,0,2,3,5,5,2,4};
@@ -196,20 +151,20 @@ void SparseTestImpl() {
 
 }
 
-TYPED_TEST_SUITE_P(SparseTest);
+TYPED_TEST_SUITE_P(SparseViewTest);
 template <typename T>
-class SparseTest : public ::testing::Test
+class SparseViewTest : public ::testing::Test
 {
 };
 
-TYPED_TEST_P(SparseTest, SymEval)
+TYPED_TEST_P(SparseViewTest, SymEval)
 {
   using EXEC_POLICY = typename camp::at<TypeParam, camp::num<0>>::type;
 
-  SparseTestImpl<EXEC_POLICY>();
-  SparseTestSpMV<EXEC_POLICY>();
-  SparseTestGauSei<EXEC_POLICY>();
-  SparseTestInCholFact<EXEC_POLICY>();
+  SparseViewTestImpl<EXEC_POLICY>();
+  SparseViewTestSpMV<EXEC_POLICY>();
+  SparseViewTestGauSei<EXEC_POLICY>();
+  SparseViewTestInCholFact<EXEC_POLICY>();
 }
 
-REGISTER_TYPED_TEST_SUITE_P(SparseTest, SymEval);
+REGISTER_TYPED_TEST_SUITE_P(SparseViewTest, SymEval);

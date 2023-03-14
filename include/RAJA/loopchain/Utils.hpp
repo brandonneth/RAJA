@@ -81,14 +81,14 @@ auto tuple_cat(Tuple1 t1, Tuples&&...tuples) {
 
 template <typename Tuple, camp::idx_t...Is>
 auto tuple_slice(Tuple t, camp::idx_seq<Is...>) {
-  return make_tuple(camp::get<Is>(t)...);
+  return camp::make_tuple(camp::get<Is>(t)...);
 }
 
 template <camp::idx_t start, camp::idx_t end, typename Tuple>
 auto tuple_slice(Tuple t) {
   if constexpr (start >= end) {
     camp::sink(t); // quiets use def warning
-    return make_tuple();
+    return camp::make_tuple();
   } else {
     return tuple_slice(t, idx_seq_from_to<start,end>());
   }
@@ -106,7 +106,7 @@ auto tuple_reverse(camp::tuple<T,Ts...> t) {
   if constexpr (sizeof...(Ts) == 0) {
     return t;
   } else {
-    auto endTuple = make_tuple(camp::get<0>(t));
+    auto endTuple = camp::make_tuple(camp::get<0>(t));
     auto subTuple = tuple_reverse(tuple_slice<1,sizeof...(Ts) + 1>(t));
 
     return tuple_cat(subTuple, endTuple);
@@ -131,9 +131,18 @@ template <typename T>
 void doPrint(T t) {
   std::cout << t;
 }
+
+template <typename T>
+void doPrint(std::vector<T> v) {
+  std::cout << "[";
+  for(size_t i = 0; i < v.size(); i++) {
+    std::cout << v[i] << ", ";
+  }
+  std::cout << "]";
+}
 template <typename T, typename... Args>
 void doPrint(T t, Args... args) {
-  std::cout << t;
+  doPrint(t);
   doPrint(args...);
 }
 

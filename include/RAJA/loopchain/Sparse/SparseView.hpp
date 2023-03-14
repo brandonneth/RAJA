@@ -14,7 +14,8 @@ struct SparseImpl {
 using IdxType = camp::idx_t;
 virtual ElmType & operator() (std::vector<IdxType> v) = 0;
   
-    
+  virtual std::vector<IdxType> get_permutation() = 0;  
+  virtual void* get_data() = 0;  
 };
 
 template <typename ElmType, size_t NumDims>
@@ -136,6 +137,8 @@ struct COO : public SparseImpl<ElmType, NumDims> {
     }
   }
 
+  std::vector<IdxType> get_permutation(){ return permutation;};  
+  void* get_data(){ return val.data();};  
 };
 
 
@@ -146,12 +149,24 @@ struct  SparseView {
   SparseImpl<ElmType, NumDims> * impl;
 
   SparseView(SparseImpl<ElmType, NumDims>* i) : impl(i) {}
- 
-  template <typename...Indices>
-  ElmType & operator() (Indices... is) {
 
-    auto i = std::vector<camp::idx_t>{{is...}};
-    return impl->operator()(i);
+  void* get_data() { return impl->get_data();}
+
+  template <typename... Args>
+  SymAccessList operator () (SymIterator symIterator, Args... args) const
+  {
+    std::vector<SymIterator> allIterators{{symIterator, args...}};
+
+    SymAccess thisAccess = SymAccess(impl->get_data(), impl->get_permutation(), allIterators);
+    thisAccess.isSparse = true;
+    SymAccessList l = SymAccessList(thisAccess);
+    return l ;
+  }
+  template <typename...Indices>
+  ElmType & operator() (camp::idx_t i, Indices... is) {
+
+    auto v = std::vector<camp::idx_t>{{i, is...}};
+    return impl->operator()(v);
   } 
 }; // SparseView<NumDims>
 
@@ -197,5 +212,53 @@ auto make_sparse_view_permuted(Vectors...vecs) {
   return SparseView<ElmType, numDims>(impl);
 
 }
+
+
+
+template <typename T>
+RAJA::SparseView<T,2> make_random_sparse_view2(camp::idx_t Ni, camp::idx_t Nj, size_t perRowL, size_t perRowH ) {
+  using namespace RAJA;
+  std::vector<camp::idx_t> row;
+  std::vector<camp::idx_t> col;
+
+  //create a vector that we'll shuffle to use fill each row's entries
+ 
+  auto fullCol = std::vector<camp::idx_t>(Nj);
+  for(idx_t i = 0; i < Nj; i++) {fullCol[i] = i;}
+
+  for(idx_t i = 0; i < Ni; i++) {
+    //for each row, how many elements?
+    auto numInRow = rand() % (perRowH-perRowL) + perRowL;
+    auto thisRow = std::vector<camp::idx_t>(numInRow, i);
+    
+    std::random_shuffle(fullCol.begin(), fullCol.end());
+    auto thisCol = std::vector<camp::idx_t>(fullCol.begin(), fullCol.begin() + numInRow);
+
+    std::sort(thisCol.begin(), thisCol.end());
+
+    row.insert(row.end(), thisRow.begin(), thisRow.end());
+    col.insert(col.end(), thisCol.begin(), thisCol.end());
+
+    //std::cout << "After inserting the " << i << "th row, we have:\n";
+    for(size_t j = 0; j < row.size(); j++) {
+    //  std::cout << "(" << row[j] << "," << col[j] << ")  ";
+    }
+    //std::cout << "\n";
+  }
+  
+  std::vector<T> val(row.size());
+  for(size_t i = 0; i < row.size(); i++) {
+    T x = (T) rand() / (T) RAND_MAX;
+    val[i] = x;
+  }
+  //std::cout << "creating sparse view. Here's whats passed in:\n";
+  for(size_t i = 0; i < col.size(); i++) {
+  //    std::cout << "(" << row[i] << "," << col[i] << ", " << val[i] << ")  ";
+  }
+  //std::cout << "\n";
+  return make_sparse_view<T>(row,col,val);
+}
+
+
 } //namespace RAJA
 #endif

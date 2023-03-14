@@ -174,7 +174,7 @@ struct SymAccess {
 
   bool isRead;
   bool isWrite;
-
+  bool isSparse;
   size_t numIterations;
 
   template <typename LayoutType>
@@ -184,6 +184,16 @@ struct SymAccess {
     iterators = _iterators;
     isRead = false;
     isWrite = false;
+    isSparse = false;
+  }
+  
+  SymAccess(void * _view, const std::vector<camp::idx_t> & perm, std::vector<SymIterator>& _iterators) {
+    view = _view;
+    layout_permutation = perm;
+    iterators = _iterators;
+    isRead = false;
+    isWrite = false;
+    isSparse =  false;
   }
 
   void set_read(); 

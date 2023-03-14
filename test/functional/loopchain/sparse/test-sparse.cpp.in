@@ -7,9 +7,11 @@
 #include "RAJA_test-indexset-build.hpp"
 #include "RAJA_test-forall-execpol.hpp"
 
-#include "test-sparse.hpp"
+#include "test-sparse-view.hpp"
+#include "test-sparse-access.hpp"
 
 
 using @BACKEND@ExecTypes = Test<camp::cartesian_product<@BACKEND@ForallExecPols>>::Types;
 
-INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, SparseTest, @BACKEND@ExecTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, SparseViewTest, @BACKEND@ExecTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, SparseAccessTest, @BACKEND@ExecTypes);

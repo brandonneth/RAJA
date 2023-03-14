@@ -64,7 +64,7 @@ void ImperfectILPModelTestImpl() {
         >
       >;
   std::array<RAJA::idx_t, 2> perm_01 {{0,1}};
-  std::array<RAJA::idx_t, 2> perm_10 {{1,0}};
+  //std::array<RAJA::idx_t, 2> perm_10 {{1,0}};
   std::array<RAJA::idx_t, 1> perm_0 {{0}};
 
   using VIEW2 = RAJA::View<double, RAJA::Layout<2,RAJA::idx_t>>;

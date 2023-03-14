@@ -153,8 +153,6 @@ void SparseAccessTestImpl() {
     EXPECT_EQ(view1(r[i], c[i]), v[i]) << "Failed for i = " << i << ".";
   }
 
-  auto perm10 = std::vector<camp::idx_t>{1,0};
-  auto view10 = make_sparse_view_permuted<double>(r,c,v,perm10);
 
 
   using POL = KernelPolicy<

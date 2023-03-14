@@ -13,7 +13,9 @@ using IdxType = camp::idx_t;
 virtual ElmType & operator() (std::vector<IdxType> v) = 0;
   
   virtual std::vector<IdxType> get_permutation() = 0;  
-  virtual void* get_data() = 0;  
+  virtual void* get_data() = 0; 
+
+  virtual std::vector<IdxType> dim(IdxType) = 0; 
 };
 
 

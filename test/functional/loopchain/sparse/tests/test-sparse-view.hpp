@@ -148,7 +148,6 @@ void SparseViewTestImpl() {
   for(size_t i = 0; i < r.size(); i++ ) {
     EXPECT_EQ(v[i], view10(r[i], c[i])) << "Permutation 10 Failed for i = " << i << ".";
   }
-
 }
 
 TYPED_TEST_SUITE_P(SparseViewTest);

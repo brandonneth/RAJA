@@ -31,6 +31,7 @@
 #include "RAJA/loopchain/SymbolicSegment/SymbolicSegment.hpp"
 
 #include "RAJA/loopchain/Sparse/SparseView.hpp"
+#include "RAJA/loopchain/Sparse/SparseSegment.hpp"
 namespace RAJA
 {
 

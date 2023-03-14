@@ -32,6 +32,9 @@ struct COO : public SparseImpl<ElmType, NumDims> {
     sort();
   }
 
+  std::vector<IdxType> dim(IdxType t) {
+    return indices[t];
+  }
   template <IdxType...Is>
   auto make_entry(IdxType n, camp::idx_seq<Is...>) {
     std::vector<IdxType> i{indices[Is][n]...};
@@ -42,7 +45,7 @@ struct COO : public SparseImpl<ElmType, NumDims> {
     auto valTuple = camp::make_tuple(val[0]);
     auto indexTuple = tuple_repeat<NumDims>(indices[0][0]);
     auto entryTuple = tuple_cat(indexTuple, valTuple);
- 
+    camp::sink(entryTuple); // quiets use-def warning 
     using EntryType = camp::tuple<std::vector<IdxType>, ElmType>;
     std::vector<EntryType> entries;
 
@@ -56,7 +59,7 @@ struct COO : public SparseImpl<ElmType, NumDims> {
 
       auto aa = camp::get<0>(a);
       auto bb = camp::get<0>(b);
-      for(IdxType i = 0; i < NumDims; i++) {
+      for(size_t i = 0; i < NumDims; i++) {
         if (aa[permutation[i]] != bb[permutation[i]]) {
           return aa[permutation[i]] < bb[permutation[i]];
         }

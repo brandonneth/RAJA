@@ -20,7 +20,7 @@ struct SparseIteratorWrapper {
   
   idx_t operator[] (idx_t i) {
     seg->currVal = i;
-    std::cout << "Set the currVal to " << i << "\n";
+    /*std::cout << "Set the currVal to " << i << "\n";*/
     return iter[i];
   }
 
@@ -70,7 +70,7 @@ struct SparseIteratorWrapperFollow {
 
   
   idx_t operator[] (idx_t i) {
-    std::cout << "follow wrapper for i, currVal: " << i << " " << seg->currVal << std::endl;
+    /*std::cout << "follow wrapper for i, currVal: " << i << " " << seg->currVal << std::endl;*/
     return iter[i + seg->currVal];
   }
 
@@ -101,12 +101,12 @@ SparseSymbolicSegmentFollow(SparseView<double, NumDims> & v, idx_t d, SparseSymb
 
 
 iterator begin() const {
-  std::cout << "begin leadSeg.currVal:" << leadSeg->currVal << "\n";
+  /*std::cout << "begin leadSeg.currVal:" << leadSeg->currVal << "\n";*/
   return SparseIteratorWrapperFollow<NumDims>(leadSeg, dim.begin());
 }
 
 iterator end() const {
-  std::cout << "end leadSeg.currVal:" << leadSeg->currVal << "\n";
+  /*std::cout << "end leadSeg.currVal:" << leadSeg->currVal << "\n";*/
   return SparseIteratorWrapperFollow<NumDims>(leadSeg, dim.begin() + 1);
 }
 

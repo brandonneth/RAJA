@@ -15,12 +15,12 @@ void SparseSegmentTestImpl() {
 
   std::stringstream s1;
   auto lam = [&](auto i, auto j) {
-    s1 << i << ", " << j << "|";
+    s1 << i << ", " << j << " | ";
   };
 
   std::stringstream correct1;
   for(size_t i = 0; i < r.size(); i++) {
-    correct1 << r[i] << ", " << c[i] << "|";
+    correct1 << r[i] << ", " << c[i] << " | ";
   }
 
   using POL=KernelPolicy<
@@ -35,6 +35,9 @@ void SparseSegmentTestImpl() {
   auto segs = camp::tie(seg0,seg1);
 
   kernel<POL>(segs, lam);
+
+  std::cout << "Loop output: " << s1.str() << std::endl;
+
   EXPECT_EQ(correct1.str(), s1.str());
 }
 

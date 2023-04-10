@@ -8,6 +8,12 @@
 
 namespace RAJA {
 
+template <camp::idx_t NumDims>
+struct SparseSymbolicSegmentLead;
+
+template <camp::idx_t NumDims>
+struct SparseSymbolicSegmentFollow;
+
 template <typename ElmType, size_t NumDims>
 struct  SparseView {
  
@@ -33,6 +39,13 @@ struct  SparseView {
 
     auto v = std::vector<camp::idx_t>{{i, is...}};
     return impl->operator()(v);
+  }
+
+   
+  auto get_sparse_iteration_space(std::vector<camp::idx_t> dimOrder) {
+    auto outerDim = new SparseSymbolicSegmentLead<NumDims>(*this, dimOrder[0]);
+    auto innerDim = new SparseSymbolicSegmentFollow<NumDims>(*this, dimOrder[1], outerDim);
+    return camp::tie(*outerDim, *innerDim);
   } 
 }; // SparseView<NumDims>
 
@@ -123,6 +136,75 @@ RAJA::SparseView<T,2> make_random_sparse_view2(camp::idx_t Ni, camp::idx_t Nj, s
   }
   //std::cout << "\n";
   return make_sparse_view<T>(row,col,val);
+}
+
+template <typename T>
+RAJA::SparseView<T,2> make_random_sparse_view2(camp::idx_t N) {
+  std::vector<idx_t> d0,d1;
+  std::vector<T> v;
+  for(int i = 0; i < N; i++){
+    for(int j = 0; j < N; j++) {
+        bool isNonzero = (std::rand() % 10) == 0;
+        if(isNonzero) {
+          d0.push_back(i);
+          d1.push_back(j);
+          T x = (T) std::rand() / (T) RAND_MAX;
+          v.push_back(x);
+        }
+      
+    }
+  }
+
+  return make_sparse_view<T>(d0,d1,v);
+}
+
+
+template <typename T>
+RAJA::SparseView<T,3> make_random_sparse_view3(camp::idx_t N) {
+  std::vector<idx_t> d0,d1,d2;
+  std::vector<T> v;
+  for(int i = 0; i < N; i++){
+    for(int j = 0; j < N; j++) {
+      for(int k = 0; k < N; k++) {
+
+        bool isNonzero = (std::rand() % 10) == 0;
+        if(isNonzero) {
+          d0.push_back(i);
+          d1.push_back(j);
+          d2.push_back(k);
+          T x = (T) std::rand() / (T) RAND_MAX;
+          v.push_back(x);
+        }
+      }
+    }
+  }
+
+  return make_sparse_view<T>(d0,d1,d2,v);
+}
+
+template <typename T>
+RAJA::SparseView<T,4> make_random_sparse_view4(camp::idx_t N) {
+  std::vector<idx_t> d0,d1,d2,d3;
+  std::vector<T> v;
+  for(int i = 0; i < N; i++){
+    for(int j = 0; j < N; j++) {
+      for(int k = 0; k < N; k++) {
+      for(int l = 0; l < N; l++) {
+        bool isNonzero = (std::rand() % 10) == 0;
+        if(isNonzero) {
+          d0.push_back(i);
+          d1.push_back(j);
+          d2.push_back(k);
+          d3.push_back(l);
+          T x = (T) std::rand() / (T) RAND_MAX;
+          v.push_back(x);
+        } 
+        }
+      }
+    }
+  }
+
+  return make_sparse_view<T>(d0,d1,d2,d3,v);
 }
 
 

@@ -85,7 +85,10 @@ struct COO : public SparseImpl<ElmType, NumDims> {
     return find<0>(0,len,v);
   }
   
-  
+  void set_permutation(std::vector<IdxType> p) {
+    permutation = p;
+    sort();
+  } 
  
   template<size_t CurrDepth>
   ElmType & find(size_t begin, size_t end, std::vector<IdxType> v) { 

@@ -10,6 +10,7 @@
 #include "test-sparse-view.hpp"
 #include "test-sparse-access.hpp"
 #include "test-sparse-segment.hpp"
+#include "test-sparse-example.hpp"
 
 
 using @BACKEND@ExecTypes = Test<camp::cartesian_product<@BACKEND@ForallExecPols>>::Types;
@@ -17,3 +18,4 @@ using @BACKEND@ExecTypes = Test<camp::cartesian_product<@BACKEND@ForallExecPols>
 INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, SparseViewTest, @BACKEND@ExecTypes);
 INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, SparseAccessTest, @BACKEND@ExecTypes);
 INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, SparseSegmentTest, @BACKEND@ExecTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, SparseExampleTest, @BACKEND@ExecTypes);

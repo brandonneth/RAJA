@@ -1,6 +1,38 @@
 #include "RAJA_test-base.hpp"
 #include <string>
 #include <vector>
+
+
+template <typename EXEC_POLICY>
+void SparseSegmentDenseTestImpl() {
+  using namespace RAJA;
+
+  std::stringstream s1;
+  for(int i = 0; i < 5; i++) {
+    for(int j = 5; j < 10; j++) {
+      s1 << i << j << "\n";
+    }
+  }
+
+  std::stringstream s2;
+  auto lam = [&](auto i, auto j) {
+    s2 << i << j << "\n";
+  };
+
+  using POL=KernelPolicy<
+    statement::For<0,loop_exec,
+      statement::For<1,loop_exec,
+        statement::Lambda<0>
+  >>>;
+  
+  auto seg1 = make_dense_segment(0,5);
+  auto seg2 = make_dense_segment(5,10);
+  auto segs = make_tuple(seg1,seg2);
+  kernel<POL>(segs, lam);
+  EXPECT_EQ(s1.str(), s2.str()) << "SparseSegmentDense as segment tuple test\n";
+}
+
+
 template <typename EXEC_POLICY>
 void SparseSegmentTestImpl() {
    using namespace RAJA;
@@ -25,61 +57,17 @@ void SparseSegmentTestImpl() {
       statement::For<1,loop_exec,
         statement::Lambda<0>
   >>>;
+  
+  auto seg1_impl = new LeadSegmentImpl(view01.impl->dim(0));
+  auto seg1 = SparseSegment(seg1_impl);
+  auto seg2 = make_follow_segment(view01.impl->dim(1), seg1_impl);
 
-  auto seg0 = SparseSymbolicSegmentLead<2>(view01, 0);
-  auto seg1 = SparseSymbolicSegmentFollow<2>(view01, 1, &seg0);
-
-  auto segs = camp::tie(seg0,seg1);
+  auto segs = make_tuple(seg1, seg2);
 
   kernel<POL>(segs, lam);
+
   EXPECT_EQ(correct1.str(), s1.str());
-
-   std::vector<camp::idx_t> c2{0,1,1,2,2,2,2,3,5,5};
-   std::vector<camp::idx_t> r2{3,1,4,0,2,3,5,5,2,4};
-   std::vector<double>v2{1.0,4.0,9.0,2.0,2.0,3.0,6.0,5.0,7.0,8.0};
-
-
-  auto perm10 = std::vector<camp::idx_t>{1,0};
-
-  std::stringstream s2;
-
-  std::stringstream correct2;
-  for(size_t i = 0; i < r2.size(); i++) {
-    correct2 << r2[i] << ", " << c2[i] << " | ";
-  }
-
-
-/*
-  auto permseg0 = SparseSymbolicSegmentLead<2>(view10, 1);
-  auto permseg1 = SparseSymbolicSegmentFollow<2>(view10, 0, &permseg0);
-
-  auto permsegs = camp::tie(permseg0,permseg1);
-
-  s2.str(std::string());
-  s2.clear();
-
-  kernel<POL>(permsegs, lam2);
-
-  EXPECT_EQ(correct2.str(), s2.str()) << "Failed for permuted view's sparse iteration space\n";
-
-  auto spaceFromView01 = view01.get_sparse_iteration_space(perm01);
-
-  s1.str(std::string());
-  s1.clear();
-
-  kernel<POL>(spaceFromView01, lam);
-  EXPECT_EQ(correct1.str(), s1.str()) << "view01's ispace method failed for dimOrder 01\n";
-  
-
-  auto spaceFromView10 = view10.get_sparse_iteration_space(perm10);
-  
-  s1.str(std::string());
-  s1.clear();
-
-  kernel<POL>(spaceFromView10, lam);
-  EXPECT_EQ(correct1.str(), s1.str()) << "view10's ispace method failed for dimOrder 10\n";
-*/
-  
+   
 }
 
 TYPED_TEST_SUITE_P(SparseSegmentTest);
@@ -92,6 +80,7 @@ TYPED_TEST_P(SparseSegmentTest, SparseSegment)
 {
   using EXEC_POLICY = typename camp::at<TypeParam, camp::num<0>>::type;
 
+  SparseSegmentDenseTestImpl<EXEC_POLICY>();
   SparseSegmentTestImpl<EXEC_POLICY>();
 }
 

@@ -22,14 +22,15 @@ std::vector<camp::idx_t> apply_permutation(std::vector<camp::idx_t> p, std::vect
 }
 
 template <typename ElmType, std::size_t ViewDims, std::size_t CurrIdx, std::size_t MaxIdx>
-auto sparsification_follow_dimensions( SparseView<ElmType,ViewDims> & A, std::vector<camp::idx_t> argumentOrderInverse, SparseSymbolicSegmentLead<ViewDims> * lead) {
+auto sparsification_follow_dimensions( SparseView<ElmType,ViewDims> & A, std::vector<camp::idx_t> argumentOrderInverse, LeadSegmentImpl * lead) {
   if constexpr (CurrIdx == MaxIdx) {
     camp::sink(A,argumentOrderInverse,lead);
     return make_tuple();
   } else {
-    auto currDimension = new SparseSymbolicSegmentFollow<ViewDims>(A, argumentOrderInverse[CurrIdx], lead);
+    
+    auto currDimension = make_follow_segment(A.impl->dim(argumentOrderInverse[CurrIdx]), lead);
     auto remainingDims = sparsification_follow_dimensions<ElmType, ViewDims, CurrIdx+1, MaxIdx>(A, argumentOrderInverse, lead);
-    return tuple_cat(camp::tie(*currDimension), remainingDims);
+    return tuple_cat(camp::tuple(currDimension), remainingDims);
   }
 }
 
@@ -47,11 +48,12 @@ auto sparsify_iteration_space_equal_dims(camp::tuple<DenseTupleTypes...> denseSe
  
   auto applied = apply_permutation(nestingOrderInverse, q);
   A.impl->set_permutation(applied); 
-  auto leadDimension = new SparseSymbolicSegmentLead<ViewDims>(A,q[0]);
+  auto leadImpl = new LeadSegmentImpl(A.impl->dim(q[0]));
 
-  auto followDimensions = sparsification_follow_dimensions<double,ViewDims,1,ViewDims>(A, q, leadDimension);
+  auto followDimensions = sparsification_follow_dimensions<double,ViewDims,1,ViewDims>(A, q, leadImpl);
 
-  auto sparseDimensions = tuple_cat(camp::tie(*leadDimension), followDimensions);
+  auto leadDimension = new SparseSegment(leadImpl);
+  auto sparseDimensions = tuple_cat(camp::tuple(*leadDimension), followDimensions);
 
   return sparseDimensions;
   

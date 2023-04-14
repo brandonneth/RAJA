@@ -32,6 +32,7 @@
 
 #include "RAJA/loopchain/Sparse/SparseView.hpp"
 #include "RAJA/loopchain/Sparse/SparseSegment.hpp"
+#include "RAJA/loopchain/Sparse/Sparsify.hpp"
 namespace RAJA
 {
 

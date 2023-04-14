@@ -50,6 +50,17 @@ foreach( BACKEND ${FORALL_BACKENDS})
                            	   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 endforeach()
 
+foreach( BACKEND ${FORALL_BACKENDS})
+
+	configure_file(test-sparse-sparsify-unit.cpp.in test-sparse-sparsify-unit-${BACKEND}.cpp)
+
+	raja_add_test( NAME test-sparse-sparsify-unit-${BACKEND}
+               SOURCES ${CMAKE_CURRENT_BINARY_DIR}/test-sparse-sparsify-unit-${BACKEND}.cpp)
+
+	target_include_directories(test-sparse-sparsify-unit-${BACKEND}.exe
+                           	   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+endforeach()
+
 
 unset(FORALL_BACKENDS)
 

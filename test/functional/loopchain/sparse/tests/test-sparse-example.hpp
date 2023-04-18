@@ -670,11 +670,16 @@ void SparseExampleTestSparsify3() {
   auto lam2_21 = [&](auto i0, auto i1, auto i2) {
     if(A2(i2,i1) != 0.0) {stream << i0 << "," << i1 << "," << i2 << "  ";}
   };
+  auto lam2_12 = [&](auto i0, auto i1, auto i2) {
+    if(A2(i1,i2) != 0.0) {stream << i0 << "," << i1 << "," << i2 << "  ";}
+  };
+
 
   std::vector<camp::idx_t> perm01 = {{0,1}};
   std::vector<camp::idx_t> perm10 = {{1,0}};
   std::vector<camp::idx_t> perm02 = {{0,2}};
   std::vector<camp::idx_t> perm21 = {{2,1}};
+  std::vector<camp::idx_t> perm12 = {{1,2}};
 
 
   A2.impl->set_permutation(perm01);
@@ -736,6 +741,30 @@ void SparseExampleTestSparsify3() {
   kernel<POL201>(sparsified_2_201_02, lam_prt);
   std::string test_output_2_201_02 = stream.str();
   EXPECT_EQ(test_output_2_201_02, ref_output_2_201_02) << "Failed sparsification with 201 nesting order and 02 access order for 2D data.\n";
+
+  A2.impl->set_permutation(perm01);
+  stream.clear();
+  stream.str(std::string());
+  kernel<POL102>(dense_segs, lam2_21);
+  std::string ref_output_2_102_21 = stream.str();
+  auto sparsified_2_102_21 = sparsify_iteration_space<POL102>(dense_segs, A2, perm21);
+  stream.clear();
+  stream.str(std::string());
+  kernel<POL102>(sparsified_2_102_21, lam_prt);
+  std::string test_output_2_102_21 = stream.str();
+  EXPECT_EQ(test_output_2_102_21, ref_output_2_102_21) << "Failed sparsification with 102 nesting order and 21 access order for 2D data.\n";
+
+  A2.impl->set_permutation(perm01);
+  stream.clear();
+  stream.str(std::string());
+  kernel<POL102>(dense_segs, lam2_12);
+  std::string ref_output_2_102_12 = stream.str();
+  auto sparsified_2_102_12 = sparsify_iteration_space<POL102>(dense_segs, A2, perm12);
+  stream.clear();
+  stream.str(std::string());
+  kernel<POL102>(sparsified_2_102_12, lam_prt);
+  std::string test_output_2_102_12 = stream.str();
+  EXPECT_EQ(test_output_2_102_12, ref_output_2_102_12) << "Failed sparsification with 102 nesting order and 12 access order for 2D data.\n";
 
 /*
   auto lam4_0012 = [&](auto i0, auto i1, auto i2) {

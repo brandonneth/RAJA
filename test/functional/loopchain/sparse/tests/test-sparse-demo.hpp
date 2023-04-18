@@ -75,7 +75,7 @@ void SparseDemoTestImpl() {
 
 
   std::cout << "Sparsifying dense sparse for nesting order (0,1,2) and access A(i0,i1,i2)...\n";
-  auto sparsified_012_012 = sparsify_iteration_space_equal_dims<POL012>(dense_segs, A, perm012);
+  auto sparsified_012_012 = sparsify_iteration_space<POL012>(dense_segs, A, perm012);
   std::cout << "\n";
 
   std::cout << "Printing all points in the sparsified iteration space...\n";
@@ -92,7 +92,7 @@ void SparseDemoTestImpl() {
   std::cout << stream.str() << "\n\n";
 
   std::cout << "Sparsifying dense sparse for nesting order (0,1,2) and access A(i2,i0,i1)...\n";
-  auto sparsified_012_201 = sparsify_iteration_space_equal_dims<POL012>(dense_segs, A, perm201);
+  auto sparsified_012_201 = sparsify_iteration_space<POL012>(dense_segs, A, perm201);
   std::cout << "\n";
 
   std::cout << "Printing all points in the sparsified iteration space...\n";
@@ -110,7 +110,7 @@ void SparseDemoTestImpl() {
   std::cout << stream.str() << "\n\n";
 
   std::cout << "Sparsifying dense space for nesting order (1,0,2) and access A(i0,i1,i2)...\n";
-  auto sparsified_102_012 = sparsify_iteration_space_equal_dims<POL102>(dense_segs, A, perm012);
+  auto sparsified_102_012 = sparsify_iteration_space<POL102>(dense_segs, A, perm012);
   std::cout << "\n";
 
   std::cout << "Printing all points in the sparsified iteration space...\n";
@@ -127,7 +127,7 @@ void SparseDemoTestImpl() {
   std::cout << stream.str() << "\n\n";
 
   std::cout << "Sparsifying dense space for nesting order (1,0,2) and access A(i1,i2,i0)...\n";
-  auto sparsified_102_120 = sparsify_iteration_space_equal_dims<POL102>(dense_segs, A, perm120);
+  auto sparsified_102_120 = sparsify_iteration_space<POL102>(dense_segs, A, perm120);
   std::cout << "\n";
 
   std::cout << "Printing all points in the sparsified iteration space...\n";
@@ -135,6 +135,28 @@ void SparseDemoTestImpl() {
   stream.str(std::string());
   kernel<POL102>(sparsified_102_120, lam_prt);
   std::cout << stream.str() << "\n";  
+
+  auto B = make_random_sparse_view2<double>(N);
+  auto lamB21 = [&](auto i0, auto i1, auto i2) {
+    if(B(i2,i1) != 0) {stream << i0 << "," << i1 << "," << i2 << "  ";}
+  };
+  std::vector<idx_t> perm21{2,1};
+  std::cout << "\n\n-----Example 5: 3D Loop, 2D Data-----\n\n";
+  std::cout << "Printing all points in dense iteration space that access nonzeros in B(i2,i1) with nesting order (1,0,2)...\n";
+  stream.clear();
+  stream.str(std::string());
+  kernel<POL102>(dense_segs, lamB21);
+  std::cout << stream.str() << "\n";
+ 
+  std::cout << "Sparsifying dense space for nesting order (1,0,2) and access B(i2,i1)...\n";
+  auto sparsified_102_21 = sparsify_iteration_space<POL102>(dense_segs, B, perm21);
+  std::cout << "\n";
+
+  std::cout << "Printing all points in the sparsified iteration space...\n";
+  stream.clear();
+  stream.str(std::string());
+  kernel<POL102>(sparsified_102_21, lam_prt);
+  std::cout << stream.str() << "\n";
 
 
 

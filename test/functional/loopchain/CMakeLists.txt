@@ -20,3 +20,4 @@ add_subdirectory(ilp-model)
 
 add_subdirectory(symbolic-segment)
 add_subdirectory(imperfect-nesting)
+add_subdirectory(morton)

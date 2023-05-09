@@ -23,7 +23,7 @@ void SparseViewTestSpMV() {
       >
     >
   >;
-
+  A.resort({{1,0}});
   auto seg1 = RangeSegment(0,Ni);
   auto seg2 = RangeSegment(0,Nj);
   auto segs = camp::make_tuple(seg1, seg2);
@@ -130,12 +130,13 @@ void SparseViewTestImpl() {
    using namespace RAJA;
   std::vector<camp::idx_t> r{0,1,1,2,2,2,2,3,5,5};
   std::vector<camp::idx_t> c{3,1,4,0,2,3,5,5,2,4};
+  std::vector<camp::idx_t> dimension3{3,1,4,0,2,3,5,5,2,4};
   std::vector<double>v{1.0,4.0,9.0,2.0,2.0,3.0,6.0,5.0,7.0,8.0};
 
 
   //SparseView<2,double> view1 = make_sparse_view<double>(r,c,v);
   auto view1 = make_sparse_view<double>(r,c,v);
-
+  auto view2 = make_sparse_view<double>(r,c,dimension3,v);
   for(size_t i = 0; i < r.size(); i++ ) {
     EXPECT_EQ(view1(r[i], c[i]), v[i]) << "Failed for i = " << i << ".";
   }

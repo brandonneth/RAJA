@@ -84,7 +84,6 @@ auto permute_view(ViewType & v, LayoutType l) {
             }
         }
         if(sameLayout) { return; }
-
         T * _v2 = new T[v.size()];
         ViewType v2(_v2, l);
         

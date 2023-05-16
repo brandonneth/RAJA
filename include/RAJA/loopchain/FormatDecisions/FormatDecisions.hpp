@@ -502,10 +502,9 @@ struct FormatDecisions {
     return set_output_format(view, new_layout);
   }
 
-  auto finalize() {
-    isl_time = 0;
-    setup_time = 0;
-    solve_time = 0;
+
+  template <camp::idx_t I>
+  auto model() {
     if(!locked) {
       auto view_finalizer = [&]
       <camp::idx_t...Is>
@@ -514,6 +513,13 @@ struct FormatDecisions {
       };
       view_finalizer(idx_seq_for(views));
     }
+  }
+
+  auto finalize() {
+    isl_time = 0;
+    setup_time = 0;
+    solve_time = 0;
+  
     auto moment_generator = [&]
     <camp::idx_t...Is>
     (camp::idx_seq<Is...>) {

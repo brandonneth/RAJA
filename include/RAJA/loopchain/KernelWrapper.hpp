@@ -13,11 +13,12 @@
 #include "RAJA/loopchain/PolicyToNestingOrder.hpp"
 #include <vector>
 #include <string>
+#include <barvinok/barvinok.h>
 
 #include "RAJA/util/all-isl.hpp"
-#include <barvinok/barvinok.h>
 namespace RAJA
 {
+
 
 template <typename T>
 T get_array_name(SymAccess a);

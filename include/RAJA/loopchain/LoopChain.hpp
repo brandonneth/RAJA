@@ -9,6 +9,7 @@
 #include "RAJA/loopchain/SymExec.hpp"
 #include "RAJA/loopchain/KernelWrapper.hpp"
 #include "RAJA/loopchain/Chain.hpp"
+#include "RAJA/loopchain/BLAS.hpp"
 
 
 

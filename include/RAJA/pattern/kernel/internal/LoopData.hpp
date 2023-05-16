@@ -32,6 +32,7 @@
 #include "RAJA/pattern/kernel/internal/Template.hpp"
 
 #include <iterator>
+#include <vector>
 #include <type_traits>
 
 namespace RAJA

@@ -50,10 +50,6 @@ auto idx_seq_from_to() {
   return idx_seq_shift<start>(zeroSeq);
 }
 
-
-
-
-
 // camp::tuple utility functions
 //  - tuple_cat
 //  - tuple_slice

@@ -49,6 +49,13 @@ struct FormatDecisions {
     views(_views), 
     knls(_knls) {
     
+    using knl1 = decltype(camp::get<0>(knls));
+    using knl1_removed = typename std::remove_reference<decltype(camp::get<0>(knls))>::type;
+    if (std::is_same<knl1, knl1_removed>::value) {
+      std::cerr << "Format Decisinos kernel type is not a reference.\n";
+    }
+
+ 
     moments[0] = make_tuple(get<Is>(views).get_layout()...);
 
     for(int i0 = 0; i0 < NumMoments; i0++ ) {
@@ -85,12 +92,39 @@ struct FormatDecisions {
     return helper(view, idx_seq_for(views));
   }
 
+
+  template <typename SearchKnlType, idx_t I, idx_t...Is>
+  auto kernel_index_helper() {
+    using Knl = decltype(camp::get<I>(knls));
+    using Knl_ = typename std::remove_reference<Knl>::type;
+    using TT = typename std::remove_reference<SearchKnlType>::type;
+    if constexpr (std::is_same<Knl_, TT>::value) {
+        return I;
+    } else if constexpr(sizeof...(Is) == 0) {
+        return -1;
+    } else {
+        return kernel_index_helper<SearchKnlType, Is...>();
+    } 
+  }
+
+  template <typename SearchType, camp::idx_t...Is>
+  auto kernel_index_helper2(camp::idx_seq<Is...>) {
+    return kernel_index_helper<SearchType,Is...>();
+  }
+  template <typename KType>
+  camp::idx_t kernel_index2() {
+
+    return kernel_index_helper2<KType>(idx_seq_for(knls));
+  }
+
   template <typename KernelType>
-  camp::idx_t kernel_index(KernelType) {
+  camp::idx_t kernel_index(const KernelType&) {
     auto helper1 = [&]
     <typename Knl>
     (Knl, int i) {
-      if constexpr (std::is_same<Knl,KernelType>::value) {
+      using Knl_ = typename std::remove_reference<Knl>::type;
+      using TT = typename std::remove_reference<KernelType>::type;
+      if constexpr (std::is_same<Knl_, TT>::value) {
          return i;
       } else {
          camp::sink(i); // quiets use-def warning
@@ -437,7 +471,7 @@ struct FormatDecisions {
   
 
   template <typename ViewType, typename KernelType>
-  bool set_format_for(ViewType & view, std::vector<camp::idx_t> permutation, KernelType knl) {
+  bool set_format_for(ViewType & view, std::vector<camp::idx_t> permutation, const KernelType & knl) {
     auto l = view.get_layout();
     constexpr camp::idx_t NumDims = l.n_dims; 
     std::array<camp::idx_t, NumDims> sizes;
@@ -448,19 +482,12 @@ struct FormatDecisions {
     }
     auto new_layout = make_permuted_layout(sizes, perm);
     return set_format_for(view, new_layout, knl);
-
-    
-    
-
-    
-    
-
     
   }
   template <typename ViewType, typename KernelType, camp::idx_t... RangeInts, typename IdxLin, ptrdiff_t StrideOneDim>
-  bool set_format_for(ViewType & view, detail::LayoutBase_impl<camp::idx_seq<RangeInts...>, IdxLin, StrideOneDim> layout, KernelType knl) {
+  bool set_format_for(ViewType & view, detail::LayoutBase_impl<camp::idx_seq<RangeInts...>, IdxLin, StrideOneDim> layout, const KernelType & knl) {
     camp::idx_t v_idx = view_index(view);
-    camp::idx_t k_idx = kernel_index(knl);
+    camp::idx_t k_idx = kernel_index2<KernelType>();
     if(v_idx == -1) {
       std::cerr << "View not found in tuple of views for this decision object\n";
       return false;
@@ -515,6 +542,21 @@ struct FormatDecisions {
     }
   }
 
+  auto just_knls() {
+    return loop_chain(knls);
+  }
+
+  template <typename KnlRefTuple>
+  auto finalize2(const KnlRefTuple & knls_) {
+    
+    auto knl0 = camp::get<0>(knls_);
+ 
+    auto first_conversion = permute_views(views, moments[0]);
+
+    auto conversions_and_knls = tuple_cat(first_conversion, knls_);
+
+    return loop_chain(conversions_and_knls);
+  }
   auto finalize() {
     isl_time = 0;
     setup_time = 0;
@@ -530,7 +572,7 @@ struct FormatDecisions {
     auto stitch = [&]
     <camp::idx_t CurrStitch>
     () {
-      return tuple_cat(get<CurrStitch>(conversions), make_tuple(get<CurrStitch>(knls)));
+      return tuple_cat(get<CurrStitch>(conversions), tie(get<CurrStitch>(knls)));
     };
     auto stitcher = [&]
     <camp::idx_t...Is>
@@ -540,7 +582,16 @@ struct FormatDecisions {
       return tuple_cat(all_but_final, final_conversion);
     };
     auto knls_and_conversions= stitcher(idx_seq_for(knls));
-
+    /*std::cout << "In finalize, checking whether the variables in the conversions_and_knls are references: " 
+    << std::is_reference<decltype(camp::get<0>(knls_and_conversions))>::value << " "
+    << std::is_reference<decltype(camp::get<1>(knls_and_conversions))>::value << " "
+    << std::is_reference<decltype(camp::get<2>(knls_and_conversions))>::value << " "
+    << std::is_reference<decltype(camp::get<3>(knls_and_conversions))>::value << " "
+    << std::is_reference<decltype(camp::get<4>(knls_and_conversions))>::value << " "
+    << std::is_reference<decltype(camp::get<5>(knls_and_conversions))>::value << " "
+    << std::is_reference<decltype(camp::get<6>(knls_and_conversions))>::value << " "
+    << std::is_reference<decltype(camp::get<7>(knls_and_conversions))>::value << "\n";
+*/
     return loop_chain(knls_and_conversions);
   }
 
@@ -650,6 +701,19 @@ auto format_decisions(ViewRefTuple views, KernelTypes...knls) {
 
   return helper(views);
 }
+
+template <typename ViewRefTuple, typename KernelRefTuple>
+auto format_decisions_ref(ViewRefTuple views, KernelRefTuple knls) {
+
+  auto helper = [=]
+  <typename...ViewRefs>
+  (tuple<ViewRefs...> views) {
+    return FormatDecisions<KernelRefTuple,ViewRefs...>(views, knls, idx_seq_for(views));
+  };
+  return helper(views);
+
+}
+
 
 
 

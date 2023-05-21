@@ -175,6 +175,14 @@ void ImperfectILPModelTestImpl() {
    std::cout << "\n";
    comp();
 
+  auto dec2 = format_decisions_ref(tie(data), tie(mean_knl, dev_knl, center_knl, calc_knl));
+  dec2.set_format_for(data, {1,0}, mean_knl);
+  dec2.set_format_for(data, {1,0}, calc_knl);
+  auto comp2 = dec2.finalize();
+  std::cout << "\nfor reference using one: ";
+  dec2.print_to_stream(std::cout);
+  std::cout << "\n";
+  comp2();
 }
 
 template <typename EXEC_POLICY>

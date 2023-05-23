@@ -62,5 +62,16 @@ foreach( BACKEND ${FORALL_BACKENDS})
 endforeach()
 
 
+foreach( BACKEND ${FORALL_BACKENDS})
+
+	configure_file(test-sparse-efficient-access.cpp.in test-sparse-efficient-access-${BACKEND}.cpp)
+
+	raja_add_test( NAME test-sparse-efficient-access-${BACKEND}
+               SOURCES ${CMAKE_CURRENT_BINARY_DIR}/test-sparse-efficient-access-${BACKEND}.cpp)
+
+	target_include_directories(test-sparse-efficient-access-${BACKEND}.exe
+                           	   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+endforeach()
+
 unset(FORALL_BACKENDS)
 

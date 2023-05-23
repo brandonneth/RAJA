@@ -23,7 +23,7 @@ void SparseViewTestSpMV() {
       >
     >
   >;
-  A.resort({{1,0}});
+  A.set_permutation({{1,0}});
   auto seg1 = RangeSegment(0,Ni);
   auto seg2 = RangeSegment(0,Nj);
   auto segs = camp::make_tuple(seg1, seg2);

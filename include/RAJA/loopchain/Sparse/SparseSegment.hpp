@@ -107,7 +107,7 @@ struct FollowIteratorImpl : SparseIteratorImpl {
   FollowIteratorImpl(std::vector<idx_t> dim, idx_t _offset, LeadSegmentImpl * lead) :
     dimension(dim), offset(_offset), leader(lead) {}
 
-  idx_t access(size_t i) {
+  idx_t access(size_t) {
     return dimension[offset + leader->currVal];
   }
   idx_t index() {return offset;}

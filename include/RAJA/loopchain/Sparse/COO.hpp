@@ -80,9 +80,30 @@ struct COO : public SparseImpl<ElmType, NumDims> {
   
   }
 
+  idx_t expectedIdx = 0; 
   ElmType & operator() (std::vector<IdxType> v) { 
-    //doPrint("Access:", v, "\n");   
-    return find<0>(0,len,v);
+    if(expectedIdx >= len) {expectedIdx = 0;}
+    int matches = 1;
+    for(size_t i = 0; i < NumDims; i++) {
+      if (v[i] != indices[i][expectedIdx]) {
+        matches = 0;
+        break;
+      }
+    }
+    if (matches) {
+      hits += 1;
+      
+      return val[expectedIdx++];
+    } else {
+      misses += 1;
+      auto entryIndex = find<0>(0,len,v);
+      if (entryIndex == -1) {
+        return fill;
+      } else {
+        expectedIdx = entryIndex + 1;
+        return val[entryIndex];
+      }
+    }
   }
   
   void set_permutation(std::vector<IdxType> p) {
@@ -91,14 +112,14 @@ struct COO : public SparseImpl<ElmType, NumDims> {
   } 
  
   template<size_t CurrDepth>
-  ElmType & find(size_t begin, size_t end, std::vector<IdxType> v) { 
+  idx_t find(size_t begin, size_t end, std::vector<IdxType> v) { 
     auto currCoord = indices[permutation[CurrDepth]];
     auto currBegin = currCoord.begin() + begin;
     auto currEnd = currCoord.begin() + end;
     
     
     auto currFind = std::find(currBegin, currEnd, v[permutation[CurrDepth]]);
-    if (currFind == currEnd) {return fill;}
+    if (currFind == currEnd) {return -1;}
    
 
     auto currFindEnd = std::find_end(currFind, currEnd, currFind, currFind + 1) + 1;
@@ -108,7 +129,7 @@ struct COO : public SparseImpl<ElmType, NumDims> {
 
     if constexpr (CurrDepth == NumDims - 1) {
       camp::sink(nextEndDist); // silence unused by set warning
-      return val[nextBeginDist];
+      return nextBeginDist;
     } else {
       return find<CurrDepth+1>(nextBeginDist, nextEndDist, v);
     }
@@ -116,6 +137,15 @@ struct COO : public SparseImpl<ElmType, NumDims> {
 
   std::vector<IdxType> get_permutation(){ return permutation;};  
   void* get_data(){ return val.data();};  
+  
+  size_t hits = 0;
+  size_t misses = 0;
+  virtual size_t get_hits() {return hits;}
+  virtual size_t get_misses() {return misses;}
+  virtual void reset_counters() {
+    hits = 0;
+    misses = 0;
+  }
 
 }; //COO
 

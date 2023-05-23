@@ -18,9 +18,9 @@ template <typename ElmType, size_t NumDims>
 struct  SparseView {
  
   
-  SparseImpl<ElmType, NumDims> * impl;
+  COO<ElmType, NumDims> * impl;
 
-  SparseView(SparseImpl<ElmType, NumDims>* i) : impl(i) {}
+  SparseView(COO<ElmType, NumDims>* i) : impl(i) {}
 
   void* get_data() { return impl->get_data();}
 
@@ -37,8 +37,8 @@ struct  SparseView {
   template <typename...Indices>
   ElmType & operator() (camp::idx_t i, Indices... is) {
 
-    auto v = std::vector<camp::idx_t>{{i, is...}};
-    return impl->operator()(v);
+     std::vector<idx_t> v{i,is...};
+        return impl->operator()(v);
   }
 
    
@@ -46,7 +46,16 @@ struct  SparseView {
     auto outerDim = new SparseSymbolicSegmentLead<NumDims>(*this, dimOrder[0]);
     auto innerDim = new SparseSymbolicSegmentFollow<NumDims>(*this, dimOrder[1], outerDim);
     return camp::tie(*outerDim, *innerDim);
-  } 
+  }
+
+  size_t get_hits() {return impl->get_hits();}
+  size_t get_misses() {return impl->get_misses();}
+  void reset_counters() {impl->reset_counters();}
+  double get_miss_rate() { return impl->get_miss_rate();}
+  double get_hit_rate() { return impl->get_hit_rate();}
+  void set_permutation(std::vector<idx_t> perm) {impl->set_permutation(perm);}
+
+ 
 }; // SparseView<NumDims>
 
 
@@ -139,12 +148,13 @@ RAJA::SparseView<T,2> make_random_sparse_view2(camp::idx_t Ni, camp::idx_t Nj, s
 }
 
 template <typename T>
-RAJA::SparseView<T,2> make_random_sparse_view2(camp::idx_t N) {
+RAJA::SparseView<T,2> make_random_sparse_view2(camp::idx_t N, double density = 0.1) {
   std::vector<idx_t> d0,d1;
   std::vector<T> v;
   for(int i = 0; i < N; i++){
     for(int j = 0; j < N; j++) {
-        bool isNonzero = (std::rand() % 10) == 0;
+        
+        bool isNonzero = ((double) std::rand() / (double) RAND_MAX) < density;
         if(isNonzero) {
           d0.push_back(i);
           d1.push_back(j);

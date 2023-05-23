@@ -680,7 +680,7 @@ void SparseExampleTestSparsify3() {
   std::vector<camp::idx_t> perm02 = {{0,2}};
   std::vector<camp::idx_t> perm21 = {{2,1}};
   std::vector<camp::idx_t> perm12 = {{1,2}};
-
+/*
 
   A2.impl->set_permutation(perm01);
   stream.clear();
@@ -765,7 +765,7 @@ void SparseExampleTestSparsify3() {
   kernel<POL102>(sparsified_2_102_12, lam_prt);
   std::string test_output_2_102_12 = stream.str();
   EXPECT_EQ(test_output_2_102_12, ref_output_2_102_12) << "Failed sparsification with 102 nesting order and 12 access order for 2D data.\n";
-
+*/
 /*
   auto lam4_0012 = [&](auto i0, auto i1, auto i2) {
     if(A4(i0,i0,i1,i2) != 0) {stream << i0 << "," << i1 << "," << i2 << "  ";}

@@ -84,7 +84,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL0123>(dense_segs, lam0123);
   std::string ref_output_0123_0123 = stream.str();
-  auto sparsified_0123_0123 = sparsify_iteration_space_equal_dims<POL0123>(dense_segs, A, perm0123);
+  auto sparsified_0123_0123 = sparsify_iteration_space<POL0123>(dense_segs, A, perm0123);
   stream.clear();
   stream.str("");
   kernel<POL0123>(sparsified_0123_0123, lam_prt);
@@ -96,7 +96,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL0132>(dense_segs, lam3201);
   std::string ref_output_0132_3201 = stream.str();
-  auto sparsified_0132_3201 = sparsify_iteration_space_equal_dims<POL0132>(dense_segs, A, perm3201);
+  auto sparsified_0132_3201 = sparsify_iteration_space<POL0132>(dense_segs, A, perm3201);
   stream.clear();
   stream.str("");
   kernel<POL0132>(sparsified_0132_3201, lam_prt);
@@ -108,7 +108,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL0231>(dense_segs, lam0213);
   std::string ref_output_0231_0213 = stream.str();
-  auto sparsified_0231_0213 = sparsify_iteration_space_equal_dims<POL0231>(dense_segs, A, perm0213);
+  auto sparsified_0231_0213 = sparsify_iteration_space<POL0231>(dense_segs, A, perm0213);
   stream.clear();
   stream.str("");
   kernel<POL0231>(sparsified_0231_0213, lam_prt);
@@ -120,7 +120,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL0312>(dense_segs, lam0123);
   std::string ref_output_0312_0123 = stream.str();
-  auto sparsified_0312_0123 = sparsify_iteration_space_equal_dims<POL0312>(dense_segs, A, perm0123);
+  auto sparsified_0312_0123 = sparsify_iteration_space<POL0312>(dense_segs, A, perm0123);
   stream.clear();
   stream.str("");
   kernel<POL0312>(sparsified_0312_0123, lam_prt);
@@ -132,7 +132,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL0312>(dense_segs, lam0132);
   std::string ref_output_0312_0132 = stream.str();
-  auto sparsified_0312_0132 = sparsify_iteration_space_equal_dims<POL0312>(dense_segs, A, perm0132);
+  auto sparsified_0312_0132 = sparsify_iteration_space<POL0312>(dense_segs, A, perm0132);
   stream.clear();
   stream.str("");
   kernel<POL0312>(sparsified_0312_0132, lam_prt);
@@ -144,7 +144,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL0312>(dense_segs, lam1203);
   std::string ref_output_0312_1203 = stream.str();
-  auto sparsified_0312_1203 = sparsify_iteration_space_equal_dims<POL0312>(dense_segs, A, perm1203);
+  auto sparsified_0312_1203 = sparsify_iteration_space<POL0312>(dense_segs, A, perm1203);
   stream.clear();
   stream.str("");
   kernel<POL0312>(sparsified_0312_1203, lam_prt);
@@ -156,7 +156,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL0312>(dense_segs, lam2310);
   std::string ref_output_0312_2310 = stream.str();
-  auto sparsified_0312_2310 = sparsify_iteration_space_equal_dims<POL0312>(dense_segs, A, perm2310);
+  auto sparsified_0312_2310 = sparsify_iteration_space<POL0312>(dense_segs, A, perm2310);
   stream.clear();
   stream.str("");
   kernel<POL0312>(sparsified_0312_2310, lam_prt);
@@ -168,7 +168,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL0321>(dense_segs, lam0213);
   std::string ref_output_0321_0213 = stream.str();
-  auto sparsified_0321_0213 = sparsify_iteration_space_equal_dims<POL0321>(dense_segs, A, perm0213);
+  auto sparsified_0321_0213 = sparsify_iteration_space<POL0321>(dense_segs, A, perm0213);
   stream.clear();
   stream.str("");
   kernel<POL0321>(sparsified_0321_0213, lam_prt);
@@ -180,7 +180,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL1023>(dense_segs, lam0213);
   std::string ref_output_1023_0213 = stream.str();
-  auto sparsified_1023_0213 = sparsify_iteration_space_equal_dims<POL1023>(dense_segs, A, perm0213);
+  auto sparsified_1023_0213 = sparsify_iteration_space<POL1023>(dense_segs, A, perm0213);
   stream.clear();
   stream.str("");
   kernel<POL1023>(sparsified_1023_0213, lam_prt);
@@ -192,7 +192,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL1023>(dense_segs, lam3120);
   std::string ref_output_1023_3120 = stream.str();
-  auto sparsified_1023_3120 = sparsify_iteration_space_equal_dims<POL1023>(dense_segs, A, perm3120);
+  auto sparsified_1023_3120 = sparsify_iteration_space<POL1023>(dense_segs, A, perm3120);
   stream.clear();
   stream.str("");
   kernel<POL1023>(sparsified_1023_3120, lam_prt);
@@ -204,7 +204,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL1032>(dense_segs, lam0213);
   std::string ref_output_1032_0213 = stream.str();
-  auto sparsified_1032_0213 = sparsify_iteration_space_equal_dims<POL1032>(dense_segs, A, perm0213);
+  auto sparsified_1032_0213 = sparsify_iteration_space<POL1032>(dense_segs, A, perm0213);
   stream.clear();
   stream.str("");
   kernel<POL1032>(sparsified_1032_0213, lam_prt);
@@ -216,7 +216,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL1032>(dense_segs, lam0231);
   std::string ref_output_1032_0231 = stream.str();
-  auto sparsified_1032_0231 = sparsify_iteration_space_equal_dims<POL1032>(dense_segs, A, perm0231);
+  auto sparsified_1032_0231 = sparsify_iteration_space<POL1032>(dense_segs, A, perm0231);
   stream.clear();
   stream.str("");
   kernel<POL1032>(sparsified_1032_0231, lam_prt);
@@ -228,7 +228,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL1032>(dense_segs, lam1023);
   std::string ref_output_1032_1023 = stream.str();
-  auto sparsified_1032_1023 = sparsify_iteration_space_equal_dims<POL1032>(dense_segs, A, perm1023);
+  auto sparsified_1032_1023 = sparsify_iteration_space<POL1032>(dense_segs, A, perm1023);
   stream.clear();
   stream.str("");
   kernel<POL1032>(sparsified_1032_1023, lam_prt);
@@ -240,7 +240,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL1032>(dense_segs, lam3102);
   std::string ref_output_1032_3102 = stream.str();
-  auto sparsified_1032_3102 = sparsify_iteration_space_equal_dims<POL1032>(dense_segs, A, perm3102);
+  auto sparsified_1032_3102 = sparsify_iteration_space<POL1032>(dense_segs, A, perm3102);
   stream.clear();
   stream.str("");
   kernel<POL1032>(sparsified_1032_3102, lam_prt);
@@ -252,7 +252,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL1203>(dense_segs, lam3102);
   std::string ref_output_1203_3102 = stream.str();
-  auto sparsified_1203_3102 = sparsify_iteration_space_equal_dims<POL1203>(dense_segs, A, perm3102);
+  auto sparsified_1203_3102 = sparsify_iteration_space<POL1203>(dense_segs, A, perm3102);
   stream.clear();
   stream.str("");
   kernel<POL1203>(sparsified_1203_3102, lam_prt);
@@ -264,7 +264,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL1230>(dense_segs, lam1230);
   std::string ref_output_1230_1230 = stream.str();
-  auto sparsified_1230_1230 = sparsify_iteration_space_equal_dims<POL1230>(dense_segs, A, perm1230);
+  auto sparsified_1230_1230 = sparsify_iteration_space<POL1230>(dense_segs, A, perm1230);
   stream.clear();
   stream.str("");
   kernel<POL1230>(sparsified_1230_1230, lam_prt);
@@ -276,7 +276,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL1320>(dense_segs, lam2013);
   std::string ref_output_1320_2013 = stream.str();
-  auto sparsified_1320_2013 = sparsify_iteration_space_equal_dims<POL1320>(dense_segs, A, perm2013);
+  auto sparsified_1320_2013 = sparsify_iteration_space<POL1320>(dense_segs, A, perm2013);
   stream.clear();
   stream.str("");
   kernel<POL1320>(sparsified_1320_2013, lam_prt);
@@ -288,7 +288,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL2013>(dense_segs, lam0123);
   std::string ref_output_2013_0123 = stream.str();
-  auto sparsified_2013_0123 = sparsify_iteration_space_equal_dims<POL2013>(dense_segs, A, perm0123);
+  auto sparsified_2013_0123 = sparsify_iteration_space<POL2013>(dense_segs, A, perm0123);
   stream.clear();
   stream.str("");
   kernel<POL2013>(sparsified_2013_0123, lam_prt);
@@ -300,7 +300,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL2013>(dense_segs, lam1320);
   std::string ref_output_2013_1320 = stream.str();
-  auto sparsified_2013_1320 = sparsify_iteration_space_equal_dims<POL2013>(dense_segs, A, perm1320);
+  auto sparsified_2013_1320 = sparsify_iteration_space<POL2013>(dense_segs, A, perm1320);
   stream.clear();
   stream.str("");
   kernel<POL2013>(sparsified_2013_1320, lam_prt);
@@ -312,7 +312,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL2031>(dense_segs, lam0321);
   std::string ref_output_2031_0321 = stream.str();
-  auto sparsified_2031_0321 = sparsify_iteration_space_equal_dims<POL2031>(dense_segs, A, perm0321);
+  auto sparsified_2031_0321 = sparsify_iteration_space<POL2031>(dense_segs, A, perm0321);
   stream.clear();
   stream.str("");
   kernel<POL2031>(sparsified_2031_0321, lam_prt);
@@ -324,7 +324,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL2031>(dense_segs, lam3012);
   std::string ref_output_2031_3012 = stream.str();
-  auto sparsified_2031_3012 = sparsify_iteration_space_equal_dims<POL2031>(dense_segs, A, perm3012);
+  auto sparsified_2031_3012 = sparsify_iteration_space<POL2031>(dense_segs, A, perm3012);
   stream.clear();
   stream.str("");
   kernel<POL2031>(sparsified_2031_3012, lam_prt);
@@ -336,7 +336,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL2103>(dense_segs, lam0123);
   std::string ref_output_2103_0123 = stream.str();
-  auto sparsified_2103_0123 = sparsify_iteration_space_equal_dims<POL2103>(dense_segs, A, perm0123);
+  auto sparsified_2103_0123 = sparsify_iteration_space<POL2103>(dense_segs, A, perm0123);
   stream.clear();
   stream.str("");
   kernel<POL2103>(sparsified_2103_0123, lam_prt);
@@ -348,7 +348,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL2103>(dense_segs, lam3012);
   std::string ref_output_2103_3012 = stream.str();
-  auto sparsified_2103_3012 = sparsify_iteration_space_equal_dims<POL2103>(dense_segs, A, perm3012);
+  auto sparsified_2103_3012 = sparsify_iteration_space<POL2103>(dense_segs, A, perm3012);
   stream.clear();
   stream.str("");
   kernel<POL2103>(sparsified_2103_3012, lam_prt);
@@ -360,7 +360,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL2130>(dense_segs, lam2013);
   std::string ref_output_2130_2013 = stream.str();
-  auto sparsified_2130_2013 = sparsify_iteration_space_equal_dims<POL2130>(dense_segs, A, perm2013);
+  auto sparsified_2130_2013 = sparsify_iteration_space<POL2130>(dense_segs, A, perm2013);
   stream.clear();
   stream.str("");
   kernel<POL2130>(sparsified_2130_2013, lam_prt);
@@ -372,7 +372,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL2130>(dense_segs, lam2310);
   std::string ref_output_2130_2310 = stream.str();
-  auto sparsified_2130_2310 = sparsify_iteration_space_equal_dims<POL2130>(dense_segs, A, perm2310);
+  auto sparsified_2130_2310 = sparsify_iteration_space<POL2130>(dense_segs, A, perm2310);
   stream.clear();
   stream.str("");
   kernel<POL2130>(sparsified_2130_2310, lam_prt);
@@ -384,7 +384,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL2310>(dense_segs, lam1203);
   std::string ref_output_2310_1203 = stream.str();
-  auto sparsified_2310_1203 = sparsify_iteration_space_equal_dims<POL2310>(dense_segs, A, perm1203);
+  auto sparsified_2310_1203 = sparsify_iteration_space<POL2310>(dense_segs, A, perm1203);
   stream.clear();
   stream.str("");
   kernel<POL2310>(sparsified_2310_1203, lam_prt);
@@ -396,7 +396,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL2310>(dense_segs, lam1320);
   std::string ref_output_2310_1320 = stream.str();
-  auto sparsified_2310_1320 = sparsify_iteration_space_equal_dims<POL2310>(dense_segs, A, perm1320);
+  auto sparsified_2310_1320 = sparsify_iteration_space<POL2310>(dense_segs, A, perm1320);
   stream.clear();
   stream.str("");
   kernel<POL2310>(sparsified_2310_1320, lam_prt);
@@ -408,7 +408,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL2310>(dense_segs, lam2130);
   std::string ref_output_2310_2130 = stream.str();
-  auto sparsified_2310_2130 = sparsify_iteration_space_equal_dims<POL2310>(dense_segs, A, perm2130);
+  auto sparsified_2310_2130 = sparsify_iteration_space<POL2310>(dense_segs, A, perm2130);
   stream.clear();
   stream.str("");
   kernel<POL2310>(sparsified_2310_2130, lam_prt);
@@ -420,7 +420,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL3012>(dense_segs, lam1032);
   std::string ref_output_3012_1032 = stream.str();
-  auto sparsified_3012_1032 = sparsify_iteration_space_equal_dims<POL3012>(dense_segs, A, perm1032);
+  auto sparsified_3012_1032 = sparsify_iteration_space<POL3012>(dense_segs, A, perm1032);
   stream.clear();
   stream.str("");
   kernel<POL3012>(sparsified_3012_1032, lam_prt);
@@ -432,7 +432,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL3012>(dense_segs, lam2130);
   std::string ref_output_3012_2130 = stream.str();
-  auto sparsified_3012_2130 = sparsify_iteration_space_equal_dims<POL3012>(dense_segs, A, perm2130);
+  auto sparsified_3012_2130 = sparsify_iteration_space<POL3012>(dense_segs, A, perm2130);
   stream.clear();
   stream.str("");
   kernel<POL3012>(sparsified_3012_2130, lam_prt);
@@ -444,7 +444,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL3021>(dense_segs, lam1203);
   std::string ref_output_3021_1203 = stream.str();
-  auto sparsified_3021_1203 = sparsify_iteration_space_equal_dims<POL3021>(dense_segs, A, perm1203);
+  auto sparsified_3021_1203 = sparsify_iteration_space<POL3021>(dense_segs, A, perm1203);
   stream.clear();
   stream.str("");
   kernel<POL3021>(sparsified_3021_1203, lam_prt);
@@ -456,7 +456,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL3021>(dense_segs, lam3120);
   std::string ref_output_3021_3120 = stream.str();
-  auto sparsified_3021_3120 = sparsify_iteration_space_equal_dims<POL3021>(dense_segs, A, perm3120);
+  auto sparsified_3021_3120 = sparsify_iteration_space<POL3021>(dense_segs, A, perm3120);
   stream.clear();
   stream.str("");
   kernel<POL3021>(sparsified_3021_3120, lam_prt);
@@ -468,7 +468,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL3102>(dense_segs, lam3102);
   std::string ref_output_3102_3102 = stream.str();
-  auto sparsified_3102_3102 = sparsify_iteration_space_equal_dims<POL3102>(dense_segs, A, perm3102);
+  auto sparsified_3102_3102 = sparsify_iteration_space<POL3102>(dense_segs, A, perm3102);
   stream.clear();
   stream.str("");
   kernel<POL3102>(sparsified_3102_3102, lam_prt);
@@ -480,7 +480,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL3120>(dense_segs, lam0213);
   std::string ref_output_3120_0213 = stream.str();
-  auto sparsified_3120_0213 = sparsify_iteration_space_equal_dims<POL3120>(dense_segs, A, perm0213);
+  auto sparsified_3120_0213 = sparsify_iteration_space<POL3120>(dense_segs, A, perm0213);
   stream.clear();
   stream.str("");
   kernel<POL3120>(sparsified_3120_0213, lam_prt);
@@ -492,7 +492,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL3120>(dense_segs, lam3120);
   std::string ref_output_3120_3120 = stream.str();
-  auto sparsified_3120_3120 = sparsify_iteration_space_equal_dims<POL3120>(dense_segs, A, perm3120);
+  auto sparsified_3120_3120 = sparsify_iteration_space<POL3120>(dense_segs, A, perm3120);
   stream.clear();
   stream.str("");
   kernel<POL3120>(sparsified_3120_3120, lam_prt);
@@ -504,7 +504,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL3120>(dense_segs, lam3210);
   std::string ref_output_3120_3210 = stream.str();
-  auto sparsified_3120_3210 = sparsify_iteration_space_equal_dims<POL3120>(dense_segs, A, perm3210);
+  auto sparsified_3120_3210 = sparsify_iteration_space<POL3120>(dense_segs, A, perm3210);
   stream.clear();
   stream.str("");
   kernel<POL3120>(sparsified_3120_3210, lam_prt);
@@ -516,7 +516,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL3201>(dense_segs, lam1302);
   std::string ref_output_3201_1302 = stream.str();
-  auto sparsified_3201_1302 = sparsify_iteration_space_equal_dims<POL3201>(dense_segs, A, perm1302);
+  auto sparsified_3201_1302 = sparsify_iteration_space<POL3201>(dense_segs, A, perm1302);
   stream.clear();
   stream.str("");
   kernel<POL3201>(sparsified_3201_1302, lam_prt);
@@ -528,7 +528,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL3201>(dense_segs, lam3201);
   std::string ref_output_3201_3201 = stream.str();
-  auto sparsified_3201_3201 = sparsify_iteration_space_equal_dims<POL3201>(dense_segs, A, perm3201);
+  auto sparsified_3201_3201 = sparsify_iteration_space<POL3201>(dense_segs, A, perm3201);
   stream.clear();
   stream.str("");
   kernel<POL3201>(sparsified_3201_3201, lam_prt);
@@ -540,7 +540,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL3210>(dense_segs, lam2301);
   std::string ref_output_3210_2301 = stream.str();
-  auto sparsified_3210_2301 = sparsify_iteration_space_equal_dims<POL3210>(dense_segs, A, perm2301);
+  auto sparsified_3210_2301 = sparsify_iteration_space<POL3210>(dense_segs, A, perm2301);
   stream.clear();
   stream.str("");
   kernel<POL3210>(sparsified_3210_2301, lam_prt);
@@ -552,7 +552,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL3210>(dense_segs, lam2310);
   std::string ref_output_3210_2310 = stream.str();
-  auto sparsified_3210_2310 = sparsify_iteration_space_equal_dims<POL3210>(dense_segs, A, perm2310);
+  auto sparsified_3210_2310 = sparsify_iteration_space<POL3210>(dense_segs, A, perm2310);
   stream.clear();
   stream.str("");
   kernel<POL3210>(sparsified_3210_2310, lam_prt);
@@ -564,7 +564,7 @@ void SparseTestSparsify4() {
   stream.str(std::string());
   kernel<POL3210>(dense_segs, lam3102);
   std::string ref_output_3210_3102 = stream.str();
-  auto sparsified_3210_3102 = sparsify_iteration_space_equal_dims<POL3210>(dense_segs, A, perm3102);
+  auto sparsified_3210_3102 = sparsify_iteration_space<POL3210>(dense_segs, A, perm3102);
   stream.clear();
   stream.str("");
   kernel<POL3210>(sparsified_3210_3102, lam_prt);

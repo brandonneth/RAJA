@@ -27,8 +27,10 @@ struct COO : public SparseImpl<ElmType, NumDims> {
     //check lengths
     //check that its sorted the right way
     //check the permutation is right
-    assert(val.size() == row.size());
-    assert(val.size() == col.size());
+    for(size_t i = 0; i < NumDims; i++) {
+      VectorType idxs = indices.at(i);
+      assert(val.size() == idxs.size());
+    }
     sort();
   }
 
@@ -80,15 +82,55 @@ struct COO : public SparseImpl<ElmType, NumDims> {
   
   }
 
+
+  
   idx_t expectedIdx = 0; 
-  ElmType & operator() (std::vector<IdxType> v) { 
+  template <idx_t I, typename...Idxs>
+  bool is_expected(camp::tuple<Idxs...> idxs) const {
+    if constexpr (sizeof...(Idxs) == I) {
+      return 1;
+    } else {
+      auto thisMatch = (camp::get<I>(idxs) == indices[I][expectedIdx]);
+      return thisMatch = is_expected<I+1>(idxs);
+    }
+  }
+
+  template <typename...Idxs>
+  ElmType & operator() (camp::tuple<Idxs...> idxs) {
+    if(expectedIdx >= len) {expectedIdx = 0;}
+    if(is_expected<0>(idxs)) {
+      hits += 1;
+      return val[expectedIdx++];
+    }else {
+      misses += 1;
+      auto entryIndex = find<0>(0,len,idxs);
+      if (entryIndex == -1) {
+        return fill;
+      } else {
+        expectedIdx = entryIndex + 1;
+        return val[entryIndex];
+      }
+    }
+
+
+  }
+
+
+  template <idx_t I>
+  RAJA_INLINE bool is_expected(const std::array<idx_t, NumDims> & v) {
+    if constexpr (I == NumDims) {
+      return true;
+    } else {
+    return v[I] == indices[I][expectedIdx] && is_expected<I+1>(v);
+    }
+  }
+
+  ElmType & operator() (const std::array<idx_t, NumDims> & v) { 
     if(expectedIdx >= len) {expectedIdx = 0;}
     int matches = 1;
+//is_expected<0>(v);
     for(size_t i = 0; i < NumDims; i++) {
-      if (v[i] != indices[i][expectedIdx]) {
-        matches = 0;
-        break;
-      }
+      if (v[i] != indices[i][expectedIdx]) { matches = 0; break;}
     }
     if (matches) {
       hits += 1;
@@ -111,8 +153,9 @@ struct COO : public SparseImpl<ElmType, NumDims> {
     sort();
   } 
  
+
   template<size_t CurrDepth>
-  idx_t find(size_t begin, size_t end, std::vector<IdxType> v) { 
+  idx_t find(size_t begin, size_t end, auto v) { 
     auto currCoord = indices[permutation[CurrDepth]];
     auto currBegin = currCoord.begin() + begin;
     auto currEnd = currCoord.begin() + end;
@@ -137,7 +180,9 @@ struct COO : public SparseImpl<ElmType, NumDims> {
 
   std::vector<IdxType> get_permutation(){ return permutation;};  
   void* get_data(){ return val.data();};  
-  
+ 
+  size_t size() { return val.size();}
+ 
   size_t hits = 0;
   size_t misses = 0;
   virtual size_t get_hits() {return hits;}

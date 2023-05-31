@@ -177,11 +177,11 @@ void SparseAccessTestImpl() {
 
   auto access = accesses[0];
 
+  EXPECT_EQ(access.view, view1.get_data());
   EXPECT_EQ(true, access.is_view(view1));
   EXPECT_TRUE(access.isSparse);
   EXPECT_TRUE(access.isRead);
   EXPECT_FALSE(access.isWrite);
-
   
 
 }

@@ -10,7 +10,7 @@ template <typename ElmType,size_t NumDims>
 struct SparseImpl {
 
 using IdxType = camp::idx_t;
-virtual ElmType & operator() (std::vector<IdxType> v) = 0;
+virtual ElmType & operator() (const std::array<IdxType,NumDims> & v) = 0;
   
   virtual std::vector<IdxType> get_permutation() = 0;  
   virtual void set_permutation(std::vector<IdxType>) = 0;  

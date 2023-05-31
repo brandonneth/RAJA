@@ -31,8 +31,8 @@ struct SparseSegment {
   using IndexType = idx_t;
   SparseSegmentImpl * impl;
   SparseSegment(SparseSegmentImpl * i) : impl(i) {}
-  SparseIterator begin() {return impl->begin();}
-  SparseIterator end() {return impl->end();}
+  SparseIterator begin() const {return impl->begin();}
+  SparseIterator end() const {return impl->end();}
 };
 
 //implementations for dense segments/iterators

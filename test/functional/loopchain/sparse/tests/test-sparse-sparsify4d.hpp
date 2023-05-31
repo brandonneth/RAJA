@@ -79,7 +79,7 @@ void SparseTestSparsify4() {
   std::vector<camp::idx_t> perm3120 = {3,1,2,0};
   std::vector<camp::idx_t> perm3201 = {3,2,0,1};
   std::vector<camp::idx_t> perm3210 = {3,2,1,0};
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL0123>(dense_segs, lam0123);
@@ -91,7 +91,7 @@ void SparseTestSparsify4() {
   std::string test_output_0123_0123 = stream.str();
   EXPECT_EQ(test_output_0123_0123,ref_output_0123_0123) << "Failed sparsification with 0123->0123 nesting order change and 0123->0123 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL0132>(dense_segs, lam3201);
@@ -103,7 +103,7 @@ void SparseTestSparsify4() {
   std::string test_output_0132_3201 = stream.str();
   EXPECT_EQ(test_output_0132_3201,ref_output_0132_3201) << "Failed sparsification with 0123->0132 nesting order change and 0123->3201 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL0231>(dense_segs, lam0213);
@@ -115,7 +115,7 @@ void SparseTestSparsify4() {
   std::string test_output_0231_0213 = stream.str();
   EXPECT_EQ(test_output_0231_0213,ref_output_0231_0213) << "Failed sparsification with 0123->0231 nesting order change and 0123->0213 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL0312>(dense_segs, lam0123);
@@ -127,7 +127,7 @@ void SparseTestSparsify4() {
   std::string test_output_0312_0123 = stream.str();
   EXPECT_EQ(test_output_0312_0123,ref_output_0312_0123) << "Failed sparsification with 0123->0312 nesting order change and 0123->0123 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL0312>(dense_segs, lam0132);
@@ -139,7 +139,7 @@ void SparseTestSparsify4() {
   std::string test_output_0312_0132 = stream.str();
   EXPECT_EQ(test_output_0312_0132,ref_output_0312_0132) << "Failed sparsification with 0123->0312 nesting order change and 0123->0132 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL0312>(dense_segs, lam1203);
@@ -151,7 +151,7 @@ void SparseTestSparsify4() {
   std::string test_output_0312_1203 = stream.str();
   EXPECT_EQ(test_output_0312_1203,ref_output_0312_1203) << "Failed sparsification with 0123->0312 nesting order change and 0123->1203 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL0312>(dense_segs, lam2310);
@@ -163,7 +163,7 @@ void SparseTestSparsify4() {
   std::string test_output_0312_2310 = stream.str();
   EXPECT_EQ(test_output_0312_2310,ref_output_0312_2310) << "Failed sparsification with 0123->0312 nesting order change and 0123->2310 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL0321>(dense_segs, lam0213);
@@ -175,7 +175,7 @@ void SparseTestSparsify4() {
   std::string test_output_0321_0213 = stream.str();
   EXPECT_EQ(test_output_0321_0213,ref_output_0321_0213) << "Failed sparsification with 0123->0321 nesting order change and 0123->0213 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL1023>(dense_segs, lam0213);
@@ -187,7 +187,7 @@ void SparseTestSparsify4() {
   std::string test_output_1023_0213 = stream.str();
   EXPECT_EQ(test_output_1023_0213,ref_output_1023_0213) << "Failed sparsification with 0123->1023 nesting order change and 0123->0213 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL1023>(dense_segs, lam3120);
@@ -199,7 +199,7 @@ void SparseTestSparsify4() {
   std::string test_output_1023_3120 = stream.str();
   EXPECT_EQ(test_output_1023_3120,ref_output_1023_3120) << "Failed sparsification with 0123->1023 nesting order change and 0123->3120 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL1032>(dense_segs, lam0213);
@@ -211,7 +211,7 @@ void SparseTestSparsify4() {
   std::string test_output_1032_0213 = stream.str();
   EXPECT_EQ(test_output_1032_0213,ref_output_1032_0213) << "Failed sparsification with 0123->1032 nesting order change and 0123->0213 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL1032>(dense_segs, lam0231);
@@ -223,7 +223,7 @@ void SparseTestSparsify4() {
   std::string test_output_1032_0231 = stream.str();
   EXPECT_EQ(test_output_1032_0231,ref_output_1032_0231) << "Failed sparsification with 0123->1032 nesting order change and 0123->0231 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL1032>(dense_segs, lam1023);
@@ -235,7 +235,7 @@ void SparseTestSparsify4() {
   std::string test_output_1032_1023 = stream.str();
   EXPECT_EQ(test_output_1032_1023,ref_output_1032_1023) << "Failed sparsification with 0123->1032 nesting order change and 0123->1023 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL1032>(dense_segs, lam3102);
@@ -247,7 +247,7 @@ void SparseTestSparsify4() {
   std::string test_output_1032_3102 = stream.str();
   EXPECT_EQ(test_output_1032_3102,ref_output_1032_3102) << "Failed sparsification with 0123->1032 nesting order change and 0123->3102 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL1203>(dense_segs, lam3102);
@@ -259,7 +259,7 @@ void SparseTestSparsify4() {
   std::string test_output_1203_3102 = stream.str();
   EXPECT_EQ(test_output_1203_3102,ref_output_1203_3102) << "Failed sparsification with 0123->1203 nesting order change and 0123->3102 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL1230>(dense_segs, lam1230);
@@ -271,7 +271,7 @@ void SparseTestSparsify4() {
   std::string test_output_1230_1230 = stream.str();
   EXPECT_EQ(test_output_1230_1230,ref_output_1230_1230) << "Failed sparsification with 0123->1230 nesting order change and 0123->1230 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL1320>(dense_segs, lam2013);
@@ -283,7 +283,7 @@ void SparseTestSparsify4() {
   std::string test_output_1320_2013 = stream.str();
   EXPECT_EQ(test_output_1320_2013,ref_output_1320_2013) << "Failed sparsification with 0123->1320 nesting order change and 0123->2013 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL2013>(dense_segs, lam0123);
@@ -295,7 +295,7 @@ void SparseTestSparsify4() {
   std::string test_output_2013_0123 = stream.str();
   EXPECT_EQ(test_output_2013_0123,ref_output_2013_0123) << "Failed sparsification with 0123->2013 nesting order change and 0123->0123 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL2013>(dense_segs, lam1320);
@@ -307,7 +307,7 @@ void SparseTestSparsify4() {
   std::string test_output_2013_1320 = stream.str();
   EXPECT_EQ(test_output_2013_1320,ref_output_2013_1320) << "Failed sparsification with 0123->2013 nesting order change and 0123->1320 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL2031>(dense_segs, lam0321);
@@ -319,7 +319,7 @@ void SparseTestSparsify4() {
   std::string test_output_2031_0321 = stream.str();
   EXPECT_EQ(test_output_2031_0321,ref_output_2031_0321) << "Failed sparsification with 0123->2031 nesting order change and 0123->0321 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL2031>(dense_segs, lam3012);
@@ -331,7 +331,7 @@ void SparseTestSparsify4() {
   std::string test_output_2031_3012 = stream.str();
   EXPECT_EQ(test_output_2031_3012,ref_output_2031_3012) << "Failed sparsification with 0123->2031 nesting order change and 0123->3012 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL2103>(dense_segs, lam0123);
@@ -343,7 +343,7 @@ void SparseTestSparsify4() {
   std::string test_output_2103_0123 = stream.str();
   EXPECT_EQ(test_output_2103_0123,ref_output_2103_0123) << "Failed sparsification with 0123->2103 nesting order change and 0123->0123 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL2103>(dense_segs, lam3012);
@@ -355,7 +355,7 @@ void SparseTestSparsify4() {
   std::string test_output_2103_3012 = stream.str();
   EXPECT_EQ(test_output_2103_3012,ref_output_2103_3012) << "Failed sparsification with 0123->2103 nesting order change and 0123->3012 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL2130>(dense_segs, lam2013);
@@ -367,7 +367,7 @@ void SparseTestSparsify4() {
   std::string test_output_2130_2013 = stream.str();
   EXPECT_EQ(test_output_2130_2013,ref_output_2130_2013) << "Failed sparsification with 0123->2130 nesting order change and 0123->2013 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL2130>(dense_segs, lam2310);
@@ -379,7 +379,7 @@ void SparseTestSparsify4() {
   std::string test_output_2130_2310 = stream.str();
   EXPECT_EQ(test_output_2130_2310,ref_output_2130_2310) << "Failed sparsification with 0123->2130 nesting order change and 0123->2310 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL2310>(dense_segs, lam1203);
@@ -391,7 +391,7 @@ void SparseTestSparsify4() {
   std::string test_output_2310_1203 = stream.str();
   EXPECT_EQ(test_output_2310_1203,ref_output_2310_1203) << "Failed sparsification with 0123->2310 nesting order change and 0123->1203 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL2310>(dense_segs, lam1320);
@@ -403,7 +403,7 @@ void SparseTestSparsify4() {
   std::string test_output_2310_1320 = stream.str();
   EXPECT_EQ(test_output_2310_1320,ref_output_2310_1320) << "Failed sparsification with 0123->2310 nesting order change and 0123->1320 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL2310>(dense_segs, lam2130);
@@ -415,7 +415,7 @@ void SparseTestSparsify4() {
   std::string test_output_2310_2130 = stream.str();
   EXPECT_EQ(test_output_2310_2130,ref_output_2310_2130) << "Failed sparsification with 0123->2310 nesting order change and 0123->2130 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL3012>(dense_segs, lam1032);
@@ -427,7 +427,7 @@ void SparseTestSparsify4() {
   std::string test_output_3012_1032 = stream.str();
   EXPECT_EQ(test_output_3012_1032,ref_output_3012_1032) << "Failed sparsification with 0123->3012 nesting order change and 0123->1032 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL3012>(dense_segs, lam2130);
@@ -439,7 +439,7 @@ void SparseTestSparsify4() {
   std::string test_output_3012_2130 = stream.str();
   EXPECT_EQ(test_output_3012_2130,ref_output_3012_2130) << "Failed sparsification with 0123->3012 nesting order change and 0123->2130 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL3021>(dense_segs, lam1203);
@@ -451,7 +451,7 @@ void SparseTestSparsify4() {
   std::string test_output_3021_1203 = stream.str();
   EXPECT_EQ(test_output_3021_1203,ref_output_3021_1203) << "Failed sparsification with 0123->3021 nesting order change and 0123->1203 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL3021>(dense_segs, lam3120);
@@ -463,7 +463,7 @@ void SparseTestSparsify4() {
   std::string test_output_3021_3120 = stream.str();
   EXPECT_EQ(test_output_3021_3120,ref_output_3021_3120) << "Failed sparsification with 0123->3021 nesting order change and 0123->3120 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL3102>(dense_segs, lam3102);
@@ -475,7 +475,7 @@ void SparseTestSparsify4() {
   std::string test_output_3102_3102 = stream.str();
   EXPECT_EQ(test_output_3102_3102,ref_output_3102_3102) << "Failed sparsification with 0123->3102 nesting order change and 0123->3102 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL3120>(dense_segs, lam0213);
@@ -487,7 +487,7 @@ void SparseTestSparsify4() {
   std::string test_output_3120_0213 = stream.str();
   EXPECT_EQ(test_output_3120_0213,ref_output_3120_0213) << "Failed sparsification with 0123->3120 nesting order change and 0123->0213 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL3120>(dense_segs, lam3120);
@@ -499,7 +499,7 @@ void SparseTestSparsify4() {
   std::string test_output_3120_3120 = stream.str();
   EXPECT_EQ(test_output_3120_3120,ref_output_3120_3120) << "Failed sparsification with 0123->3120 nesting order change and 0123->3120 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL3120>(dense_segs, lam3210);
@@ -511,7 +511,7 @@ void SparseTestSparsify4() {
   std::string test_output_3120_3210 = stream.str();
   EXPECT_EQ(test_output_3120_3210,ref_output_3120_3210) << "Failed sparsification with 0123->3120 nesting order change and 0123->3210 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL3201>(dense_segs, lam1302);
@@ -523,7 +523,7 @@ void SparseTestSparsify4() {
   std::string test_output_3201_1302 = stream.str();
   EXPECT_EQ(test_output_3201_1302,ref_output_3201_1302) << "Failed sparsification with 0123->3201 nesting order change and 0123->1302 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL3201>(dense_segs, lam3201);
@@ -535,7 +535,7 @@ void SparseTestSparsify4() {
   std::string test_output_3201_3201 = stream.str();
   EXPECT_EQ(test_output_3201_3201,ref_output_3201_3201) << "Failed sparsification with 0123->3201 nesting order change and 0123->3201 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL3210>(dense_segs, lam2301);
@@ -547,7 +547,7 @@ void SparseTestSparsify4() {
   std::string test_output_3210_2301 = stream.str();
   EXPECT_EQ(test_output_3210_2301,ref_output_3210_2301) << "Failed sparsification with 0123->3210 nesting order change and 0123->2301 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL3210>(dense_segs, lam2310);
@@ -559,7 +559,7 @@ void SparseTestSparsify4() {
   std::string test_output_3210_2310 = stream.str();
   EXPECT_EQ(test_output_3210_2310,ref_output_3210_2310) << "Failed sparsification with 0123->3210 nesting order change and 0123->2310 argument order change\n" << "0123 0123 reference output: " << ref_output_0123_0123 << "\n";
 
-  A.impl->set_permutation(perm0123);
+  A.impl.set_permutation(perm0123);
   stream.clear();
   stream.str(std::string());
   kernel<POL3210>(dense_segs, lam3102);

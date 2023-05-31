@@ -208,7 +208,7 @@ struct SymAccess {
   friend std::ostream& operator<< (std::ostream& s, SymAccess a);
   
   template <typename T>
-  bool is_view(T v) {
+  bool is_view(T & v) {
     return view == v.get_data();
   }
 

@@ -17,28 +17,30 @@ struct SparseSymbolicSegmentFollow;
 template <typename ElmType, size_t NumDims>
 struct  SparseView {
  
+ 
+  COO<ElmType, NumDims> impl;
+
+  SparseView(COO<ElmType, NumDims> i) : impl(i) {}
+
+  void* get_data() { return impl.get_data();}
   
-  COO<ElmType, NumDims> * impl;
-
-  SparseView(COO<ElmType, NumDims>* i) : impl(i) {}
-
-  void* get_data() { return impl->get_data();}
-
+  auto val(idx_t i) {return impl.val[i];}
+  auto dim(idx_t i) {return impl.dim(i);}
+  auto size() {return impl.size();}
   template <typename... Args>
-  SymAccessList operator () (SymIterator symIterator, Args... args) const
+  SymAccessList operator () (SymIterator symIterator, Args... args) 
   {
     std::vector<SymIterator> allIterators{{symIterator, args...}};
 
-    SymAccess thisAccess = SymAccess(impl->get_data(), impl->get_permutation(), allIterators);
+    SymAccess thisAccess = SymAccess(impl.get_data(), impl.get_permutation(), allIterators);
     thisAccess.isSparse = true;
     SymAccessList l = SymAccessList(thisAccess);
     return l ;
   }
   template <typename...Indices>
   ElmType & operator() (camp::idx_t i, Indices... is) {
-
-     std::vector<idx_t> v{i,is...};
-        return impl->operator()(v);
+    std::array<idx_t, NumDims> v{i,is...};
+        return impl.operator()(v);
   }
 
    
@@ -48,12 +50,12 @@ struct  SparseView {
     return camp::tie(*outerDim, *innerDim);
   }
 
-  size_t get_hits() {return impl->get_hits();}
-  size_t get_misses() {return impl->get_misses();}
-  void reset_counters() {impl->reset_counters();}
-  double get_miss_rate() { return impl->get_miss_rate();}
-  double get_hit_rate() { return impl->get_hit_rate();}
-  void set_permutation(std::vector<idx_t> perm) {impl->set_permutation(perm);}
+  size_t get_hits() {return impl.get_hits();}
+  size_t get_misses() {return impl.get_misses();}
+  void reset_counters() {impl.reset_counters();}
+  double get_miss_rate() { return impl.get_miss_rate();}
+  double get_hit_rate() { return impl.get_hit_rate();}
+  void set_permutation(std::vector<idx_t> perm) {impl.set_permutation(perm);}
 
  
 }; // SparseView<NumDims>
@@ -65,23 +67,9 @@ auto tuple_to_vector(Tuple t, camp::idx_seq<Is...>) {
   return vec;
 }
 
-template <typename ElmType, typename...Vectors>
-auto make_sparse_view(Vectors...vecs) {
-  auto tuple = camp::make_tuple(vecs...);
-  size_t constexpr numDims = sizeof...(Vectors) - 1;
-
-  auto val = camp::get<numDims>(tuple);
-  auto indices = tuple_slice<0,numDims>(tuple);
-  
-  auto indicesVector = tuple_to_vector(indices, idx_seq_for(indices));
-
-  auto permutation = std::vector<idx_t>();
-  for(size_t i = 0; i < numDims; i++) {
-    permutation.push_back(i);
-  }
-  auto impl = new COO<ElmType, numDims>(indicesVector, val, permutation);  
-
-  return SparseView<ElmType, numDims>(impl);
+template <camp::idx_t...Is> 
+auto seq_to_vector(camp::idx_seq<Is...>) {
+  return std::vector<idx_t>{{Is...}};
 }
 
 template <typename ElmType, typename...Vectors>
@@ -95,12 +83,37 @@ auto make_sparse_view_permuted(Vectors...vecs) {
   
   auto indicesVector = tuple_to_vector(indices, idx_seq_for(indices));
 
-  auto impl = new COO<ElmType, numDims>(indicesVector, val, permutation);  
+  COO<ElmType, numDims> impl(indicesVector, val, permutation);  
 
   return SparseView<ElmType, numDims>(impl);
 
 }
 
+
+
+template <typename ElmType, typename...Vectors>
+auto make_sparse_view(Vectors...vecs) {
+  auto tuple = camp::make_tuple(vecs...);
+  size_t constexpr numDims = sizeof...(Vectors) - 1;
+
+  auto seq = idx_seq_from_to<0,numDims>();
+  auto perm = seq_to_vector(seq);
+  return make_sparse_view_permuted<ElmType>(vecs..., perm);
+/*
+  auto val = camp::get<numDims>(tuple);
+  auto indices = tuple_slice<0,numDims>(tuple);
+  
+  auto indicesVector = tuple_to_vector(indices, idx_seq_for(indices));
+
+  auto permutation = std::vector<idx_t>();
+  for(size_t i = 0; i < numDims; i++) {
+    permutation.push_back(i);
+  }
+  auto impl = COO<ElmType, numDims>(indicesVector, val, permutation);  
+
+  return SparseView<ElmType, numDims>(impl);
+*/
+}
 
 
 template <typename T>

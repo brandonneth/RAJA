@@ -32,7 +32,7 @@ auto sparsification_follow_dimensions( SparseView<ElmType,ViewDims> & A, std::ve
     return make_tuple();
   } else {
     
-    auto currDimension = make_follow_segment(A.impl->dim(argumentOrderInverse[CurrIdx]), lead);
+    auto currDimension = make_follow_segment(A.impl.dim(argumentOrderInverse[CurrIdx]), lead);
     auto remainingDims = sparsification_follow_dimensions<ElmType, ViewDims, CurrIdx+1, MaxIdx>(A, argumentOrderInverse, lead);
     return tuple_cat(camp::tuple(currDimension), remainingDims);
   }
@@ -50,8 +50,8 @@ auto sparsify_iteration_space_equal_dims(camp::tuple<DenseTupleTypes...> denseSe
   auto q = invert_permutation_unsafe(argumentOrder);
  
   auto applied = apply_permutation(nestingOrderInverse, q);
-  A.impl->set_permutation(applied); 
-  auto leadImpl = new LeadSegmentImpl(A.impl->dim(q[0]));
+  A.impl.set_permutation(applied); 
+  auto leadImpl = new LeadSegmentImpl(A.impl.dim(q[0]));
 
   auto followDimensions = sparsification_follow_dimensions<double,ViewDims,1,ViewDims>(A, q, leadImpl);
 

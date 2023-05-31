@@ -58,9 +58,9 @@ void SparseSegmentTestImpl() {
         statement::Lambda<0>
   >>>;
   
-  auto seg1_impl = new LeadSegmentImpl(view01.impl->dim(0));
+  auto seg1_impl = new LeadSegmentImpl(view01.impl.dim(0));
   auto seg1 = SparseSegment(seg1_impl);
-  auto seg2 = make_follow_segment(view01.impl->dim(1), seg1_impl);
+  auto seg2 = make_follow_segment(view01.impl.dim(1), seg1_impl);
 
   auto segs = make_tuple(seg1, seg2);
 

@@ -9,6 +9,7 @@ namespace RAJA {
 struct SparseIteratorImpl {
   virtual idx_t access(size_t i) = 0;
   virtual idx_t index() = 0;
+  virtual idx_t update(idx_t i) = 0;
 };
 
 struct SparseIterator {
@@ -19,6 +20,9 @@ struct SparseIterator {
   }
   idx_t operator - (SparseIterator other) {
     return impl->index() - other.impl->index();
+  }
+  idx_t update(idx_t i) {
+    return impl->update(i);
   }
 };
 
@@ -41,6 +45,7 @@ struct DenseIteratorImpl : SparseIteratorImpl {
   DenseIteratorImpl(idx_t v) : value(v) {}
   idx_t access(size_t i) { return value + i;}
   idx_t index() {return value;}
+  idx_t update(idx_t i) {return i;}
 };
 
 struct DenseSegmentImpl : SparseSegmentImpl {
@@ -76,6 +81,7 @@ struct LeadIteratorImpl : SparseIteratorImpl {
     return dimension[offset+i];
   }
   idx_t index() {return offset;}
+  idx_t update(idx_t i) {return i;}
 };
 
 struct LeadSegmentImpl : SparseSegmentImpl {
@@ -97,6 +103,103 @@ SparseSegment make_lead_segment(std::vector<idx_t> dim) {
   auto impl = new LeadSegmentImpl(dim);
   return SparseSegment(impl);
 }
+struct CompressedLeadIteratorImpl : SparseIteratorImpl {
+  std::vector<idx_t> dims;
+  idx_t offset;
+  size_t * currVal;
+  CompressedLeadIteratorImpl(std::vector<idx_t> dim, idx_t _offset, size_t * _currVal) :
+    dims(dim), offset(_offset), currVal(_currVal) {}
+  idx_t access(size_t i) {
+   
+
+    return *currVal;
+  }
+  idx_t index() {
+    return offset;
+  }
+  idx_t update(idx_t i) {
+    *currVal = i;
+    return i;}
+};
+
+struct CompressedLeadSegmentImpl : SparseSegmentImpl {
+  std::vector<idx_t> indices;
+  CompressedLeadIteratorImpl * iterLow;
+  CompressedLeadIteratorImpl * iterHigh;
+  size_t currIdx;
+  
+  CompressedLeadSegmentImpl(std::vector<idx_t> dim) : indices(dim), currIdx(0) {
+    iterLow = new CompressedLeadIteratorImpl(indices, 0, &currIdx);
+    iterHigh = new CompressedLeadIteratorImpl(indices, indices.size() - 1, &currIdx);
+  }
+  
+  SparseIterator begin() {return SparseIterator(iterLow);}
+  SparseIterator end() {return SparseIterator(iterHigh);}
+};
+
+SparseSegment make_compressed_lead_segment(std::vector<idx_t> dim) {
+  std::vector<idx_t> indices;
+  idx_t idx = 0;
+  for(idx_t dimIndex = 0; dimIndex < dim.size(); dimIndex++) {
+    auto dimValue = dim[dimIndex];
+    while (indices.size() <= dimValue) {
+      indices.push_back(dimIndex);
+    }
+  }
+  indices.push_back(dim.size());
+  auto impl = new CompressedLeadSegmentImpl(indices);
+  return SparseSegment(impl);
+}
+
+
+
+//implementations for follow segments/iterators
+struct CompressedFollowIteratorImpl : SparseIteratorImpl {
+  std::vector<idx_t> dimension;
+  idx_t offset;
+  CompressedLeadSegmentImpl * leader;
+
+  CompressedFollowIteratorImpl(std::vector<idx_t> dim, idx_t _offset, CompressedLeadSegmentImpl * lead) :
+    dimension(dim), offset(_offset), leader(lead) {}
+
+  idx_t access(size_t idxWithinRow) {
+    auto retVal = leader->indices[leader->currIdx + offset];
+    return dimension[retVal + idxWithinRow];
+  }
+  idx_t index() {    
+    auto retVal = leader->indices[leader->currIdx + offset];
+
+    return retVal;
+  }
+
+  idx_t update(idx_t i) {return i;}
+}
+;
+
+struct CompressedFollowSegmentImpl : SparseSegmentImpl {
+  std::vector<idx_t> dimension;
+  CompressedLeadSegmentImpl * leader;
+  CompressedFollowIteratorImpl * iterLow;
+  CompressedFollowIteratorImpl * iterHigh;
+
+  CompressedFollowSegmentImpl(std::vector<idx_t> _dimension, CompressedLeadSegmentImpl * _leader) 
+    : dimension(_dimension), leader(_leader) {
+    iterLow = new CompressedFollowIteratorImpl(dimension, 0, leader);
+    iterHigh = new CompressedFollowIteratorImpl(dimension, 1, leader);
+  }
+  SparseIterator begin() { return SparseIterator(iterLow);}
+  SparseIterator end() { return SparseIterator(iterHigh);}
+
+};
+
+SparseSegment make_compressed_follow_segment(std::vector<idx_t> dim, CompressedLeadSegmentImpl * leader) {
+  auto impl = new CompressedFollowSegmentImpl(dim, leader);
+  return SparseSegment(impl);
+}
+
+
+
+
 
 //implementations for follow segments/iterators
 struct FollowIteratorImpl : SparseIteratorImpl {
@@ -111,6 +214,7 @@ struct FollowIteratorImpl : SparseIteratorImpl {
     return dimension[offset + leader->currVal];
   }
   idx_t index() {return offset;}
+  idx_t update(idx_t i) {return i;}
 };
 
 struct FollowSegmentImpl : SparseSegmentImpl {

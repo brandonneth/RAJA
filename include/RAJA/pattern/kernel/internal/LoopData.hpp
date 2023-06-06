@@ -39,7 +39,7 @@ namespace RAJA
 
 struct SymbolicSegment;
 struct SymbolicIter;
-
+struct SparseIterator;
 namespace internal
 {
 
@@ -169,7 +169,13 @@ struct LoopData {
     if constexpr (std::is_same<SegmentType,SymIterSpanType&>::value) {
       auto seg = camp::get<Idx>(segment_tuple);
       seg.begin().update(i);
-    } 
+    }
+
+    using LeaderIterSpanType = Span<SparseIterator, Index_type>;
+    if constexpr (std::is_same<SegmentType,LeaderIterSpanType&>::value) {
+      auto seg = camp::get<Idx>(segment_tuple);
+      seg.begin().update(i);
+   } 
   }
 
   template <typename ParamId, typename IndexT>

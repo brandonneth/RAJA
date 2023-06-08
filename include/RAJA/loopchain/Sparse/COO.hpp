@@ -126,7 +126,7 @@ struct COO : public SparseImpl<ElmType, NumDims> {
   }
 
   ElmType & operator() (const std::array<idx_t, NumDims> & v) { 
-    if(expectedIdx >= len) {expectedIdx = 0;}
+    if((size_t)expectedIdx >= len) {expectedIdx = 0;}
     int matches = 1;
 //is_expected<0>(v);
     for(size_t i = 0; i < NumDims; i++) {
@@ -154,8 +154,8 @@ struct COO : public SparseImpl<ElmType, NumDims> {
   } 
  
 
-  template<size_t CurrDepth>
-  idx_t find(size_t begin, size_t end, auto v) { 
+  template<size_t CurrDepth, typename T>
+  idx_t find(size_t begin, size_t end, T v) { 
     auto currCoord = indices[permutation[CurrDepth]];
     auto currBegin = currCoord.begin() + begin;
     auto currEnd = currCoord.begin() + end;

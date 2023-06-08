@@ -45,6 +45,7 @@ auto sparsify_iteration_space_equal_dims(camp::tuple<DenseTupleTypes...> denseSe
     std::cerr << "Warning in sparsify_iteration_space_equal_dims: Iteration space and View dimensionality mismatch.\n";
   }
 
+  
   auto nestingOrderInverse = invert_permutation_unsafe(nestingOrder);
 
   auto q = invert_permutation_unsafe(argumentOrder);

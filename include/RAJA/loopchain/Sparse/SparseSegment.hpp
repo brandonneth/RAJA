@@ -109,7 +109,7 @@ struct CompressedLeadIteratorImpl : SparseIteratorImpl {
   size_t * currVal;
   CompressedLeadIteratorImpl(std::vector<idx_t> dim, idx_t _offset, size_t * _currVal) :
     dims(dim), offset(_offset), currVal(_currVal) {}
-  idx_t access(size_t i) {
+  idx_t access(size_t) {
    
 
     return *currVal;
@@ -139,10 +139,9 @@ struct CompressedLeadSegmentImpl : SparseSegmentImpl {
 
 SparseSegment make_compressed_lead_segment(std::vector<idx_t> dim) {
   std::vector<idx_t> indices;
-  idx_t idx = 0;
-  for(idx_t dimIndex = 0; dimIndex < dim.size(); dimIndex++) {
+  for(size_t dimIndex = 0; dimIndex < dim.size(); dimIndex++) {
     auto dimValue = dim[dimIndex];
-    while (indices.size() <= dimValue) {
+    while ((idx_t) indices.size() <= dimValue) {
       indices.push_back(dimIndex);
     }
   }

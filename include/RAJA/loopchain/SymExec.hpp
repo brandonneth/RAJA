@@ -34,6 +34,9 @@ struct SymIterator {
   SymIterator(std::string str) : name(str), idx(0) {
     accesses = std::make_shared<std::vector<SymAccess>>();
   }
+  SymIterator(std::string str, long int idx) : name(str), idx(idx) {
+    accesses = std::make_shared<std::vector<SymAccess>>();
+  }
 
    /*
   SymIterator(long int num) : name("placeholder"), idx(num) {
@@ -54,9 +57,24 @@ struct SymIterator {
     accesses->clear();
     return 0;
   }
-  bool operator == (const int) {
+  bool operator == (const int c) {
+    return c == idx;
+  }
+  bool operator == (const SymIterator & other) {
+    return other.idx == idx;
+  }
+  bool operator == (const SymAccess &) {
     return 0;
   }
+  bool operator < (const SymIterator & other) {
+    return idx < other.idx;
+  }
+
+  template <typename T>
+  bool operator != (const T & other) {
+    return ! operator==(other);
+  }
+
   template <typename T>
   SymIterator operator * (const T & other) {
     std::stringstream b;

@@ -27,7 +27,7 @@ void mergeVectors(std::vector<T> &v1, std::vector<T> &v2) {
   for(long unsigned int i = 0; i < v2.size(); i++) {
     auto t = v2.at(i);
     auto search = std::find(v1.begin(), v1.end(), t);
-    if(search == v1.end()) {       
+    if(search == v1.end()) {      
       v1.push_back(t);
     }
   }
@@ -57,6 +57,14 @@ struct KernelWrapper {
      tileSizes = std::vector<camp::idx_t>();
      //accesses = _execute_symbolically();
   }
+
+  KernelWrapper(SegmentTuple  _segments, tuple<Bodies...> _bodies) : 
+    segments(_segments), bodies(_bodies) {
+     overlapAmounts = std::vector<camp::idx_t>();
+     tileSizes = std::vector<camp::idx_t>();
+     //accesses = _execute_symbolically();
+  }
+
   
   KernelWrapper(const KernelWrapper &) = default;
   KernelWrapper(KernelWrapper &&) = default;
@@ -70,7 +78,12 @@ struct KernelWrapper {
     std::string iteratorName = "i" + std::to_string(Idx);
     return SymIterator(iteratorName);
   }
-
+  template <camp::idx_t Idx>
+  RAJA_INLINE
+  SymIterator make_sym_iterator(idx_t symVal) {
+    std::string iteratorName = "i" + std::to_string(Idx);
+    return SymIterator(iteratorName, symVal);
+  }
   template <typename T, typename...Ts>
   std::string segment_names(T seg, Ts... segs) {
     if constexpr (sizeof...(Ts) == 0) {
@@ -150,6 +163,14 @@ struct KernelWrapper {
     return iterators;
   }
   
+  template <typename...T, camp::idx_t... Is>
+  RAJA_INLINE
+  auto make_iterator_tuple(camp::tuple<T...> symVals, camp::idx_seq<Is...>) { 
+    auto iterators = camp::make_tuple(make_sym_iterator<Is>(camp::get<Is>(symVals))...);
+    return iterators;
+  }
+  
+
   std::vector<SymAccess> collect_accesses() {
     return std::vector<SymAccess>();
   }
@@ -244,6 +265,20 @@ struct KernelWrapper {
     return es_traverse<LambdaIdx>(make_tuple(), iterators, KPol{});
   }
 
+  template <idx_t LambdaIdx = -1, typename... T>
+  std::vector<SymAccess> execute_symbolically(T... symVals) {
+    
+    auto iterators = make_iterator_tuple(make_tuple(symVals...), camp::make_idx_seq_t<numArgs>());
+    return es_traverse<LambdaIdx>(make_tuple(), iterators, KPol{});
+  }
+  template <idx_t LambdaIdx = -1, typename... T>
+  std::vector<SymAccess> execute_symbolically(camp::tuple<T...> symVals) {
+    
+    auto iterators = make_iterator_tuple(symVals, camp::make_idx_seq_t<numArgs>());
+    return es_traverse<LambdaIdx>(make_tuple(), iterators, KPol{});
+  }
+
+
   /*std::vector<SymAccess> execute_symbolically() {
     auto iterators = make_iterator_tuple(camp::make_idx_seq_t<numArgs>());
     return es_traverse<-1>(make_tuple(), iterators, KPol{});
@@ -313,8 +348,9 @@ struct KernelWrapper {
   }
 
   RAJA_INLINE
-  void operator() (SegmentTuple) {
+  void operator() (SegmentTuple s) {
     //TODO: Enable the kernel to be executed with a different segment
+    kernel<KPol>(segments, bodies);
   }
 
 
@@ -479,14 +515,19 @@ struct KernelWrapper {
 
 }; // KernelWrapper
 
+template <typename KernelPol, typename SegmentTuple, typename... Bodies>
+KernelWrapper<KernelPol, SegmentTuple, Bodies...> 
+make_kernel_tuple(const SegmentTuple & segment,  tuple<Bodies...> bodies) {
+  return KernelWrapper<KernelPol,SegmentTuple,Bodies...>(segment, bodies);
+}
+
+
 //creates a kernel object using the same interface as the kernel function
 template <typename KernelPol, typename SegmentTuple, typename... Bodies>
 KernelWrapper<KernelPol, SegmentTuple, Bodies...> 
 make_kernel(const SegmentTuple & segment,   Bodies const &... bodies) {
   return KernelWrapper<KernelPol,SegmentTuple,Bodies...>(segment, bodies...);
 }
-
-
 //creates a kernel object using the same interface as the forall function
 template <typename ExecPol, typename Segment, typename Body> 
 auto make_forall(Segment segment, const Body & body) {

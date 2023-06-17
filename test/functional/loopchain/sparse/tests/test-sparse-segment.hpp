@@ -1,7 +1,7 @@
 #include "RAJA_test-base.hpp"
 #include <string>
 #include <vector>
-
+#include "RAJA/loopchain/Sparse/SparseKernel.hpp"
 
 template <typename EXEC_POLICY>
 void SparseSegmentDenseTestImpl() {
@@ -99,8 +99,9 @@ void CompressedSparseSegmentUnitTestImpl() {
   auto view01 = make_sparse_view<double>(r,c,v);
   std::stringstream s1;
   auto lam = [&](auto i, auto j) {
-    //EXPECT_EQ(compressedLeadSegImpl->currIdx, i) << "curr index in lamda execution is not correect\n"; 
-    
+     
+    double temp = view01(i,j); 
+    camp::sink(temp);
     s1 << i << ", " << j << " | ";
   };
   std::stringstream correct1;
@@ -123,7 +124,82 @@ void CompressedSparseSegmentUnitTestImpl() {
 
   EXPECT_EQ(correct1.str(), s1.str());
 
+  auto dense_segs = make_tuple(RangeSegment(0,6), RangeSegment(0,6));
+
+  auto dense_knl = make_kernel<POL>(dense_segs, lam);
+  auto accesses = dense_knl.template execute_symbolically();
+  EXPECT_EQ(accesses.size(), 1);
+
+  auto sknl = make_sparse_kernel_sym<POL>(make_tuple(0,1), dense_segs, view01, lam);
+
+  s1.str("");
+  sknl();
   
+  EXPECT_EQ(correct1.str(), s1.str()) << "perfect nesting fails sparsification when using make_sparse_kernel for compressed dims\n";
+ 
+
+}
+
+template <typename EXEC_POLICY>
+void SparseSegmentGauSei() {
+  using namespace RAJA;
+
+  size_t N = 5;
+  auto view = make_random_sparse_view2<double,true>(N,1.0);
+  std::stringstream s2;
+
+  using POLICY = KernelPolicy<
+      statement::For<0,loop_exec,
+        statement::Lambda<0,Segs<0>>,
+        statement::For<1,loop_exec,
+          statement::Lambda<1>
+        >,
+        statement::Lambda<2,Segs<0>>
+      >
+    >;
+
+  auto lam1 = [&](auto i) {
+    s2 << "1" << i << " ";
+  };
+  auto lam2 = [&](auto i, auto j) {
+    s2 << "2" << i << j << " ";
+    if (j != i) {
+      auto temp = 0.0;
+      temp += view(i,j);
+    }
+  };
+  auto lam3 = [&](auto i) {
+    s2 << "3" << i << " "; 
+  };
+
+  auto seg1 = RangeSegment(0,N);
+  auto seg2 = RangeSegment(0,N);
+  auto dense_segs = make_tuple(seg1, seg2);
+ 
+  auto dense_gau = make_kernel<POLICY>(dense_segs, lam1, lam2, lam3);
+  s2.str("");
+  dense_gau();
+  auto correct2 = s2.str();
+   
+  for(int i = 0; i < N*N; i++) {
+    EXPECT_EQ(view.dim(0)[i], i / 5) << "pre failed for index " << i << "\n";
+    EXPECT_EQ(view.dim(1)[i], i % 5)<< "pre failed for index " << i << "\n";
+
+  }
+
+  auto sparse_gau = make_sparse_kernel_sym<POLICY,1>(make_tuple(0,1), dense_segs, view, lam1, lam2, lam3);
+  
+  for(int i = 0; i < N*N; i++) {
+    EXPECT_EQ(view.dim(0)[i], i / 5) << "failed for index " << i << "\n";
+    EXPECT_EQ(view.dim(1)[i], i % 5)<< "failed for index " << i << "\n";
+
+  }
+
+  s2.str("");
+  sparse_gau();
+  auto output2 = s2.str();
+
+  EXPECT_STREQ(output2.c_str(), correct2.c_str()) << "Failed schedule for gausei style loop.\n";
 }
 
 
@@ -177,6 +253,7 @@ TYPED_TEST_P(SparseSegmentTest, SparseSegment)
   SparseSegmentDenseTestImpl<EXEC_POLICY>();
   SparseSegmentTestImpl<EXEC_POLICY>();
   CompressedSparseSegmentUnitTestImpl<EXEC_POLICY>();
+  SparseSegmentGauSei<EXEC_POLICY>() ;
 }
 
 REGISTER_TYPED_TEST_SUITE_P(SparseSegmentTest, SparseSegment);

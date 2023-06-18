@@ -91,8 +91,17 @@ struct COO : public SparseImpl<ElmType, NumDims> {
       return 1;
     } else {
       auto thisMatch = (camp::get<I>(idxs) == indices[I][expectedIdx]);
-      return thisMatch = is_expected<I+1>(idxs);
+      return thisMatch && is_expected<I+1>(idxs);
     }
+  }
+
+  template <typename...Idxs, camp::idx_t...Is>
+  std::array<idx_t, NumDims> tuple_to_array(camp::tuple<Idxs...> idxs, camp::idx_seq<Is...>) {
+    return std::array<idx_t, NumDims>{{camp::get<Is>(idxs)...}};
+  }
+  template <typename...Idxs>
+  std::array<idx_t, NumDims> tuple_to_array(camp::tuple<Idxs...> idxs) {
+    return tuple_to_array(idxs, idx_seq_for(idxs));
   }
 
   template <typename...Idxs>
@@ -103,7 +112,7 @@ struct COO : public SparseImpl<ElmType, NumDims> {
       return val[expectedIdx++];
     }else {
       misses += 1;
-      auto entryIndex = find<0>(0,len,idxs);
+      auto entryIndex = find<0>(0,len,tuple_to_array(idxs));
       if (entryIndex == -1) {
         return fill;
       } else {
@@ -122,29 +131,6 @@ struct COO : public SparseImpl<ElmType, NumDims> {
       return true;
     } else {
     return v[I] == indices[I][expectedIdx] && is_expected<I+1>(v);
-    }
-  }
-
-  ElmType & operator() (const std::array<idx_t, NumDims> & v) { 
-    if((size_t)expectedIdx >= len) {expectedIdx = 0;}
-    int matches = 1;
-//is_expected<0>(v);
-    for(size_t i = 0; i < NumDims; i++) {
-      if (v[i] != indices[i][expectedIdx]) { matches = 0; break;}
-    }
-    if (matches) {
-      hits += 1;
-      
-      return val[expectedIdx++];
-    } else {
-      misses += 1;
-      auto entryIndex = find<0>(0,len,v);
-      if (entryIndex == -1) {
-        return fill;
-      } else {
-        expectedIdx = entryIndex + 1;
-        return val[entryIndex];
-      }
     }
   }
   

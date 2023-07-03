@@ -3,8 +3,13 @@
 #ifndef RAJA_sparse_view_HPP
 #define RAJA_sparse_view_HPP
 #include <cassert>
+#include <cmath>
+#include <unordered_set>
+#include <random>
 #include "RAJA/loopchain/Sparse/SparseImpl.hpp"
 #include "RAJA/loopchain/Sparse/COO.hpp"
+#include "RAJA/loopchain/Sparse/DIAG.hpp"
+#include "RAJA/loopchain/Sparse/CSR.hpp"
 
 namespace RAJA {
 
@@ -14,18 +19,18 @@ struct SparseSymbolicSegmentLead;
 template <camp::idx_t NumDims>
 struct SparseSymbolicSegmentFollow;
 
-template <typename ElmType, size_t NumDims>
+template <typename ElmType, size_t NumDims, typename FormatType>
 struct  SparseView {
  
  
-  COO<ElmType, NumDims> impl;
+  FormatType impl;
 
-  SparseView(COO<ElmType, NumDims> i) : impl(i) {}
+  SparseView(FormatType i) : impl(i) {}
 
   void* get_data() { return impl.get_data();}
   
-  auto val(idx_t i) {return impl.val[i];}
-  auto dim(idx_t i) {return impl.dim(i);}
+  ElmType & val(idx_t i) {return impl.val[i];}
+  std::vector<idx_t> & dim(idx_t i) {return impl.dim(i);}
   auto size() {return impl.size();}
   template <typename... Args>
   SymAccessList operator () (SymIterator symIterator, Args... args) 
@@ -38,9 +43,10 @@ struct  SparseView {
     return l ;
   }
   template <typename...Indices>
-  ElmType & operator() (camp::idx_t i, Indices... is) {
-    std::array<idx_t, NumDims> v{i,is...};
-        return impl.operator()(v);
+  RAJA_INLINE
+  ElmType  operator() (camp::idx_t i, Indices... is) {
+    auto tuple = make_tuple(i,is...);
+        return impl.operator()(tuple);
   }
 
    
@@ -72,164 +78,81 @@ auto seq_to_vector(camp::idx_seq<Is...>) {
   return std::vector<idx_t>{{Is...}};
 }
 
-template <typename ElmType, typename...Vectors>
+template <typename ElmType, idx_t NumDims, template <typename, idx_t> typename Format, typename...Vectors>
 auto make_sparse_view_permuted(Vectors...vecs) {
   auto tuple = camp::make_tuple(vecs...);
-  size_t constexpr numDims = sizeof...(Vectors) - 2;
 
-  auto val = camp::get<numDims>(tuple);
-  auto permutation = camp::get<numDims+1>(tuple);
-  auto indices = tuple_slice<0,numDims>(tuple);
+  //static_assert(NumDims == sizeof...(Vectors) - 2, 
+    //"Mismatch between number of dimensions and number of provided vectors.\n");
+ 
+  auto val = camp::get<NumDims>(tuple);
+  auto permutation = camp::get<NumDims+1>(tuple);
+  auto indices = tuple_slice<0,NumDims>(tuple);
   
   auto indicesVector = tuple_to_vector(indices, idx_seq_for(indices));
 
-  COO<ElmType, numDims> impl(indicesVector, val, permutation);  
+  Format<ElmType, NumDims> impl(indicesVector, val, permutation);  
 
-  return SparseView<ElmType, numDims>(impl);
+  return SparseView<ElmType, NumDims, Format<ElmType, NumDims>>(impl);
 
 }
 
-
-
-template <typename ElmType, typename...Vectors>
+template <typename ElmType, idx_t NumDims, template <typename, idx_t> typename Format, typename...Vectors>
 auto make_sparse_view(Vectors...vecs) {
   auto tuple = camp::make_tuple(vecs...);
-  size_t constexpr numDims = sizeof...(Vectors) - 1;
+  static_assert( NumDims == sizeof...(Vectors) - 1, "Mismatch between NumDims and number of vectors provided.");
 
-  auto seq = idx_seq_from_to<0,numDims>();
+  auto seq = idx_seq_from_to<0,NumDims>();
   auto perm = seq_to_vector(seq);
-  return make_sparse_view_permuted<ElmType>(vecs..., perm);
-/*
-  auto val = camp::get<numDims>(tuple);
-  auto indices = tuple_slice<0,numDims>(tuple);
-  
-  auto indicesVector = tuple_to_vector(indices, idx_seq_for(indices));
-
-  auto permutation = std::vector<idx_t>();
-  for(size_t i = 0; i < numDims; i++) {
-    permutation.push_back(i);
-  }
-  auto impl = COO<ElmType, numDims>(indicesVector, val, permutation);  
-
-  return SparseView<ElmType, numDims>(impl);
-*/
+  return make_sparse_view_permuted<ElmType, NumDims, Format>(vecs..., perm);
 }
 
-
-template <typename T>
-RAJA::SparseView<T,2> make_random_sparse_view2(camp::idx_t Ni, camp::idx_t Nj, size_t perRowL, size_t perRowH ) {
-  using namespace RAJA;
-  std::vector<camp::idx_t> row;
-  std::vector<camp::idx_t> col;
-
-  //create a vector that we'll shuffle to use fill each row's entries
- 
-  auto fullCol = std::vector<camp::idx_t>(Nj);
-  for(idx_t i = 0; i < Nj; i++) {fullCol[i] = i;}
-
-  for(idx_t i = 0; i < Ni; i++) {
-    //for each row, how many elements?
-    auto numInRow = rand() % (perRowH-perRowL) + perRowL;
-    auto thisRow = std::vector<camp::idx_t>(numInRow, i);
-    
-    std::random_shuffle(fullCol.begin(), fullCol.end());
-    auto thisCol = std::vector<camp::idx_t>(fullCol.begin(), fullCol.begin() + numInRow);
-
-    std::sort(thisCol.begin(), thisCol.end());
-
-    row.insert(row.end(), thisRow.begin(), thisRow.end());
-    col.insert(col.end(), thisCol.begin(), thisCol.end());
-
-    //std::cout << "After inserting the " << i << "th row, we have:\n";
-    for(size_t j = 0; j < row.size(); j++) {
-    //  std::cout << "(" << row[j] << "," << col[j] << ")  ";
-    }
-    //std::cout << "\n";
-  }
-  
-  std::vector<T> val(row.size());
-  for(size_t i = 0; i < row.size(); i++) {
-    T x = (T) rand() / (T) RAND_MAX;
-    val[i] = x;
-  }
-  //std::cout << "creating sparse view. Here's whats passed in:\n";
-  for(size_t i = 0; i < col.size(); i++) {
-  //    std::cout << "(" << row[i] << "," << col[i] << ", " << val[i] << ")  ";
-  }
-  //std::cout << "\n";
-  return make_sparse_view<T>(row,col,val);
+template <typename ElmType, idx_t NumDims, template <typename, idx_t> typename Format, idx_t...Is>
+auto make_random_sparse_view_helper(std::vector<std::vector<idx_t>> dims, std::vector<ElmType> vals,camp::idx_seq<Is...>) {
+  return make_sparse_view<ElmType, NumDims, Format>(dims[Is]..., vals);
 }
+template <typename ElmType, idx_t NumDims, template <typename, idx_t> typename Format = COO >
+auto make_random_sparse_view(idx_t N, double density, bool fullDiagonal=false) {
 
-template <typename T>
-RAJA::SparseView<T,2> make_random_sparse_view2(camp::idx_t N, double density = 0.1) {
-  std::vector<idx_t> d0,d1;
-  std::vector<T> v;
-  for(int i = 0; i < N; i++){
-    for(int j = 0; j < N; j++) {
-        
-        bool isNonzero = ((double) std::rand() / (double) RAND_MAX) < density;
-        if(isNonzero) {
-          d0.push_back(i);
-          d1.push_back(j);
-          T x = (T) std::rand() / (T) RAND_MAX;
-          v.push_back(x);
-        }
-      
+  std::vector<std::vector<idx_t>> dims;
+  std::vector<ElmType> vals;
+
+  idx_t denseSize = std::pow(N,NumDims);
+  idx_t nnz = denseSize * density;
+  
+  // create a random list of dense offsets without duplicates
+  std::unordered_set<idx_t> denseOffsets;
+  while(denseOffsets.size() < nnz) {
+    idx_t i = std::rand() % denseSize;
+    denseOffsets.insert(i);
+  }
+
+  //convert those offsets to index values
+  for(idx_t denseOffset : denseOffsets) {
+    for(int d = 0; d < NumDims; d++) {
+      idx_t thisDim = denseOffset % N;
+      dims[d].push_back(thisDim);
+      denseOffset /= N;
     }
   }
 
-  return make_sparse_view<T>(d0,d1,v);
-}
-
-
-template <typename T>
-RAJA::SparseView<T,3> make_random_sparse_view3(camp::idx_t N) {
-  std::vector<idx_t> d0,d1,d2;
-  std::vector<T> v;
-  for(int i = 0; i < N; i++){
-    for(int j = 0; j < N; j++) {
-      for(int k = 0; k < N; k++) {
-
-        bool isNonzero = (std::rand() % 10) == 0;
-        if(isNonzero) {
-          d0.push_back(i);
-          d1.push_back(j);
-          d2.push_back(k);
-          T x = (T) std::rand() / (T) RAND_MAX;
-          v.push_back(x);
-        }
+  if (fullDiagonal) {
+    for(int i = 0; i < N; i++) {
+      for(int d = 0; d < NumDims; d++) {
+        dims[d].push_back(i);
       }
     }
   }
 
-  return make_sparse_view<T>(d0,d1,d2,v);
-}
-
-template <typename T>
-RAJA::SparseView<T,4> make_random_sparse_view4(camp::idx_t N) {
-  std::vector<idx_t> d0,d1,d2,d3;
-  std::vector<T> v;
-  for(int i = 0; i < N; i++){
-    for(int j = 0; j < N; j++) {
-      for(int k = 0; k < N; k++) {
-      for(int l = 0; l < N; l++) {
-        bool isNonzero = (std::rand() % 10) == 0;
-        if(isNonzero) {
-          d0.push_back(i);
-          d1.push_back(j);
-          d2.push_back(k);
-          d3.push_back(l);
-          T x = (T) std::rand() / (T) RAND_MAX;
-          v.push_back(x);
-        } 
-        }
-      }
-    }
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dis(0.0,10.0);
+  for(size_t i = 0; i < dims[0].size(); i++) {
+    vals.push_back((ElmType) dis(gen));
   }
-
-  return make_sparse_view<T>(d0,d1,d2,d3,v);
-}
-
+  
+  return make_random_sparse_view_helper<ElmType, NumDims, Format>(dims, vals, idx_seq_from_to<0,NumDims>());
+} 
 
 
 } //namespace RAJA

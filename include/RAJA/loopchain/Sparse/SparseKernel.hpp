@@ -31,11 +31,11 @@ auto make_sparse_kernel(const SegmentTuple & segment, ViewType& view, Bodies con
   
   auto accessOrder = extract_sparse_access_order(accesses, view);
   
-  auto sparseSpace = sparsify_iteration_space<KernelPol>(segment, view, accessOrder);
+  auto sparseSpace = sparsify_iteration_space_compressed<KernelPol>(segment, view, accessOrder);
   return make_kernel<KernelPol>(sparseSpace, bodies...);
 }
-template <typename KernelPol, camp::idx_t SymEvalLamIdx=0, typename... Segments, typename ViewType, typename... Bodies, typename...T>
 
+template <typename KernelPol, camp::idx_t SymEvalLamIdx=0, typename... Segments, typename ViewType, typename... Bodies, typename...T>
 auto make_sparse_kernel_sym(tuple<T...> symVals, const tuple<Segments...> & segment, ViewType& view, Bodies const &... bodies) {
   
 
@@ -44,10 +44,12 @@ auto make_sparse_kernel_sym(tuple<T...> symVals, const tuple<Segments...> & segm
   auto accesses = dense_knl.template execute_symbolically<SymEvalLamIdx>(symVals);
   
   auto accessOrder = extract_sparse_access_order(accesses, view);
-   
-  auto sparseSpace = sparsify_iteration_space<KernelPol>(segment, view, accessOrder);
+  
+  auto sparseSpace = sparsify_iteration_space_compressed<KernelPol>(segment, view, accessOrder);
   return make_kernel<KernelPol>(sparseSpace, bodies...);
 }
+
+
 }
 
 #endif

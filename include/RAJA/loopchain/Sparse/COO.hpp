@@ -6,7 +6,7 @@
 
 namespace RAJA {
 template <typename ElmType, size_t NumDims>
-struct COO : public SparseImpl<ElmType, NumDims> {
+struct COO : public SparseImpl<ElmType, NumDims, COO<ElmType,NumDims>> {
 
   using IdxType = camp::idx_t;
   using VectorType = std::vector<IdxType>;
@@ -34,7 +34,7 @@ struct COO : public SparseImpl<ElmType, NumDims> {
     sort();
   }
 
-  std::vector<IdxType> dim(IdxType t) {
+  std::vector<IdxType> & dim(IdxType t) {
     return indices[t];
   }
   template <IdxType...Is>
@@ -88,6 +88,7 @@ struct COO : public SparseImpl<ElmType, NumDims> {
   template <idx_t I, typename...Idxs>
   bool is_expected(camp::tuple<Idxs...> idxs) const {
     if constexpr (sizeof...(Idxs) == I) {
+      camp::sink(idxs); //use-def
       return 1;
     } else {
       auto thisMatch = (camp::get<I>(idxs) == indices[I][expectedIdx]);
@@ -106,7 +107,7 @@ struct COO : public SparseImpl<ElmType, NumDims> {
 
   template <typename...Idxs>
   ElmType & operator() (camp::tuple<Idxs...> idxs) {
-    if(expectedIdx >= len) {expectedIdx = 0;}
+    if((size_t) expectedIdx >= len) {expectedIdx = 0;}
     if(is_expected<0>(idxs)) {
       hits += 1;
       return val[expectedIdx++];

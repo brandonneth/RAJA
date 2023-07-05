@@ -23,7 +23,7 @@ void CompressedSparseSegmentUnitTestImpl() {
     EXPECT_EQ(compressedBegin->dimStarts[i], correctCompressedRow[i]);
   }
   
-  auto view01 = make_sparse_view<double>(r,c,v);
+  auto view01 = make_sparse_view<double,2,COO>(r,c,v);
   std::stringstream s1;
   auto lam = [&](auto i, auto j) {
     double temp = view01(i,j); 
@@ -70,7 +70,7 @@ void SparseSegmentGauSei() {
   using namespace RAJA;
 
   size_t N = 5;
-  auto view = make_random_sparse_view2<double,true>(N,1.0);
+  auto view = make_random_sparse_view<double,2,DIAG>(N,1.0,true);
   std::stringstream s2;
 
   using POLICY = KernelPolicy<
@@ -133,13 +133,13 @@ void CompressedSegment3DTest() {
   using namespace RAJA;
 
   size_t N = 5;
-  auto view = make_random_sparse_view3<double>(N);
+  auto view = make_random_sparse_view<double,3,COO>(N,0.1);
   std::stringstream s2;
-  double temp; 
   auto lam = [&](auto i, auto j, auto k) {
     s2 << "lam" << i << j << k << " ";
     double temp;
     temp = view(i,j,k);
+    camp::sink(temp); 
   };
 
   using POLICY=KernelPolicy<

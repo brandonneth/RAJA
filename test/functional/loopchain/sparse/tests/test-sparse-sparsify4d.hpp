@@ -7,7 +7,7 @@ void SparseTestSparsify4() {
   using namespace RAJA;
 
   camp::idx_t N = 8;
-  auto A = make_random_sparse_view4<double>(N);
+  auto A = make_random_sparse_view<double,4,COO>(N,0.1);
   
   auto dense_segs = tuple_repeat<4>(RangeSegment(0,N));
 

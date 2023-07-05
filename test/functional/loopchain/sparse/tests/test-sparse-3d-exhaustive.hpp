@@ -8,9 +8,9 @@ void SparseExampleTestSparsify3() {
   using namespace RAJA;
   
   camp::idx_t N = 5;
-  auto A = make_random_sparse_view3<double>(N);
-  auto A2 = make_random_sparse_view2<double>(N);
-  auto A4 = make_random_sparse_view4<double>(N);
+  auto A = make_random_sparse_view<double,3,COO>(N,0.1);
+  auto A2 = make_random_sparse_view<double,2,COO>(N,0.1);
+  auto A4 = make_random_sparse_view<double,4,COO>(N,0.1);
   std::stringstream stream;
 
   auto lam012 = [&](auto i0, auto i1, auto i2) {

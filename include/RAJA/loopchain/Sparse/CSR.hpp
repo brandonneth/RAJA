@@ -8,6 +8,7 @@ namespace RAJA {
 template <typename ElmType, size_t NumDims>
 struct CSR : public SparseImpl<ElmType, NumDims, COO<ElmType,NumDims>> {
 
+  inline static const std::string name = "CSR";
   using IdxType = camp::idx_t;
   using VectorType = std::vector<IdxType>;
   std::vector<VectorType> indices;

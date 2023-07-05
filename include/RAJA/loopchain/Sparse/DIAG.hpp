@@ -8,6 +8,7 @@ namespace RAJA {
 template <typename ElmType, size_t NumDims>
 struct DIAG : public SparseImpl<ElmType, NumDims,DIAG<ElmType,NumDims>> {
 
+  inline static const std::string name = "DIAG";
   using IdxType = camp::idx_t;
   using VectorType = std::vector<IdxType>;
   std::vector<VectorType> indices;
@@ -163,7 +164,7 @@ struct DIAG : public SparseImpl<ElmType, NumDims,DIAG<ElmType,NumDims>> {
   RAJA_INLINE
   ElmType  operator() (camp::tuple<Idxs...> idxs) {
     
-    if((size_t) expectedIdx >= len) {expectedIdx = 0;}
+    //if((size_t) expectedIdx >= len) {expectedIdx = 0;}
     if(is_expected<0>(idxs)) {
       hits += 1;
       return val[expectedIdx++];
@@ -176,7 +177,7 @@ struct DIAG : public SparseImpl<ElmType, NumDims,DIAG<ElmType,NumDims>> {
       return val[expectedIdx++];
     } else {
       misses += 1;
-      
+     // std::cout << "missed on " << camp::get<0>(idxs) << " " << camp::get<1>(idxs) << "\n"; 
       auto entryIndex = find<0>(0,len,tuple_to_array(idxs));
       if (entryIndex == -1) {
        // if(get<0>(idxs) == 5 && get<1>(idxs) == 0) {std::cout << "iteration 5 0 returning fill: " << fill << "\n";}

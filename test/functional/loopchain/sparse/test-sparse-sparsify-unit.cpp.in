@@ -8,8 +8,10 @@
 #include "RAJA_test-forall-execpol.hpp"
 
 #include "test-sparse-sparsify-unit.hpp"
+#include "test-sparse-3d-exhaustive.hpp"
 
 
 using @BACKEND@ExecTypes = Test<camp::cartesian_product<@BACKEND@ForallExecPols>>::Types;
 
 INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, SparseSparsifyUnitTest, @BACKEND@ExecTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(@BACKEND@, Sparsify3DExhaustiveTest, @BACKEND@ExecTypes);

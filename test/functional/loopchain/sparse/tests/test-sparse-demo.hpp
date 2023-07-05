@@ -16,7 +16,7 @@ void SparseDemoTestImpl() {
   using namespace RAJA;
   
   camp::idx_t N = 10;
-  auto A = make_random_sparse_view3<double>(N);
+  auto A = make_random_sparse_view<double,3,COO>(N,0.1);
 
   std::stringstream stream;
 

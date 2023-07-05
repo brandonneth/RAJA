@@ -146,6 +146,9 @@ void make_sparse_view_test() {
   auto viewCOO_10 = make_sparse_view_permuted<double, 2, COO>(r,c,v,perm10);
   auto viewDIAG_10 = make_sparse_view_permuted<double, 2, DIAG>(r,c,v,perm10);
 
+  std::string cooname = COO<double, 2>::name;
+  std::string csrname = CSR<double, 2>::name;
+  std::string diagname = DIAG<double, 2>::name;
   EXPECT_EQ(viewDIAG_10.impl.fill, viewDIAG.impl.fill);
   EXPECT_EQ(viewDIAG_10.impl.fill, viewCOO_10.impl.fill);
   for(int i = 0; i < 6; i++) {

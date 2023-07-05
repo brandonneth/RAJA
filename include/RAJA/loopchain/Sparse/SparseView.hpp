@@ -115,16 +115,29 @@ template <typename ElmType, idx_t NumDims, template <typename, idx_t> typename F
 auto make_random_sparse_view(idx_t N, double density, bool fullDiagonal=false) {
 
   std::vector<std::vector<idx_t>> dims;
+  for(int i = 0; i < NumDims; i++) {
+    dims.push_back(std::vector<idx_t>());
+  }
   std::vector<ElmType> vals;
 
+  
   idx_t denseSize = std::pow(N,NumDims);
-  idx_t nnz = denseSize * density;
+  size_t nnz = denseSize * density;
   
   // create a random list of dense offsets without duplicates
   std::unordered_set<idx_t> denseOffsets;
   while(denseOffsets.size() < nnz) {
     idx_t i = std::rand() % denseSize;
     denseOffsets.insert(i);
+  }
+  if (fullDiagonal) {
+    for(int i = 0; i < N; i++) {
+      idx_t ithDiag = 0;
+      for(int j = 0; j < NumDims; j++) {
+        ithDiag += i * std::pow(N,j);
+      }
+      denseOffsets.insert(ithDiag);
+    }
   }
 
   //convert those offsets to index values
@@ -135,22 +148,13 @@ auto make_random_sparse_view(idx_t N, double density, bool fullDiagonal=false) {
       denseOffset /= N;
     }
   }
-
-  if (fullDiagonal) {
-    for(int i = 0; i < N; i++) {
-      for(int d = 0; d < NumDims; d++) {
-        dims[d].push_back(i);
-      }
-    }
-  }
-
+  
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<> dis(0.0,10.0);
   for(size_t i = 0; i < dims[0].size(); i++) {
     vals.push_back((ElmType) dis(gen));
   }
-  
   return make_random_sparse_view_helper<ElmType, NumDims, Format>(dims, vals, idx_seq_from_to<0,NumDims>());
 } 
 

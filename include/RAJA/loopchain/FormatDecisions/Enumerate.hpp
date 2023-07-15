@@ -66,34 +66,7 @@ auto enumerate_perms() {
 
 }
 
-template <camp::idx_t NumDims>
-auto enumerate_perms_vector() {
 
-  using ArrayType = std::vector<camp::idx_t>;
-
-  std::vector<std::vector<camp::idx_t>> perms;
-
-  ArrayType currPerm;
-
-   
-  for(int i = 0; i < NumDims; i++) {
-    currPerm[i] = i;
-  }    
-
-    std::sort(currPerm.begin(), currPerm.end());
-
-  do {
-    ArrayType perm;
-    for(int i = 0; i < NumDims; i++) {
-      perm[i] = currPerm[i];
-    }
-    perms.push_back(perm);
-  } while (std::next_permutation(currPerm.begin(), currPerm.end()));
-  
-  
-  return perms;  
-
-}
 
 
 

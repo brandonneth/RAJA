@@ -109,40 +109,10 @@ void FormatDecisionsTestImpl() {
   auto times = choices.time_execution();
   EXPECT_TRUE(camp::get<0>(times) > 0);
   EXPECT_TRUE(camp::get<1>(times) > 0);
-  
-  //test simpler permutation description.
-  auto choices2 = format_decisions(camp::tie(v1,v2), knl1, knl2);
-  choices2.set_format_for(v1, {{1,0}}, knl1);
-  choices2.set_format_for(v1, {{0,1}}, knl2);
-  choices2.set_format_for(v2, {{0,1}}, knl1);
-  choices2.set_format_for(v2, {{0,1}}, knl2);
-  EXPECT_EQ(choices2.template get_layout_choice<1>(v1), vector_10);
-  EXPECT_EQ(choices2.template get_layout_choice<2>(v1), vector_01);
-  EXPECT_EQ(choices2.template get_layout_choice<1>(v2), vector_01);
-  EXPECT_EQ(choices2.template get_layout_choice<2>(v2), vector_01);
+  EXPECT_TRUE(choices.isl_time > 0);
+  EXPECT_TRUE(choices.setup_time > 0);
+  EXPECT_TRUE(choices.solve_time > 0);
 
-  //set_output_format
-  choices2.set_output_format(v1, {1,0});
-  choices2.set_output_format(v2, {0,1});
-  EXPECT_EQ(choices2.template get_layout_choice<3>(v1), vector_10);
-  EXPECT_EQ(choices2.template get_layout_choice<3>(v2), vector_01);
-
-
-  auto choices3 = format_decisions(camp::tie(v1,v2), knl1, knl2);
-  choices3.set_format_for(v1, {{1,0}}, knl1);
-  choices3.set_format_for(v1, {{0,1}}, knl2);
-  choices3.set_format_for(v2, {{0,1}}, knl1);
-  choices3.set_format_for(v2, {{0,1}}, knl2);
-  EXPECT_EQ(choices3.template get_layout_choice<1>(v1), vector_10);
-  EXPECT_EQ(choices3.template get_layout_choice<2>(v1), vector_01);
-  EXPECT_EQ(choices3.template get_layout_choice<1>(v2), vector_01);
-  EXPECT_EQ(choices3.template get_layout_choice<2>(v2), vector_01);
-
-  //set_output_format
-  choices3.set_output_format(v1, {1,0});
-  choices3.set_output_format(v2, {0,1});
-  EXPECT_EQ(choices3.template get_layout_choice<3>(v1), vector_10);
-  EXPECT_EQ(choices3.template get_layout_choice<3>(v2), vector_01);
 }
 
 TYPED_TEST_SUITE_P(FormatDecisionsTest);

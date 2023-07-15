@@ -116,7 +116,7 @@ struct LoopChain {
   LoopChain(const KernelTuple & knlTuple_) : knlTuple(knlTuple_) {}
 
   template <camp::idx_t I, camp::idx_t...Is>
-  inline void execute(camp::idx_seq<I,Is...>) {
+  void execute(camp::idx_seq<I,Is...>) {
     camp::get<I>(knlTuple)();
     if constexpr (sizeof...(Is) == 0) {
       return;
@@ -126,14 +126,14 @@ struct LoopChain {
   }
 
 
-  inline void operator() (){
+  void operator() (){
     execute(idx_seq_from_to<0,sizeof...(KernelTypes)>());
   }
 }; //LoopChain
 
 // LoopChain constructor function for kernel tuple
 template <typename... KernelTypes>
-inline auto loop_chain(camp::tuple<KernelTypes...> knlTuple) {
+auto loop_chain(camp::tuple<KernelTypes...> knlTuple) {
   return LoopChain<KernelTypes...>(knlTuple);
 }
 

@@ -94,7 +94,7 @@ AndConstraint<NumDims>* conversion_input_constraint(std::string viewName, camp::
       std::vector<camp::idx_t> out_p;
       for(int i = 0; i < NumDims; i++) {out_p.push_back(out_perm[i]);}
       
-      sum->add(new ConversionDecision<2>(viewName, conv_idx, in_p, out_p));
+      sum->add(new ConversionDecision<NumDims>(viewName, conv_idx, in_p, out_p));
     }
     
     constraints->add(new EqualityConstraint<NumDims>(format, sum));           
@@ -130,7 +130,7 @@ AndConstraint<NumDims>* conversion_output_constraint(std::string viewName, camp:
       std::vector<camp::idx_t> in_p;
       for(int i = 0; i < NumDims; i++) {in_p.push_back(in_perm[i]);}
       
-      sum->add(new ConversionDecision<2>(viewName, conv_idx, in_p, out_p));
+      sum->add(new ConversionDecision<NumDims>(viewName, conv_idx, in_p, out_p));
     }
     
     constraints->add(new EqualityConstraint<NumDims>(format, sum));           
@@ -155,7 +155,20 @@ AndConstraint<NumDims>* binary_choice_constraints(std::string viewName, camp::id
     vars.push_back(new FormatDecision<NumDims>(viewName, idx, p));
   }
 
-
+  //format only for idx=0
+  if(idx != 0) {
+    for(auto perm1 : all_perms) {
+      for(auto perm2 : all_perms) {
+        std::vector<camp::idx_t> p1;
+        std::vector<camp::idx_t> p2;
+        for(int i = 0; i < NumDims; i++) {
+          p1.push_back(perm1[i]);
+          p2.push_back(perm2[i]);
+        }   
+        vars.push_back(new ConversionDecision<NumDims>(viewName, idx, p1, p2));
+      }
+    }
+  }
 
   auto zero = new Constant<NumDims>(0);
   auto one = new Constant<NumDims>(1);
@@ -173,7 +186,7 @@ AndConstraint<NumDims>* binary_choice_constraints(std::string viewName, camp::id
 
 //Collects encodes all the constraints above for all the decision variables for a particular number of kernels.
 template <camp::idx_t NumDims>
-AndConstraint<NumDims>* base_constraints(std::string viewName, camp::idx_t num_knls) {
+AndConstraint<NumDims>* all_constraints(std::string viewName, camp::idx_t num_knls) {
   AndConstraint<NumDims>* constraints = new AndConstraint<NumDims>();
   
   constraints->add(one_format_constraint<NumDims>(viewName, 0));
@@ -181,9 +194,9 @@ AndConstraint<NumDims>* base_constraints(std::string viewName, camp::idx_t num_k
 
   for(auto i = 1; i <= num_knls+1; i++) {
     constraints->add(one_format_constraint<NumDims>(viewName, i));
-    //constraints->add(one_conversion_constraint<NumDims>(viewName, i));
-    //constraints->add(conversion_input_constraint<NumDims>(viewName, i));
-    //constraints->add(conversion_output_constraint<NumDims>(viewName, i));
+    constraints->add(one_conversion_constraint<NumDims>(viewName, i));
+    constraints->add(conversion_input_constraint<NumDims>(viewName, i));
+    constraints->add(conversion_output_constraint<NumDims>(viewName, i));
     constraints->add(binary_choice_constraints<NumDims>(viewName, i));
   }
   return constraints;

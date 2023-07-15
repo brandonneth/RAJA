@@ -50,10 +50,6 @@ struct SymIterator {
     return std::stoi(indexStart);
   }
 
-  int clear() {
-    accesses->clear();
-    return 0;
-  }
   bool operator == (const int) {
     return 0;
   }
@@ -175,8 +171,6 @@ struct SymAccess {
   bool isRead;
   bool isWrite;
 
-  size_t numIterations;
-
   template <typename LayoutType>
   SymAccess(void * _view, const LayoutType & layout, std::vector<SymIterator>& _iterators) {
     view = _view;
@@ -196,12 +190,6 @@ struct SymAccess {
   operator SymAccessList();
 
   friend std::ostream& operator<< (std::ostream& s, SymAccess a);
-  
-  template <typename T>
-  bool is_view(T v) {
-    return view == v.get_data();
-  }
-
   
   int operator < (const SymAccess & other) {
     std::stringstream a, b;
@@ -226,12 +214,10 @@ struct SymAccess {
     return argument_indices;
   }
 
-  template <typename KernelPolicy, camp::idx_t ViewDims, camp::idx_t SearchIdx>
+  template <typename KernelPolicy, camp::idx_t ViewDims>
   auto normalized_layout_perm(std::array<camp::idx_t, ViewDims> layout_perm) {
-    auto policy_order = policy_to_nesting_order<KernelPolicy, SearchIdx>();
-    //std::cerr << "policy to nesting order: ";
-    //for(auto i : policy_order) { std::cerr << i << " ";}
-    //std::cerr << "\n" << std::flush;
+    auto policy_order = policy_to_nesting_order<KernelPolicy>();
+
     std::vector<camp::idx_t> policy_applied;
     for(auto index : argument_order()) {
       auto indexof = std::find(policy_order.begin(), policy_order.end(), index) - policy_order.begin();
@@ -466,7 +452,6 @@ SymAccessList operator % (const SymAccessList & l0, const SymIterator & i1);
 SymAccessList operator + (int scalar, const SymAccessList & l1);
 SymAccessList operator - (int scalar, const SymAccessList & l1);
 SymAccessList operator * (int scalar, const SymAccessList & l1);
-SymAccessList operator * (long int scalar, const SymAccessList & l1);
 SymAccessList operator / (int scalar, const SymAccessList & l1);
 SymAccessList operator % (int scalar, const SymAccessList & l1);
 

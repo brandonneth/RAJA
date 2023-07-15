@@ -16,8 +16,3 @@ add_subdirectory(apply-overlapped-tile)
 add_subdirectory(policy-to-nesting-order)
 
 add_subdirectory(format-decisions)
-add_subdirectory(ilp-model)
-
-add_subdirectory(symbolic-segment)
-add_subdirectory(imperfect-nesting)
-add_subdirectory(morton)

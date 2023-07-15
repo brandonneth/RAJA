@@ -195,11 +195,7 @@ public:
   virtual std::string rep() const
   {
     std::stringstream s;
-    if (variables.size() > 0) {
-      s << variables[0]->rep();
-    } else {
-      return std::string("0");
-    }
+    s << variables[0]->rep();
     for (size_t i = 1; i < variables.size(); i++) {
       s << " + " << variables[i]->rep();
     }

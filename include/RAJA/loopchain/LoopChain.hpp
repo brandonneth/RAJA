@@ -9,7 +9,6 @@
 #include "RAJA/loopchain/SymExec.hpp"
 #include "RAJA/loopchain/KernelWrapper.hpp"
 #include "RAJA/loopchain/Chain.hpp"
-#include "RAJA/loopchain/BLAS.hpp"
 
 
 
@@ -28,8 +27,6 @@
 
 #include "RAJA/loopchain/FormatDecisions/Conversion.hpp"
 #include "RAJA/loopchain/FormatDecisions/FormatDecisions.hpp"
-
-#include "RAJA/loopchain/SymbolicSegment/SymbolicSegment.hpp"
 namespace RAJA
 {
 

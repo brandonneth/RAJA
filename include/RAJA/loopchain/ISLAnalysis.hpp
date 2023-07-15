@@ -145,7 +145,7 @@ auto pre_fused_range_segments_knl(auto fusedSegmentTuple, auto knl, camp::idx_se
 }
 
 template <camp::idx_t...Is>
-uto all_pre_fused_range_segments(auto fusedSegmentTuple, auto knlTuple, camp::idx_seq<Is...> knlSeq) {
+auto all_pre_fused_range_segments(auto fusedSegmentTuple, auto knlTuple, camp::idx_seq<Is...> knlSeq) {
   
   auto knl1 = camp::get<0>(knlTuple);
   auto knlDimSequence = camp::make_idx_seq_t<knl1.numArgs>{};

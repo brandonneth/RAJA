@@ -46,7 +46,7 @@ auto f_lambda(ViewType & v, ViewType & v2) {
 
     std::string rep() const {
       std::stringstream s;
-      s << viewName << "_comp" << idx;
+      s << viewName << "_f" << idx;
       for(size_t i = 0; i < permutation.size(); i++) {
         s << "_" << permutation[i];
       }
@@ -228,7 +228,7 @@ TermList<NumDims> * all_decision_variables(std::string viewName, camp::idx_t num
           p1.push_back(perm1[i]);
           p2.push_back(perm2[i]);
         }   
-        //vars->add(new ConversionDecision<NumDims>(viewName, idx, p1, p2));
+        vars->add(new ConversionDecision<NumDims>(viewName, idx, p1, p2));
       }
     }
   }

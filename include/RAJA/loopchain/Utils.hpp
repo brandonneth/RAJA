@@ -50,6 +50,10 @@ auto idx_seq_from_to() {
   return idx_seq_shift<start>(zeroSeq);
 }
 
+
+
+
+
 // camp::tuple utility functions
 //  - tuple_cat
 //  - tuple_slice
@@ -83,7 +87,6 @@ auto tuple_slice(Tuple t, camp::idx_seq<Is...>) {
 template <camp::idx_t start, camp::idx_t end, typename Tuple>
 auto tuple_slice(Tuple t) {
   if constexpr (start >= end) {
-    camp::sink(t); // quiets use def warning
     return make_tuple();
   } else {
     return tuple_slice(t, idx_seq_from_to<start,end>());
@@ -164,7 +167,6 @@ auto tuple_zip(camp::tuple<InnerTupleTypes...> t) {
 template <idx_t N, typename T>
 auto tuple_repeat(T element) {
   if constexpr (N <= 0) {
-    camp::sink(element); // quiets use-def warning
     return camp::tuple{};
   } else {
     return tuple_cat(camp::tuple{element}, tuple_repeat<N-1>(element));
@@ -195,15 +197,7 @@ auto vmin(T val, Ts...rest) {
   return std::min(val, vmin(rest...));
 }
 
-template <typename T>
-auto vmult(T val) {
-  return val;
-}
 
-template <typename T, typename...Ts>
-auto vmult(T val, Ts...rest) {
-  return val * vmult(rest...);
-}
 
 
 }

@@ -265,7 +265,7 @@ struct FormatDecisions {
             //std::cerr << "estimating cost of " << format_var->rep() << "\n";
             auto cost = estimate_format_cost<NumDims>(normalized_layout_perm);
             unsigned long coef = cost * knl.num_iterations();
-            auto cost_term = new MultExpression(format_var, new Constant<NumDims>(coef));
+            auto cost_term = new MultExpression<NumDims>(format_var, new Constant<NumDims>(coef));
             term_sum->add(cost_term);
           }
         }

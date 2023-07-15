@@ -25,7 +25,7 @@ isl_union_map * objective_function(isl_ctx * ctx, TermList<NumDims> * vars, Cons
 
   auto obj = new NamedVariable<NumDims>("obj");
 
-  auto obj_func = new EqualityConstraint(obj, cost_expression);
+  auto obj_func = new EqualityConstraint<NumDims>(obj, cost_expression);
 
   auto out_vars = new TermList<NumDims>();
   out_vars->add(obj);

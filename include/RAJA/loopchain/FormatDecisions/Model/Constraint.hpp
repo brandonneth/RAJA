@@ -74,7 +74,7 @@ AndConstraint<NumDims>* conversion_input_constraint(std::string viewName, camp::
   AndConstraint<NumDims>* constraints = new AndConstraint<NumDims>();
   if(conv_idx == 0) {
     std::cerr << "conversion_input_constraint passed a conversion index of 0. The first conversion index is 1.\n";
-    auto eq = new EqualityConstraint(new Constant<NumDims>(3), new Constant<NumDims>(3));
+    auto eq = new EqualityConstraint<NumDims>(new Constant<NumDims>(3), new Constant<NumDims>(3));
     constraints->add(eq); 
     return constraints;
   }

@@ -100,13 +100,15 @@ void SymEvalConditionalTestImpl() {
 template <typename EP>
 void SymEvalSparseTestImpl() {
   using namespace RAJA;
+  size_t N = 10;
+  std::vector<camp::idx_t> r{0,1,1,2,2,2,2,3,5,5};
+  std::vector<camp::idx_t> c{3,1,4,0,2,3,5,5,2,4};
+  std::vector<double>v{1.0,4.0,9.0,2.0,2.0,3.0,6.0,5.0,7.0,8.0};
 
-  auto N = 10;
-  auto density = 0.01;
-  auto A = make_random_sparse_view2<double>(N,density);
-double temp = 0.0;
+  auto A = make_sparse_view<double,2,COO>(r,c,v);
+  double temp = 0.0;
 
-using POLICY = KernelPolicy<
+  using POLICY = KernelPolicy<
   statement::For<0,loop_exec,
     statement::Lambda<0, Segs<0>>,
     statement::For<1,loop_exec,
@@ -134,24 +136,26 @@ auto seg2 = RangeSegment(0,N);
 auto segs = make_tuple(seg1, seg2);
 
 auto knl01 = make_sparse_kernel_sym<POLICY, 1>(make_tuple(0,1), segs, A, lam1, lam2, lam3);
-auto knl00 = make_sparse_kernel_sym<POLICY, 1>(make_tuple(0,0), segs, A, lam1, lam2, lam3);
 
-out.clear();
-out.str("");
+std::stringstream correct;
+for(int i = 0; i < 6; i++) {
+  correct << "1" << " " << i << "\n";
+  for(int idx = 0; idx < 10; idx++) {
+    auto row = r[idx];
+    auto col = c[idx];
+    if (row == i) {
+      if (row != col) {
+        correct << 2 << " " << row << " " << col << "\n";
+      }
+    }
+  }
+  correct << 3 << " " << i << "\n";
+}
 
-knl00();
-std::string out00 = out.str();
-std::cout << "out00\n" << out00;;
-
-
-out.clear();
 out.str("");
 knl01();
-std::string out01 = out.str();
-out.clear();
-out.str("");
 
-EXPECT_NE(out01, out00);
+EXPECT_EQ(out.str(), correct.str());
 
 
 
@@ -170,7 +174,6 @@ class SymEvalTest : public ::testing::Test
 TYPED_TEST_P(SymEvalTest, SymEval)
 {
   using EXEC_POLICY = typename camp::at<TypeParam, camp::num<0>>::type;
-  std::cout << "Running symeval test";
   SymEvalTestImpl<EXEC_POLICY>();
   SymEvalConditionalTestImpl<EXEC_POLICY>();
   SymEvalSparseTestImpl<EXEC_POLICY>();

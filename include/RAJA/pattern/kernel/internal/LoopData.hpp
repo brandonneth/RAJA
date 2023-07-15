@@ -158,11 +158,11 @@ struct LoopData {
   constexpr LoopData(LoopData const &) = default;
   constexpr LoopData(LoopData &&) = default;
 
-  template <camp::idx_t Idx, typename IndexT>
+    template <camp::idx_t Idx, camp::idx_t...Idxs, typename IndexT>
   RAJA_HOST_DEVICE RAJA_INLINE void assign_offset(IndexT const &i)
   {
     camp::get<Idx>(offset_tuple) = i;
-
+    
     using SegmentType = decltype(camp::get<Idx>(segment_tuple));
     using SymIterSpanType = Span<SymbolicIter, Index_type>;
    
@@ -175,7 +175,10 @@ struct LoopData {
     if constexpr (std::is_same<SegmentType,LeaderIterSpanType&>::value) {
       auto seg = camp::get<Idx>(segment_tuple);
       seg.begin().update(i);
-   } 
+    } 
+    if constexpr (sizeof...(Idxs) != 0) {
+      assign_offset<Idxs...>(i);
+    }
   }
 
   template <typename ParamId, typename IndexT>

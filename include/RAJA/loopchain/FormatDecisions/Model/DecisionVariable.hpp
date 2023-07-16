@@ -122,7 +122,7 @@ virtual camp::idx_t estimate_cost() {
 
   using V =  View<double, Layout<I>>;
 
-  camp::idx_t n = 128;
+  camp::idx_t n = std::pow(128*128, 1.0 / (double) I);
 
   camp::idx_t s = 1;
   std::array<camp::idx_t, I> sizes;

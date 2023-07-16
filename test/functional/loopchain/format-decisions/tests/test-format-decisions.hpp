@@ -39,7 +39,7 @@ void FormatDecisionsTestImpl() {
 
   auto segs = make_tuple(RangeSegment(0,8), RangeSegment(0,8));
   using KPOL = KernelPolicy<
-    statement::For<0,loop_exec,
+    statement::For<0,EXEC_POLICY,
       statement::For<1,loop_exec,
         statement::Lambda<0>
       >
@@ -145,6 +145,61 @@ void FormatDecisionsTestImpl() {
   EXPECT_EQ(choices3.template get_layout_choice<3>(v2), vector_01);
 }
 
+
+template <typename EXEC_POLICY>
+void InliningTest() {
+  using namespace RAJA;
+  idx_t n = 100;
+  using VIEW = View<double, Layout<2>>;
+  VIEW A(new double[n*n], n,n);
+  VIEW B(new double[n*n], n,n);
+  VIEW C(new double[n*n], n,n);
+  VIEW T(new double[n*n], n,n);
+  VIEW D(new double[n*n], n,n);
+
+  for(int i = 0; i < n; i++) {
+    for(int j = 0; j < n; j++) {
+      T(i,j) = 0;
+      D(i,j) = 0;
+      A(i,j) = rand();
+      B(i,j) = rand();
+      C(i,j) = rand();
+    }
+  }
+
+  using COMP_POL = KernelPolicy<
+    statement::For<0, EXEC_POLICY,
+      statement::For<1, loop_exec,
+        statement::For<2, loop_exec,
+            statement::Lambda<0>
+        >
+      >
+    >
+  >;
+
+  auto lam1 = [&](auto i, auto j, auto k) {
+    T(i,j) += A(i,k) * B(k,j);
+  };
+
+  auto lam2 = [&](auto i, auto j, auto k) {
+    D(i,j) += T(i,k) * C(k,j);
+  };
+  auto comp_seg = make_tuple(RangeSegment(0,n), RangeSegment(0,n), RangeSegment(0,n));
+
+  auto comp1 = make_kernel<COMP_POL>(comp_seg, lam1);
+  auto comp2 = make_kernel<COMP_POL>(comp_seg, lam2);
+
+  auto fd = format_decisions(tie(B,C), comp1, comp2);
+  fd.set_format_for(B,{1,0},comp1);
+  fd.set_format_for(B,{1,0},comp2);
+  fd.set_format_for(C,{0,1},comp1);
+  fd.set_format_for(C,{1,0},comp2);
+  fd.set_output_format(B,{1,0});
+  fd.set_output_format(C,{1,0});
+  fd.lock();
+
+  auto times = fd.time_execution();
+}
 TYPED_TEST_SUITE_P(FormatDecisionsTest);
 template <typename T>
 class FormatDecisionsTest : public ::testing::Test
@@ -155,8 +210,9 @@ TYPED_TEST_P(FormatDecisionsTest, FormatDecisions)
 {
   using EXEC_POLICY = typename camp::at<TypeParam, camp::num<0>>::type;
 
-  FormatDecisionsTestImpl<EXEC_POLICY>();
-
+  FormatDecisionsTestImpl<RAJA::loop_exec>();
+  FormatDecisionsTestImpl<RAJA::omp_parallel_for_exec>();
+  InliningTest<RAJA::omp_parallel_for_exec>();
 }
 
 REGISTER_TYPED_TEST_SUITE_P(FormatDecisionsTest, FormatDecisions);

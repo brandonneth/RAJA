@@ -371,6 +371,21 @@ struct FormatDecisions {
     return true;
   }
 
+  template <typename ViewType, typename KernelType>
+  bool set_format_for(ViewType & view, std::vector<camp::idx_t> permutation, const KernelType & knl) {
+    auto l = view.get_layout();
+    constexpr camp::idx_t NumDims = l.n_dims; 
+    std::array<camp::idx_t, NumDims> sizes;
+    std::array<camp::idx_t, NumDims> perm;
+    for(int i = 0; i < NumDims; i++) {
+      perm[i] = permutation[i];
+      sizes[i] = l.sizes[i];
+    }
+    auto new_layout = make_permuted_layout(sizes, perm);
+    return set_format_for(view, new_layout, knl);
+    
+  }
+
   template <typename ViewType, typename LayoutType, typename KernelType>
   bool set_format_for(ViewType & view, LayoutType layout, KernelType knl) {
     camp::idx_t v_idx = view_index(view);

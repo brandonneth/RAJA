@@ -400,7 +400,21 @@ struct FormatDecisions {
     user_decided[NumKernels+1][v_idx] = true;
     return success;
   }
+  template <typename ViewType>
+  bool set_output_format(ViewType & view, std::vector<camp::idx_t> permutation) {
+    auto l = view.get_layout();
+    constexpr camp::idx_t NumDims = l.n_dims; 
 
+    std::array<camp::idx_t, NumDims> sizes;
+    std::array<camp::idx_t, NumDims> perm;
+    for(int i = 0; i < NumDims; i++) {
+      perm[i] = permutation[i];
+      sizes[i] = l.sizes[i];
+    }
+
+    auto new_layout = make_permuted_layout(sizes, perm);
+    return set_output_format(view, new_layout);
+  }
   auto finalize() {
     isl_time = 0;
     setup_time = 0;

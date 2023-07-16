@@ -420,12 +420,12 @@ struct FormatDecisions {
     map_time += std::chrono::duration_cast<std::chrono::microseconds>(map_stop - map_start).count();
     //std::cout << "created polynomial\n";
     
-
+    //std::cerr << "beginning to evaluate possible solutions\n";
     auto solve_start = std::chrono::high_resolution_clock::now();
     isl_point * choice = find_best_choice(all_choices, polynomial);
     auto solve_stop = std::chrono::high_resolution_clock::now();
     solve_time += std::chrono::duration_cast<std::chrono::microseconds>(solve_stop - solve_start).count();
-    //std::cout << "found best choice\n";
+    //std::cerr << "found best choice. solve time: " << solve_time << "\n";
     auto isl_stop = std::chrono::high_resolution_clock::now();
     isl_time +=  std::chrono::duration_cast<std::chrono::microseconds>(isl_stop - isl_start).count();
     //std::cout << "done with isl\n";
@@ -532,6 +532,10 @@ struct FormatDecisions {
 
   template <camp::idx_t I>
   auto model() {
+    isl_time = 0;
+    setup_time = 0;
+    solve_time = 0;
+
     if(!locked) {
       auto view_finalizer = [&]
       <camp::idx_t...Is>
@@ -558,10 +562,7 @@ struct FormatDecisions {
     return loop_chain(conversions_and_knls);
   }
   auto finalize() {
-    isl_time = 0;
-    setup_time = 0;
-    solve_time = 0;
-  
+     
     auto moment_generator = [&]
     <camp::idx_t...Is>
     (camp::idx_seq<Is...>) {
@@ -682,6 +683,7 @@ struct FormatDecisions {
     }
   }
   camp::tuple<idx_t, idx_t> time_execution() {
+    model<0>();
     auto loopchain = finalize();
     auto knlTuple = loopchain.knlTuple;
 

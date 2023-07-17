@@ -37,6 +37,7 @@ struct FormatDecisions {
   std::array<std::array<bool, NumViews>, NumMoments> user_decided; 
 
   bool locked = 0;
+  idx_t model_data_size;
   idx_t setup_time = 0;
   idx_t solve_time = 0;
   idx_t isl_time = 0;
@@ -47,7 +48,8 @@ struct FormatDecisions {
   template <idx_t...Is>
   FormatDecisions(tuple<ViewRefs...> _views, KernelTuple _knls, camp::idx_seq<Is...>) : 
     views(_views), 
-    knls(_knls) {
+    knls(_knls),
+    model_data_size(10000) {
     
     using knl1 = decltype(camp::get<0>(knls));
     using knl1_removed = typename std::remove_reference<decltype(camp::get<0>(knls))>::type;
@@ -69,6 +71,14 @@ struct FormatDecisions {
       user_decided[0][i] = true;
     }
   }
+
+  idx_t get_model_data_size() {
+    return model_data_size;
+  }
+  void set_model_data_size(idx_t s) {
+    model_data_size = s;
+  }
+
 
   template <camp::idx_t I, typename ViewType, typename InternalViewType>
   camp::idx_t view_index_helper(ViewType & view, InternalViewType & internal_view) {
@@ -239,9 +249,11 @@ struct FormatDecisions {
     if( cache[layout_order] != 0) {
       return cache[layout_order];
     }
-    //std::cerr << "no cache\n";
+    std::cerr << "no cache, numdims=" << NumDims << ". layout_order=";
+    for(auto i : layout_order) {std::cerr << i << " ";}
+    std::cerr << "\n";
     using V =  View<double, Layout<NumDims>>;
-    constexpr camp::idx_t problem_size = 20000;
+    camp::idx_t problem_size = get_model_data_size();
     double root = std::pow(problem_size, 1.0/NumDims);
     camp::idx_t n = (camp::idx_t) root;
     camp::idx_t s = 1;
@@ -303,7 +315,7 @@ struct FormatDecisions {
         if(!access.is_view(view)) {continue;}
         
         //std::cerr << "\n" << "access: " << access << "\n" << std::flush;
-
+        
         for(auto perm : all_perms) {
           //std::cerr << "initial perm: ";
           //for(auto i : perm) {std::cerr << i << " ";}
@@ -358,7 +370,9 @@ struct FormatDecisions {
         for(auto out_perm : all_perms) {
           auto in_var = new FormatDecision<NumDims>(view_name(view), i, in_perm);
           auto out_var = new FormatDecision<NumDims>(view_name(view), i+1, out_perm);
-          auto estimated_cost = estimate_conversion_cost<NumDims>(in_perm, out_perm);
+          auto inPermCost = estimate_use_cost<NumDims>(in_perm);
+          auto outPermCost = estimate_use_cost<NumDims>(out_perm);
+          auto estimated_cost = inPermCost + outPermCost;//estimate_conversion_cost<NumDims>(in_perm, out_perm);
           auto c = new Constant<NumDims>(estimated_cost);
           MultExpression<NumDims> * m = new MultExpression<NumDims>(in_var, out_var);
           MultExpression<NumDims> * term = new MultExpression<NumDims>(m, c);
@@ -610,11 +624,12 @@ struct FormatDecisions {
       isl_union_pw_qpolynomial * obj;
       isl_point * lowest_point;
       camp::idx_t lowest_val;
+      camp::idx_t numPoints;
     } fn_struct;
     fn_struct.obj = objective;
     fn_struct.lowest_point = isl_union_set_sample_point(isl_union_set_copy(choices));
     fn_struct.lowest_val = std::numeric_limits<camp::idx_t>::max();
-
+    fn_struct.numPoints=0;
     auto fn = [](isl_point * pnt, void * user) {
       OptStruct * fn_struct = (OptStruct*) user;
       isl_union_pw_qpolynomial * obj = isl_union_pw_qpolynomial_copy(fn_struct->obj);
@@ -626,12 +641,12 @@ struct FormatDecisions {
         fn_struct->lowest_val = v;
         fn_struct->lowest_point = pnt;
       }
-
+      fn_struct->numPoints++;
       return isl_stat_ok;
     };
 
     isl_union_set_foreach_point(choices, fn, &fn_struct);
-
+    std::cerr << "Set of choices has cardinality: " << fn_struct.numPoints << "\n";
     return fn_struct.lowest_point;
   }
 

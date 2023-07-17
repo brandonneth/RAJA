@@ -119,6 +119,7 @@ virtual camp::idx_t estimate_cost() {
     cache[key()] = 1;
     return cache[key()];
   }
+  std::cerr << "No cache value for cost estimation of conversion\n";
 
   using V =  View<double, Layout<I>>;
 

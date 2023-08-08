@@ -297,8 +297,8 @@ struct FormatDecisions {
     return cache[layout_order];
   }
 
-  template <idx_t KnlIdx, typename ViewType, idx_t LambdaIdx>
-  auto estimate_use_costs_by_lambda(ViewType & view) {
+  template <idx_t KnlIdx, typename ViewType, idx_t LambdaIdx, typename Container>
+  auto estimate_use_costs_by_lambda(ViewType & view, Container possiblePerms) {
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
     
@@ -307,11 +307,10 @@ struct FormatDecisions {
     using KernelPolicy = typename KernelType::KPol;
     constexpr size_t NumLambdas = knl.NumLambdas;
     
-    auto all_perms = enumerate_perms<NumDims>();
     if constexpr (LambdaIdx >= NumLambdas) {
       return new SumExpression<NumDims>();
     } else {
-      SumExpression<NumDims> * term_sum = estimate_use_costs_by_lambda<KnlIdx, ViewType, LambdaIdx+1>(view);
+      SumExpression<NumDims> * term_sum = estimate_use_costs_by_lambda<KnlIdx, ViewType, LambdaIdx+1>(view,possiblePerms);
       //std::cout << "estimate_use_costs_by_lambda<" << KnlIdx << ",_," << LambdaIdx << ">\n";
       auto accesses = knl. template execute_symbolically<LambdaIdx>();
       for(auto access : accesses) {
@@ -320,15 +319,16 @@ struct FormatDecisions {
         
         //std::cerr << "\n" << "access: " << access << "\n" << std::flush;
         
-        for(auto perm : all_perms) {
+        for(auto perm : possiblePerms) {
           //std::cerr << "initial perm: ";
           //for(auto i : perm) {std::cerr << i << " ";}
           //std::cerr << "\n" << std::flush; 
 
           auto format_var = new FormatDecision<NumDims>(view_name(view), KnlIdx+1, perm);
           //std::cerr << "estimating cost of " << format_var->rep() << "\n";
-          
-          auto normalized_layout_perm = access.template normalized_layout_perm<KernelPolicy,NumDims,LambdaIdx>(perm);
+          std::array<idx_t, NumDims> permArray;
+          for(size_t i = 0; i < NumDims; i++) {permArray[i] = perm[i];}
+          auto normalized_layout_perm = access.template normalized_layout_perm<KernelPolicy,NumDims,LambdaIdx>(permArray);
           //std::cerr << "normalized layout perm: " ;
           //for(auto i : normalized_layout_perm) {std::cerr << i << " ";}
           //std::cerr << "\n" << std::flush;
@@ -343,8 +343,8 @@ struct FormatDecisions {
     }
   }
   
-  template <idx_t KnlIdx, typename ViewType>
-  auto estimate_use_costs(ViewType & view) {
+  template <idx_t KnlIdx, typename ViewType, typename Container>
+  auto estimate_use_costs(ViewType & view, Container possiblePerms) {
     //std::cout << "estimate_use_costs\n";
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
@@ -353,25 +353,24 @@ struct FormatDecisions {
       return new SumExpression<NumDims>();
     } else {
 
-      SumExpression<NumDims> * term_sum = estimate_use_costs<KnlIdx+1>(view);
-      auto costs_by_lambda = estimate_use_costs_by_lambda<KnlIdx, ViewType, 0>(view);
+      SumExpression<NumDims> * term_sum = estimate_use_costs<KnlIdx+1>(view, possiblePerms);
+      auto costs_by_lambda = estimate_use_costs_by_lambda<KnlIdx, ViewType, 0>(view, possiblePerms);
       term_sum->add(costs_by_lambda);
       return term_sum;
     }
   }
 
-  template <typename ViewType>
-  auto estimate_conversion_costs(ViewType & view) {
+  template <typename ViewType, typename Container>
+  auto estimate_conversion_costs(ViewType & view, Container possiblePerms) {
     using LayoutType = typename ViewType::layout_type;
     constexpr camp::idx_t NumDims = LayoutType().n_dims;
 
     
     auto conversion_costs = new SumExpression<NumDims>();
 
-    const std::vector<std::array<camp::idx_t, NumDims>> all_perms = enumerate_perms<NumDims>();
     for(int i = 0; i < NumKernels+1; i++) {
-      for(auto in_perm : all_perms) {
-        for(auto out_perm : all_perms) {
+      for(auto in_perm : possiblePerms) {
+        for(auto out_perm : possiblePerms) {
           auto in_var = new FormatDecision<NumDims>(view_name(view), i, in_perm);
           auto out_var = new FormatDecision<NumDims>(view_name(view), i+1, out_perm);
           auto inPermCost = estimate_use_cost<NumDims>(in_perm);
@@ -398,25 +397,20 @@ struct FormatDecisions {
         return false;
       }
     }
-
-    //std::cout << "creating decision variables\n"; 
-    auto decision_variables = all_decision_variables<NumDims>(view_name(view), NumKernels);
-    //std::cout << "estimating costs.\n";
-    SumExpression<NumDims> * use_cost = estimate_use_costs<0>(view);
-    //std::cout << "done with use costs, starrting conversion costs\n";
-    SumExpression<NumDims> * conversion_cost = estimate_conversion_costs(view);
-    SumExpression<NumDims> * cost_function = new SumExpression<NumDims>();
-    //std::cout << "cost function without use or conversion costs added: " << cost_function->rep() << "\n" << std::flush;
-    cost_function->add(use_cost);
-    cost_function->add(conversion_cost);
-    //std::cout << "use costs: " << use_cost->rep() << "\n" << std::flush;
-    //std::cout << "conversion costs: " << conversion_cost->rep() << "\n" << std::flush; 
-    //std::cout << "done with costs, starting on constraints\n";
+    auto seedPerms = get_seed_perms(view);
+    auto possiblePerms = rotate_perms(seedPerms);
+    auto decisionVariables = pruned_decision_variables<NumDims>(view_name(view), NumKernels, possiblePerms);
     
-    auto base_constraints_ = base_constraints<NumDims>(view_name(view), NumKernels); 
-    auto extra_constraints = user_constraints<0>(view);
-    auto all_constraints = new AndConstraint<NumDims>(base_constraints_, extra_constraints);
+    SumExpression<NumDims> * costFunction = new SumExpression<NumDims>();
+    costFunction->add(estimate_use_costs<0>(view, possiblePerms));
+    costFunction->add(estimate_conversion_costs(view, possiblePerms));
+    
+    auto baseConstraints = base_constraints<NumDims>(view_name(view), NumKernels, possiblePerms); 
+    auto userConstraints = user_constraints<0>(view);
+    auto allConstraints = new AndConstraint<NumDims>(baseConstraints, userConstraints);
 
+
+        
     
     
     auto setup_stop = std::chrono::high_resolution_clock::now();
@@ -428,12 +422,12 @@ struct FormatDecisions {
      
 
     auto space_start = std::chrono::high_resolution_clock::now();
-    isl_union_set * all_choices = decision_space(ctx, decision_variables, all_constraints);
+    isl_union_set * all_choices = decision_space(ctx, decisionVariables, allConstraints);
     auto space_stop = std::chrono::high_resolution_clock::now();
     space_time += std::chrono::duration_cast<std::chrono::microseconds>(space_stop - space_start).count();
     //std::cout << "created space\n"; 
     auto map_start = std::chrono::high_resolution_clock::now();
-    isl_union_pw_qpolynomial * polynomial = objective_function(ctx, decision_variables, cost_function);
+    isl_union_pw_qpolynomial * polynomial = objective_function(ctx, decisionVariables, costFunction);
     auto map_stop = std::chrono::high_resolution_clock::now();
     map_time += std::chrono::duration_cast<std::chrono::microseconds>(map_stop - map_start).count();
     //std::cout << "created polynomial\n";
@@ -462,7 +456,7 @@ struct FormatDecisions {
      
     int num_format_decisions = NumMoments * tgamma(NumDims+1);
     for(int i = 0; i < num_format_decisions; i++) {
-      Term<NumDims> * var = decision_variables->variables.at(i);
+      Term<NumDims> * var = decisionVariables->variables.at(i);
       //std::cout << "Getting output value for " << var->rep() << ": ";
       isl_val * val_ = isl_point_get_coordinate_val(choice, isl_dim_out, i);
       long val = isl_val_get_num_si(val_);

@@ -8,12 +8,22 @@ namespace RAJA {
 
 template <typename Container>
 auto rotate_perm(Container perm) {
-  std::vector<Container> perms;
-  for(int i = 0; i < perm.size(); i++) {
-    perms.push_back(perm);
+  std::set<Container> perms;
+  for(size_t i = 0; i < perm.size(); i++) {
+    perms.insert(perm);
     std::rotate(perm.begin(), perm.begin() + 1, perm.end());
   }
 
+  return perms;
+}
+
+template <typename Container>
+auto rotate_perms(std::set<Container> seeds) {
+  std::set<Container> perms;
+  for (auto perm : seeds) {
+    auto rotated = rotate_perm(perm);
+    perms.insert(rotated.begin(), rotated.end());
+  }
   return perms;
 }
 

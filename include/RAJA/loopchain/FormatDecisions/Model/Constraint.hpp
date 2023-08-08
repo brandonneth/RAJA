@@ -11,11 +11,10 @@ namespace RAJA {
 //Encodes constraint that for a particular computation, each view can only have one layout. 
 //This is achieved by constraining the sum of the view's format variables for the kernel to 1. 
 //This way only one format variable can be true and the others must be false.
-template <camp::idx_t NumDims>
-EqualityConstraint<NumDims> * one_format_constraint(std::string viewName, camp::idx_t format_idx) {
+template <camp::idx_t NumDims, typename Container>
+EqualityConstraint<NumDims> * one_format_constraint(std::string viewName, camp::idx_t format_idx, Container possiblePerms) {
   std::vector<Expression<NumDims>*> format_vars;
-  auto all_perms = enumerate_perms<NumDims>();
-  for(auto perm : all_perms) {
+  for(auto perm : possiblePerms) {
     std::vector<camp::idx_t> p;
     for(int i = 0; i < NumDims; i++) {
       p.push_back(perm[i]);
@@ -141,13 +140,12 @@ AndConstraint<NumDims>* conversion_output_constraint(std::string viewName, camp:
 }
 
 //Encodes the truth-value natuer of the decision variables. Each variable has to be 1 or 0.
-template <camp::idx_t NumDims>
-AndConstraint<NumDims>* binary_choice_constraints(std::string viewName, camp::idx_t idx) {
+template <camp::idx_t NumDims, typename Container>
+AndConstraint<NumDims>* binary_choice_constraints(std::string viewName, camp::idx_t idx, Container possiblePerms) {
   AndConstraint<NumDims>* constraints = new AndConstraint<NumDims>();
   
   std::vector<Expression<NumDims>*> vars;
-  auto all_perms = enumerate_perms<NumDims>();
-  for(auto perm : all_perms) {
+  for(auto perm : possiblePerms) {
     std::vector<camp::idx_t> p;
     for(int i = 0; i < NumDims; i++) {
       p.push_back(perm[i]);
@@ -155,36 +153,30 @@ AndConstraint<NumDims>* binary_choice_constraints(std::string viewName, camp::id
     vars.push_back(new FormatDecision<NumDims>(viewName, idx, p));
   }
 
-
-
   auto zero = new Constant<NumDims>(0);
   auto one = new Constant<NumDims>(1);
   for(auto v : vars) {
    constraints->add(new LeqConstraint<NumDims>(v, one));
    constraints->add(new GeqConstraint<NumDims>(v, zero));
   }
-
-
-
-  return constraints;
-      
+  return constraints;   
 }
 
 
 //Collects encodes all the constraints above for all the decision variables for a particular number of kernels.
-template <camp::idx_t NumDims>
-AndConstraint<NumDims>* base_constraints(std::string viewName, camp::idx_t num_knls) {
+template <camp::idx_t NumDims, typename Container>
+AndConstraint<NumDims>* base_constraints(std::string viewName, camp::idx_t num_knls, Container possiblePerms) {
   AndConstraint<NumDims>* constraints = new AndConstraint<NumDims>();
   
-  constraints->add(one_format_constraint<NumDims>(viewName, 0));
-  constraints->add(binary_choice_constraints<NumDims>(viewName, 0));
+  constraints->add(one_format_constraint<NumDims>(viewName, 0, possiblePerms));
+  constraints->add(binary_choice_constraints<NumDims>(viewName, 0, possiblePerms));
 
   for(auto i = 1; i <= num_knls+1; i++) {
-    constraints->add(one_format_constraint<NumDims>(viewName, i));
+    constraints->add(one_format_constraint<NumDims>(viewName, i, possiblePerms));
     //constraints->add(one_conversion_constraint<NumDims>(viewName, i));
     //constraints->add(conversion_input_constraint<NumDims>(viewName, i));
     //constraints->add(conversion_output_constraint<NumDims>(viewName, i));
-    constraints->add(binary_choice_constraints<NumDims>(viewName, i));
+    constraints->add(binary_choice_constraints<NumDims>(viewName, i, possiblePerms));
   }
   return constraints;
 }

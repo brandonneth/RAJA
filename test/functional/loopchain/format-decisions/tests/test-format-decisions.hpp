@@ -199,6 +199,8 @@ void InliningTest() {
   fd.lock();
 
   auto times = fd.time_execution();
+  EXPECT_NE(camp::get<0>(times), 0);
+  EXPECT_NE(camp::get<1>(times), 0);
 }
 
 
@@ -281,7 +283,7 @@ TYPED_TEST_P(FormatDecisionsTest, FormatDecisions)
   FormatDecisionsTestImpl<RAJA::omp_parallel_for_exec>();
   InliningTest<RAJA::omp_parallel_for_exec>();
 
-  GetSeedPermsTest<RAJA::loop_exec>();
+  GetSeedPermsTest<EXEC_POLICY>();
 }
 
 REGISTER_TYPED_TEST_SUITE_P(FormatDecisionsTest, FormatDecisions);

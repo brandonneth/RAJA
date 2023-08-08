@@ -238,20 +238,12 @@ TermList<NumDims> * all_decision_variables(std::string viewName, camp::idx_t num
 }
 
 template <camp::idx_t NumDims, typename LayoutContainer>
-TermList<NumDims> * pruned_decision_variables(std::string viewName, camp::idx_t numKnls, LayoutContainer seedPerms) { 
-  //calculate the full set of possible layout permutations
-  //by rotating the seed permutations
-  std::set<std::array<idx_t,NumDims>> allPerms;
-  for(auto perm : seedPerms) {
-    auto rotated = rotate_perm(perm);
-    allPerms.insert(rotated.begin(), rotated.end());
-  }
-
+TermList<NumDims> * pruned_decision_variables(std::string viewName, camp::idx_t numKnls, LayoutContainer possiblePerms) { 
   //create decision variables for each possible layout 
   //for each phase
   auto vars = new TermList<NumDims>();
   for(int knlIdx = 0; knlIdx < numKnls+1; knlIdx++) {
-    for (auto perm : allPerms) {
+    for (auto perm : possiblePerms) {
       auto var = new FormatDecision<NumDims>(viewName, knlIdx, perm);
       vars->add(var);
     }

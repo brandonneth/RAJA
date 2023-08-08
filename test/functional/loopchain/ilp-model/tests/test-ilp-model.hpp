@@ -356,17 +356,12 @@ void ILPModelTestImpl() {
   dec.set_format_for(D, dlayout, comp2);
   dec.set_format_for(F, flayout01, init_f);
   dec.set_format_for(F, flayout10, comp3);
-  std::cout << "set the variables for the 3mm situation\n"; 
   auto decision_variables = all_decision_variables<2>(dec.view_name(B), 6);
-  std::cout << "created the decision variable list\n";
   SumExpression<2> * use_cost = dec.template estimate_use_costs<0>(B);
-  std::cout << "created use costs\n" << std::flush;
   SumExpression<2> * conversion_cost = dec.template estimate_conversion_costs(B);
-  std::cout << "created use and conversion costs\n";
   SumExpression<2> * cost_function = new SumExpression<2>();
   cost_function->add(use_cost);
   cost_function->add(conversion_cost);
-  std::cout << "created and added to the cost function\n";
   auto base_constraints_ = base_constraints<2>(dec.view_name(B), 6); 
   auto extra_constraints = dec.template user_constraints<0>(B);
   auto all_constraints = new AndConstraint<2>(base_constraints_, extra_constraints);
@@ -374,15 +369,45 @@ void ILPModelTestImpl() {
   isl_ctx * ctx2 = isl_ctx_alloc();
 
   isl_union_set * all_choices = decision_space(ctx2, decision_variables, all_constraints);
-  std::cout << "created the decision space\n";
   EXPECT_FALSE(isl_union_set_is_empty(all_choices)) << "No elements in the choices set.\n";
-  std::cout << "tested all_choices\n";
   isl_union_pw_qpolynomial * polynomial = objective_function(ctx2, decision_variables, cost_function);
   isl_point * choice = dec.find_best_choice(all_choices, polynomial);
-  std::cout << "tested polynomial\n";
   EXPECT_FALSE(isl_point_is_void(choice)) << "Objective function did not generate any point.\n";
-  std::cout << "finished the first ilpmodel test function\n";
 }
+
+template <camp::idx_t...Is>
+void TestDecisionVariableCount() {
+  using namespace RAJA;
+  constexpr camp::idx_t NumDims = sizeof...(Is);
+  std::string viewName = "A";
+  idx_t numKnls = 2;
+
+  auto initialPerm = std::array<idx_t,NumDims>{Is...};
+  auto seedPerms1 = std::set<std::array<idx_t,NumDims>>{initialPerm};
+  auto decisionVars = pruned_decision_variables<NumDims>(viewName, numKnls, seedPerms1);
+  EXPECT_EQ(decisionVars->variables.size(), (numKnls+1) * NumDims) << "Incorrect number of decision variables generated. TermList: " << decisionVars->rep() << "\n";
+}
+
+// Ensures the rotation process generates the correct variables
+void TestDecisionVariableValues() {
+  using namespace RAJA;
+  constexpr camp::idx_t NumDims = 3;
+  std::string viewName = "A";
+  idx_t numKnls = 1;
+
+  auto perm210 = std::array<idx_t,NumDims>{2,1,0};
+  auto perm021 = std::array<idx_t,NumDims>{0,2,1};
+  auto perm102 = std::array<idx_t,NumDims>{1,0,2};
+  auto seedPerms = std::set<std::array<idx_t,NumDims>>{perm210};
+  auto vars = pruned_decision_variables<NumDims>(viewName, numKnls, seedPerms);
+  
+  auto expectedPerms = std::set<std::array<idx_t,NumDims>>{perm210,perm021,perm102};
+
+  for(auto var : vars->variables) {
+    EXPECT_EQ(1,expectedPerms.count(static_cast<FormatDecision<3>*>(var)->permutation))  << "variable with name " << var->rep() << " has unexpected layout permutation\n";
+  }
+}
+
 
 TYPED_TEST_SUITE_P(ILPModelTest);
 template <typename T>
@@ -398,6 +423,13 @@ TYPED_TEST_P(ILPModelTest, FormatDecisions)
   ILPModelTestImpl<EXEC_POLICY>();
   
   ImperfectILPModelTestImpl<EXEC_POLICY>();
+  TestDecisionVariableCount<0>();
+  TestDecisionVariableCount<0,1>();
+  TestDecisionVariableCount<0,1,2>();
+  TestDecisionVariableCount<0,1,2,3>();
+  TestDecisionVariableCount<0,1,2,3,4>();
+  TestDecisionVariableCount<0,1,2,3,4,5>();
+  TestDecisionVariableCount<0,1,2,3,4,5,6>();
 }
 
 REGISTER_TYPED_TEST_SUITE_P(ILPModelTest, FormatDecisions);

@@ -6,6 +6,17 @@
 namespace RAJA {
 
 
+template <typename Container>
+auto rotate_perm(Container perm) {
+  std::vector<Container> perms;
+  for(int i = 0; i < perm.size(); i++) {
+    perms.push_back(perm);
+    std::rotate(perm.begin(), perm.begin() + 1, perm.end());
+  }
+
+  return perms;
+}
+
 template <typename ViewType>
 auto enumerate_perms(ViewType v) {
 

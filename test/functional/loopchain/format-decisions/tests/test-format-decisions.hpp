@@ -200,6 +200,73 @@ void InliningTest() {
 
   auto times = fd.time_execution();
 }
+
+
+template <typename EPol>
+void GetSeedPermsTest() {
+  using namespace RAJA;
+  idx_t n = 100;
+  auto perm01 = std::array<idx_t, 2>{0,1};
+  auto perm10 = std::array<idx_t, 2>{1,0};
+  auto perm012 = std::array<idx_t, 3>{0,1,2};
+  auto perm210 = std::array<idx_t, 3>{2,1,0};
+
+  View<double, Layout<2>> A(new double[n*n], n,n);
+  View<double, Layout<3>> B(new double[n*n*n], n,n,n);
+  View<double, Layout<2>> C(new double[n*n], make_permuted_layout(std::array<idx_t, 2>{n,n}, perm10));
+
+  auto knl1 = make_forall<EPol>(RangeSegment(0,n),[&](auto i) {B(i,i,i) = A(i,i);});
+  auto knl2 = make_forall<EPol>(RangeSegment(0,n),[&](auto i) {B(i+1,i,i) = C(i,i);});
+
+  auto dec = format_decisions(tie(A,B,C), knl1, knl2);
+
+  //at the start it should be just the data's original layout.
+  auto permsA1 = dec.get_seed_perms(A);
+  EXPECT_EQ(1, permsA1.size());
+  for(auto perm: permsA1) {
+    auto expected = std::set<std::array<idx_t, 2>>{perm01};
+    EXPECT_EQ(1, expected.count(perm)); 
+  }
+  auto permsB1 = dec.get_seed_perms(B);
+  EXPECT_EQ(1, permsB1.size());
+  for(auto perm: permsB1) {
+    auto expected = std::set<std::array<idx_t, 3>>{perm012};
+    EXPECT_EQ(1, expected.count(perm)); 
+  }
+  auto permsC1 = dec.get_seed_perms(C);
+  EXPECT_EQ(1, permsC1.size());
+  for(auto perm: permsC1) {
+    auto expected = std::set<std::array<idx_t, 2>>{perm10};
+    EXPECT_EQ(1, expected.count(perm)); 
+  }
+
+  dec.set_format_for(A, {1,0}, knl1);
+  dec.set_format_for(B, {2,1,0}, knl2);
+  dec.set_format_for(C, {1,0}, knl2);
+
+  //it should include all formats that are registered.
+  auto permsA2 = dec.get_seed_perms(A);
+  EXPECT_EQ(2, permsA2.size());
+  for(auto perm: permsA2) {
+    auto expected = std::set<std::array<idx_t, 2>>{perm01, perm10};
+    EXPECT_EQ(1, expected.count(perm)); 
+  }
+  auto permsB2 = dec.get_seed_perms(B);
+  EXPECT_EQ(2, permsB2.size());
+  for(auto perm: permsB2) {
+    auto expected = std::set<std::array<idx_t, 3>>{perm012, perm210};
+    EXPECT_EQ(1, expected.count(perm)); 
+  }
+  auto permsC2 = dec.get_seed_perms(C);
+  EXPECT_EQ(1, permsC2.size());
+  for(auto perm: permsC2) {
+    auto expected = std::set<std::array<idx_t, 2>>{perm10};
+    EXPECT_EQ(1, expected.count(perm)); 
+  } 
+
+}
+
+
 TYPED_TEST_SUITE_P(FormatDecisionsTest);
 template <typename T>
 class FormatDecisionsTest : public ::testing::Test
@@ -213,6 +280,8 @@ TYPED_TEST_P(FormatDecisionsTest, FormatDecisions)
   FormatDecisionsTestImpl<RAJA::loop_exec>();
   FormatDecisionsTestImpl<RAJA::omp_parallel_for_exec>();
   InliningTest<RAJA::omp_parallel_for_exec>();
+
+  GetSeedPermsTest<RAJA::loop_exec>();
 }
 
 REGISTER_TYPED_TEST_SUITE_P(FormatDecisionsTest, FormatDecisions);

@@ -35,7 +35,7 @@ struct FormatDecisions {
 
   std::array<LayoutTupleType, NumMoments> moments;
   std::array<std::array<bool, NumViews>, NumMoments> user_decided; 
-
+  
   bool locked = 0;
   idx_t model_data_size;
   idx_t setup_time = 0;
@@ -44,6 +44,8 @@ struct FormatDecisions {
   idx_t space_time = 0;
   idx_t map_time = 0;
   idx_t cost = 0;
+
+  std::array<std::set<std::vector<idx_t>>,NumViews> seedPerms;
 
   template <idx_t...Is>
   FormatDecisions(tuple<ViewRefs...> _views, KernelTuple _knls, camp::idx_seq<Is...>) : 
@@ -70,6 +72,7 @@ struct FormatDecisions {
     for(int i = 0; i < NumViews; i++) {
       user_decided[0][i] = true;
     }
+    camp::sink(add_seed_perm(camp::get<Is>(views), layout_to_perm(camp::get<Is>(views).get_layout()))...);
   }
 
   idx_t get_model_data_size() {
@@ -172,6 +175,7 @@ struct FormatDecisions {
     };
 
     auto success = helper2(idx_seq_for(views));
+    add_seed_perm(view,layout_to_perm(layout));
     return success;
   }
 
@@ -499,7 +503,7 @@ struct FormatDecisions {
     
   }
   template <typename ViewType, typename KernelType, camp::idx_t... RangeInts, typename IdxLin, ptrdiff_t StrideOneDim>
-  bool set_format_for(ViewType & view, detail::LayoutBase_impl<camp::idx_seq<RangeInts...>, IdxLin, StrideOneDim> layout, const KernelType & knl) {
+  bool set_format_for(ViewType & view, detail::LayoutBase_impl<camp::idx_seq<RangeInts...>, IdxLin, StrideOneDim> layout, const KernelType &) {
     camp::idx_t v_idx = view_index(view);
     camp::idx_t k_idx = kernel_index2<KernelType>();
     if(v_idx == -1) {
@@ -704,6 +708,25 @@ struct FormatDecisions {
 
     return te_helper(knlTuple, idx_seq_for(knlTuple), camp::tuple<idx_t, idx_t>{0,0});
   }
+
+  template <typename ViewType>
+  auto get_seed_perms(ViewType & view) {
+    constexpr idx_t NumDims = view.get_layout().n_dims;
+    std::set<std::array<idx_t,NumDims>> perms;
+    auto vectorSet = seedPerms[view_index(view)];
+    for(auto vec: vectorSet) {
+      std::array<idx_t,NumDims> arr{};
+      for(int i = 0; i < NumDims; i++) {arr[i] = vec[i];}
+      perms.insert(arr);
+    }
+    return perms;
+  }
+  
+  template <typename ViewType, typename Container>
+  auto add_seed_perm(ViewType & view, Container perm){
+    auto vecPerm = std::vector<idx_t>(perm.begin(), perm.end()); 
+    return seedPerms[view_index(view)].insert(vecPerm);
+  } 
 };
 
 template <typename ViewRefTuple, typename...KernelTypes>

@@ -27,17 +27,17 @@ void FormatDecisionsTestImpl() {
     }
   }
 
-
-  auto data1 = new double[8*8];
-  auto data2 = new double[8*8];
-  auto l01 = RAJA::make_permuted_layout( {{8,8}}, perm_01 );
-  auto l10 = RAJA::make_permuted_layout( {{8,8}}, perm_10 );
+  auto N = 100;
+  auto data1 = new double[N*N];
+  auto data2 = new double[N*N];
+  auto l01 = RAJA::make_permuted_layout( {{N,N}}, perm_01 );
+  auto l10 = RAJA::make_permuted_layout( {{N,N}}, perm_10 );
 
   VIEW2 v1(data1, l01);
   VIEW2 v2(data2, l10);
 
 
-  auto segs = make_tuple(RangeSegment(0,8), RangeSegment(0,8));
+  auto segs = make_tuple(RangeSegment(0,N), RangeSegment(0,N));
   using KPOL = KernelPolicy<
     statement::For<0,EXEC_POLICY,
       statement::For<1,loop_exec,
@@ -95,20 +95,21 @@ void FormatDecisionsTestImpl() {
 
   EXPECT_EQ(layout_to_perm(v1.get_layout()), vector_10);
   EXPECT_EQ(layout_to_perm(v2.get_layout()), vector_01);
-  for(int i = 0; i < 8; i++) {
-    for(int j = 0; j < 8; j++) {
+  for(int i = 0; i < N; i++) {
+    for(int j = 0; j < N; j++) {
       EXPECT_EQ(v1(i,j), 2*i+j);
     }
   }
-  for(int i = 0; i < 8; i++) {
-    for(int j = 0; j < 8; j++) {
+  for(int i = 0; i < N; i++) {
+    for(int j = 0; j < N; j++) {
       EXPECT_EQ(v1(i,j) * 2, v2(i,j));
     }
   }
 
   auto times = choices.time_execution();
-  EXPECT_TRUE(camp::get<0>(times) > 0);
-  EXPECT_TRUE(camp::get<1>(times) > 0);
+  EXPECT_TRUE(camp::get<0>(times) > 0) << "execution time: " << camp::get<0>(times) << " " << camp::get<1>(times);
+  EXPECT_TRUE(camp::get<1>(times) > 0) << "execution time: " << camp::get<0>(times) << " " << camp::get<1>(times);
+
   
   //test simpler permutation description.
   auto choices2 = format_decisions(camp::tie(v1,v2), knl1, knl2);

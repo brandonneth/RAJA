@@ -24,7 +24,6 @@ void KernelExecTestImpl() {
 
   knl1();
 
-  int error = 0;
   for(int i = 0; i < 100; i++) {
     EXPECT_EQ(_b[i], 10+i);
   }

@@ -5,7 +5,6 @@ void ApplyFuseTestImpl() {
   using namespace RAJA;
   double * _a = new double[100];
   double * _b = new double[100];
-  double * _c = new double[100];
 
   using View1 = View<double, RAJA::Layout<1, int, 1>>;
 
@@ -35,7 +34,6 @@ void ApplyFuseTestImpl() {
   fusedKnls();
 
 
-  int c1err1 = 0;
   for(int i = 10; i < 11; i++) {
     EXPECT_EQ(_b[i], 10);
   }

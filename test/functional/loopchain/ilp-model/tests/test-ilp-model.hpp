@@ -64,7 +64,6 @@ void ImperfectILPModelTestImpl() {
         >
       >;
   std::array<RAJA::idx_t, 2> perm_01 {{0,1}};
-  std::array<RAJA::idx_t, 2> perm_10 {{1,0}};
   std::array<RAJA::idx_t, 1> perm_0 {{0}};
 
   using VIEW2 = RAJA::View<double, RAJA::Layout<2,RAJA::idx_t>>;
@@ -348,7 +347,7 @@ void ILPModelTestImpl() {
   auto flayout01 = make_permuted_layout(fsizes, {{0,1}});
   auto flayout10 = make_permuted_layout(fsizes, {{1,0}});
   
-  
+  std::set<std::array<idx_t, 2>> allPerms{perm_10, perm_01}; 
 
   auto dec = format_decisions(tie(B, D, F), init_e, comp1, init_f, comp2, init_g, comp3);
   
@@ -357,12 +356,12 @@ void ILPModelTestImpl() {
   dec.set_format_for(F, flayout01, init_f);
   dec.set_format_for(F, flayout10, comp3);
   auto decision_variables = all_decision_variables<2>(dec.view_name(B), 6);
-  SumExpression<2> * use_cost = dec.template estimate_use_costs<0>(B);
-  SumExpression<2> * conversion_cost = dec.template estimate_conversion_costs(B);
+  SumExpression<2> * use_cost = dec.template estimate_use_costs<0>(B, allPerms);
+  SumExpression<2> * conversion_cost = dec.template estimate_conversion_costs(B,allPerms);
   SumExpression<2> * cost_function = new SumExpression<2>();
   cost_function->add(use_cost);
   cost_function->add(conversion_cost);
-  auto base_constraints_ = base_constraints<2>(dec.view_name(B), 6); 
+  auto base_constraints_ = base_constraints<2>(dec.view_name(B), 6, allPerms); 
   auto extra_constraints = dec.template user_constraints<0>(B);
   auto all_constraints = new AndConstraint<2>(base_constraints_, extra_constraints);
 
@@ -384,7 +383,9 @@ void TestDecisionVariableCount() {
 
   auto initialPerm = std::array<idx_t,NumDims>{Is...};
   auto seedPerms1 = std::set<std::array<idx_t,NumDims>>{initialPerm};
-  auto decisionVars = pruned_decision_variables<NumDims>(viewName, numKnls, seedPerms1);
+  auto rotatedPerms = rotate_perms(seedPerms1);
+  
+  auto decisionVars = pruned_decision_variables<NumDims>(viewName, numKnls, rotatedPerms);
   EXPECT_EQ(decisionVars->variables.size(), (numKnls+1) * NumDims) << "Incorrect number of decision variables generated. TermList: " << decisionVars->rep() << "\n";
 }
 
@@ -399,7 +400,8 @@ void TestDecisionVariableValues() {
   auto perm021 = std::array<idx_t,NumDims>{0,2,1};
   auto perm102 = std::array<idx_t,NumDims>{1,0,2};
   auto seedPerms = std::set<std::array<idx_t,NumDims>>{perm210};
-  auto vars = pruned_decision_variables<NumDims>(viewName, numKnls, seedPerms);
+  auto rotatedPerms = rotate_perms(seedPerms);
+  auto vars = pruned_decision_variables<NumDims>(viewName, numKnls, rotatedPerms);
   
   auto expectedPerms = std::set<std::array<idx_t,NumDims>>{perm210,perm021,perm102};
 

@@ -35,7 +35,6 @@ void ApplyShiftAndFuseTestImpl() {
   fusedKnls();
 
 
-  int c1err1 = 0;
   for(int i = 10; i < 11; i++) {
     EXPECT_EQ(_b[i], 10);
   }

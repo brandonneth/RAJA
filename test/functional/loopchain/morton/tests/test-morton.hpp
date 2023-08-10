@@ -6,17 +6,6 @@ void MortonTestImpl() {
   using namespace RAJA;
   size_t dimN = 4;
   size_t tileN = 1;
-  double * _a = new double[dimN*dimN];
-
-  using KPOL = KernelPolicy<
-    statement::For<0, loop_exec,
-      statement::For<1, loop_exec,
-          statement::Lambda<0> 
-      >
-    >
-  >;
-  
-  using VIEW2 = View<double, RAJA::MortonLayout<2,size_t>>;
   std::array<size_t, 2> dimSizes{{dimN,dimN}}; 
   std::array<size_t, 2> tileSizes{{tileN,tileN}};
   

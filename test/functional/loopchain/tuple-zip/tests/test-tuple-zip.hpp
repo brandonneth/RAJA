@@ -7,7 +7,6 @@ void TupleZipTestImpl() {
   using namespace RAJA;
   auto t1 = camp::make_tuple(1);
   auto t2 = camp::make_tuple(2);
-  auto t3 = camp::make_tuple(3);
 
   auto zipped1 = RAJA::tuple_zip(RAJA::make_tuple(t1));
 
@@ -24,9 +23,7 @@ void TupleZipTestImpl() {
   EXPECT_EQ(1, camp::get<0>(tuple_zip_slice0));
   EXPECT_EQ(2, camp::get<1>(tuple_zip_slice0));
 
-  auto make_make = camp::tuple{make_tuple(0,1)};
 
-  auto tupling_tzs = camp::tuple{tuple_zip_slice<0>(make_tuple(t1,t2), camp::idx_seq<0,1>{})};
 
   auto tozip2 = RAJA::make_tuple(t1,t2); 
   auto z2 = RAJA::tuple_zip(tozip2);

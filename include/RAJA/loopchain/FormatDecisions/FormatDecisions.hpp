@@ -162,6 +162,7 @@ struct FormatDecisions {
       if constexpr (std::is_same<ViewType&,decltype(get<I>(this->views))>::value) {
         if(view_index(view) == I) {
           get<I>(layouts) = layout;
+          add_seed_perm(view,layout_to_perm(layout));
           return 1;
         }
       }
@@ -175,7 +176,6 @@ struct FormatDecisions {
     };
 
     auto success = helper2(idx_seq_for(views));
-    add_seed_perm(view,layout_to_perm(layout));
     return success;
   }
 
@@ -368,7 +368,8 @@ struct FormatDecisions {
     
     auto conversion_costs = new SumExpression<NumDims>();
 
-    for(int i = 0; i < NumKernels+1; i++) {
+    
+    for(int i = 0; i < NumKernels; i++) {
       for(auto in_perm : possiblePerms) {
         for(auto out_perm : possiblePerms) {
           auto in_var = new FormatDecision<NumDims>(view_name(view), i, in_perm);
@@ -400,16 +401,20 @@ struct FormatDecisions {
     auto seedPerms = get_seed_perms(view);
     auto possiblePerms = rotate_perms(seedPerms);
     auto decisionVariables = pruned_decision_variables<NumDims>(view_name(view), NumKernels, possiblePerms);
-    
+   
+    std::cerr << "finalizing view" << view_name(view) << " , there are " << decisionVariables->variables.size() << " decision variables\n";
+    std::cerr << "decision variables representation: " << decisionVariables->rep() << "\n";
+
     SumExpression<NumDims> * costFunction = new SumExpression<NumDims>();
     costFunction->add(estimate_use_costs<0>(view, possiblePerms));
     costFunction->add(estimate_conversion_costs(view, possiblePerms));
     
+    std::cerr << "cost function representation: " << costFunction->rep() << "\n";
     auto baseConstraints = base_constraints<NumDims>(view_name(view), NumKernels, possiblePerms); 
     auto userConstraints = user_constraints<0>(view);
     auto allConstraints = new AndConstraint<NumDims>(baseConstraints, userConstraints);
 
-
+    std::cout << "constraint representation: " << allConstraints->rep() << "\n";
         
     
     
@@ -420,11 +425,11 @@ struct FormatDecisions {
     
     isl_ctx * ctx = isl_ctx_alloc();
      
-
     auto space_start = std::chrono::high_resolution_clock::now();
     isl_union_set * all_choices = decision_space(ctx, decisionVariables, allConstraints);
     auto space_stop = std::chrono::high_resolution_clock::now();
     space_time += std::chrono::duration_cast<std::chrono::microseconds>(space_stop - space_start).count();
+    
     //std::cout << "created space\n"; 
     auto map_start = std::chrono::high_resolution_clock::now();
     isl_union_pw_qpolynomial * polynomial = objective_function(ctx, decisionVariables, costFunction);
@@ -454,8 +459,7 @@ struct FormatDecisions {
     } 
   
      
-    int num_format_decisions = NumMoments * tgamma(NumDims+1);
-    for(int i = 0; i < num_format_decisions; i++) {
+    for(size_t i = 0; i < decisionVariables->variables.size(); i++) {
       Term<NumDims> * var = decisionVariables->variables.at(i);
       //std::cout << "Getting output value for " << var->rep() << ": ";
       isl_val * val_ = isl_point_get_coordinate_val(choice, isl_dim_out, i);

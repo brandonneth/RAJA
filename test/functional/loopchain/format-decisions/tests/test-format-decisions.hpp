@@ -269,6 +269,41 @@ void GetSeedPermsTest() {
 
 }
 
+template <typename EXEC_POLICY>
+void VariableListTest() {
+  using namespace RAJA;
+  using VIEW = View<double, Layout<2>>;
+  idx_t n = 100;
+  VIEW A(new double[n*n], n,n);
+  VIEW B(new double[n*n], n,n);
+  VIEW C(new double[n*n], n,n);
+
+  auto lam_comp1 = [&](auto i, auto j, auto k) {
+    C(i,j) += A(i,k) * B(k,j);
+  };
+  auto lam_comp2 = [&](auto i, auto j, auto k) {
+    A(i,j) += C(i,k) * B(k,j);
+  };
+  auto lam_comp3 = [&](auto i, auto j, auto k) {
+    B(i,j) += A(i,k) * C(k,j);
+  };
+
+  auto comp_seg = make_tuple(RangeSegment(0,n), RangeSegment(0,n), RangeSegment(0,n));
+
+  using COMP_POL=KernelPolicy<statement::For<0,loop_exec,statement::For<1,loop_exec,statement::For<2,loop_exec,statement::Lambda<0>>>>>;
+  auto comp1 = make_kernel<COMP_POL>(comp_seg, lam_comp1);
+  auto comp2 = make_kernel<COMP_POL>(comp_seg, lam_comp2);
+  auto comp3 = make_kernel<COMP_POL>(comp_seg, lam_comp3);
+
+  auto dec = format_decisions(tie(B), comp1, comp2, comp3);
+
+  auto breakdown = dec.time_execution();
+  auto conversion_time = get<0>(breakdown);
+  auto computation_time = get<1>(breakdown);
+  EXPECT_TRUE(conversion_time > 0);
+  EXPECT_TRUE(computation_time > 0);
+}
+
 
 TYPED_TEST_SUITE_P(FormatDecisionsTest);
 template <typename T>
@@ -285,6 +320,7 @@ TYPED_TEST_P(FormatDecisionsTest, FormatDecisions)
   InliningTest<RAJA::omp_parallel_for_exec>();
 
   GetSeedPermsTest<EXEC_POLICY>();
+  VariableListTest<EXEC_POLICY>();
 }
 
 REGISTER_TYPED_TEST_SUITE_P(FormatDecisionsTest, FormatDecisions);

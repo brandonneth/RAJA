@@ -240,7 +240,7 @@ TermList<NumDims> * all_decision_variables(std::string viewName, camp::idx_t num
 template <camp::idx_t NumDims, typename LayoutContainer>
 TermList<NumDims> * pruned_decision_variables(std::string viewName, camp::idx_t numKnls, LayoutContainer possiblePerms) { 
   //create decision variables for each possible layout 
-  //for each phase
+  //for each phase. one for each computation and then one for the output
   auto vars = new TermList<NumDims>();
   for(int knlIdx = 0; knlIdx < numKnls+1; knlIdx++) {
     for (auto perm : possiblePerms) {

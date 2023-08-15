@@ -24,7 +24,7 @@ struct FormatDecisions {
   constexpr static idx_t NumViews = sizeof...(ViewRefs);
   constexpr static idx_t NumKernels = camp::tuple_size<KernelTuple>::value;
   constexpr static idx_t NumMoments = NumKernels + 2;
-  constexpr static idx_t MINDIMSIZE=65;
+  constexpr static idx_t MINDIMSIZE=0;
   using LayoutTupleType =
       tuple<typename std::remove_reference<ViewRefs>::type::layout_type...>;
 

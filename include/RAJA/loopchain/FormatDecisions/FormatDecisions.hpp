@@ -414,13 +414,13 @@ struct FormatDecisions {
     auto userConstraints = user_constraints<0>(view);
     auto allConstraints = new AndConstraint<NumDims>(baseConstraints, userConstraints);
 
-    std::cout << "constraint representation: " << allConstraints->rep() << "\n";
+    std::cerr << "constraint representation: " << allConstraints->rep() << "\n";
         
     
     
     auto setup_stop = std::chrono::high_resolution_clock::now();
     setup_time += std::chrono::duration_cast<std::chrono::microseconds>(setup_stop - setup_start).count();
-    //std::cout << "done with setup, starting isl\n";
+    //std::cerr << "done with setup, starting isl\n";
     auto isl_start = std::chrono::high_resolution_clock::now();
     
     isl_ctx * ctx = isl_ctx_alloc();

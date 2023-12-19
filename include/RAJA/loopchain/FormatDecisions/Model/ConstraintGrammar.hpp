@@ -108,7 +108,7 @@ public:
     std::stringstream s;
     s << constraints[0]->rep();
     for (size_t i = 1; i < constraints.size(); i++) {
-      s << " && " << constraints[i]->rep();
+      s << " and " << constraints[i]->rep();
     }
     return s.str();
   }

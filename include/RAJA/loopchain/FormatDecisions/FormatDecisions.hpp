@@ -293,7 +293,7 @@ struct FormatDecisions {
     //std::cout << "done timing knl\n" << std::flush;
     auto t =std::chrono::duration_cast<std::chrono::nanoseconds>(stop-start).count();
     cache[layout_order] = t;
-    //std::cerr << "compcost: " << cache[layout_order] << "\n";
+    std::cerr << "cost estimate: " << cache[layout_order] << "\n";
     return cache[layout_order];
   }
 
@@ -311,31 +311,32 @@ struct FormatDecisions {
       return new SumExpression<NumDims>();
     } else {
       SumExpression<NumDims> * term_sum = estimate_use_costs_by_lambda<KnlIdx, ViewType, LambdaIdx+1>(view,possiblePerms);
-      //std::cout << "estimate_use_costs_by_lambda<" << KnlIdx << ",_," << LambdaIdx << ">\n";
+      std::cerr << "estimate_use_costs_by_lambda<" << KnlIdx << ",_," << LambdaIdx << ">\n";
       auto accesses = knl. template execute_symbolically<LambdaIdx>();
       for(auto access : accesses) {
 
         if(!access.is_view(view)) {continue;}
         
-        //std::cerr << "\n" << "access: " << access << "\n" << std::flush;
+        std::cerr << "\n" << "access: " << access << "\n" << std::flush;
         
         for(auto perm : possiblePerms) {
-          //std::cerr << "initial perm: ";
-          //for(auto i : perm) {std::cerr << i << " ";}
-          //std::cerr << "\n" << std::flush; 
+          std::cerr << "initial perm: ";
+          for(auto i : perm) {std::cerr << i << " ";}
+          std::cerr << "\n" << std::flush; 
 
           auto format_var = new FormatDecision<NumDims>(view_name(view), KnlIdx+1, perm);
           //std::cerr << "estimating cost of " << format_var->rep() << "\n";
           std::array<idx_t, NumDims> permArray;
           for(size_t i = 0; i < NumDims; i++) {permArray[i] = perm[i];}
           auto normalized_layout_perm = access.template normalized_layout_perm<KernelPolicy,NumDims,LambdaIdx>(permArray);
-          //std::cerr << "normalized layout perm: " ;
-          //for(auto i : normalized_layout_perm) {std::cerr << i << " ";}
-          //std::cerr << "\n" << std::flush;
+          std::cerr << "normalized layout perm: " ;
+          for(auto i : normalized_layout_perm) {std::cerr << i << " ";}
+          std::cerr << "\n" << std::flush;
 
           auto cost = estimate_use_cost<NumDims>(normalized_layout_perm);
-          unsigned long coef = cost * access.numIterations;
-          auto cost_term = new MultExpression<NumDims>(format_var, new Constant<NumDims>(coef));
+          //unsigned long coef = cost * access.numIterations;
+          auto coefs = new MultExpression<NumDims>(new Constant<NumDims>(cost), new Constant<NumDims>(access.numIterations));
+          auto cost_term = new MultExpression<NumDims>(format_var, coefs);
           term_sum->add(cost_term);
         }
       }
@@ -369,11 +370,14 @@ struct FormatDecisions {
     auto conversion_costs = new SumExpression<NumDims>();
 
     
-    for(int i = 0; i < NumKernels; i++) {
+    for(int i = 0; i < NumKernels+1; i++) {
       for(auto in_perm : possiblePerms) {
         for(auto out_perm : possiblePerms) {
           auto in_var = new FormatDecision<NumDims>(view_name(view), i, in_perm);
           auto out_var = new FormatDecision<NumDims>(view_name(view), i+1, out_perm);
+          if (in_var->key() == out_var->key()) {
+            continue;
+          }
           auto inPermCost = estimate_use_cost<NumDims>(in_perm);
           auto outPermCost = estimate_use_cost<NumDims>(out_perm);
           auto estimated_cost = inPermCost + outPermCost;//estimate_conversion_cost<NumDims>(in_perm, out_perm);
@@ -475,8 +479,16 @@ struct FormatDecisions {
           sizes[s] = view.get_layout().sizes[s];
         }
         auto newlayout = make_permuted_layout(sizes, perm);
+        std::cerr << "Before updating, the new rep is: " ;
+        print_to_stream(std::cerr);
+        std::cerr << "\n";
+
+        std::cerr << "Setting format for variable " << vv->rep() << "\n";
         update_layout(moments[idx], view, newlayout);
 
+        std::cerr << "After updating, the new rep is: " ;
+        print_to_stream(std::cerr);
+        std::cerr << "\n";
       }
     }
     //std::cout << "leaving finalize\n";

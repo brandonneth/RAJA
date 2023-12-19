@@ -229,15 +229,22 @@ struct SymAccess {
   template <typename KernelPolicy, camp::idx_t ViewDims, camp::idx_t SearchIdx>
   auto normalized_layout_perm(std::array<camp::idx_t, ViewDims> layout_perm) {
     auto policy_order = policy_to_nesting_order<KernelPolicy, SearchIdx>();
-    //std::cerr << "policy to nesting order: ";
-    //for(auto i : policy_order) { std::cerr << i << " ";}
-    //std::cerr << "\n" << std::flush;
+    std::cerr << "policy to nesting order: ";
+    for(auto i : policy_order) { std::cerr << i << " ";}
+    std::cerr << "\n" << std::flush;
     std::vector<camp::idx_t> policy_applied;
     for(auto index : argument_order()) {
+      std::cerr << "searching for index: " << index << "\n";
+      auto pos = std::find(policy_order.begin(), policy_order.end(), index);
+      std::cout << "found in the policy in position: " << std::distance(policy_order.begin(), pos) << "\n";  
       auto indexof = std::find(policy_order.begin(), policy_order.end(), index) - policy_order.begin();
       policy_applied.push_back(indexof);
     }
+    std::cerr << "policy applied to argument order: ";
+    for(auto i : policy_applied) { std::cerr << i << " ";}
+    std::cerr << "\n" << std::flush;
 
+    
     std::vector<camp::idx_t> normalized_access;
     for(auto index : layout_perm) {
       normalized_access.push_back(policy_applied.at(index));

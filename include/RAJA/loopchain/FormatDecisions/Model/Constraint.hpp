@@ -171,7 +171,7 @@ AndConstraint<NumDims>* base_constraints(std::string viewName, camp::idx_t num_k
   constraints->add(one_format_constraint<NumDims>(viewName, 0, possiblePerms));
   constraints->add(binary_choice_constraints<NumDims>(viewName, 0, possiblePerms));
 
-  for(auto i = 0; i < num_knls+1; i++) {
+  for(auto i = 0; i < num_knls+2; i++) {
     constraints->add(one_format_constraint<NumDims>(viewName, i, possiblePerms));
     //constraints->add(one_conversion_constraint<NumDims>(viewName, i));
     //constraints->add(conversion_input_constraint<NumDims>(viewName, i));

@@ -15,7 +15,7 @@ template <camp::idx_t CurrDim, camp::idx_t NumDims>
 struct nest_helper {
   using subpol = typename nest_helper<CurrDim-1, NumDims>::pol;  
   
-  using pol = statement::For<NumDims-CurrDim, omp_parallel_for_exec, subpol>;
+  using pol = statement::For<NumDims-CurrDim, loop_exec, subpol>;
 };
 
 template <camp::idx_t NumDims>

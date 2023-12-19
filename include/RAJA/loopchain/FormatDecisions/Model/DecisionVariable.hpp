@@ -51,7 +51,13 @@ auto f_lambda(ViewType & v, ViewType & v2) {
         s << "_" << permutation[i];
       }
       return s.str();
-
+     }
+    std::string key() const {
+      std::stringstream s;
+      for(size_t i = 0; i < permutation.size(); i++) {
+        s << "_" << permutation[i];
+      }
+      return s.str(); 
     }
 virtual camp::idx_t estimate_cost() {
   return 0; 
@@ -240,9 +246,9 @@ TermList<NumDims> * all_decision_variables(std::string viewName, camp::idx_t num
 template <camp::idx_t NumDims, typename LayoutContainer>
 TermList<NumDims> * pruned_decision_variables(std::string viewName, camp::idx_t numKnls, LayoutContainer possiblePerms) { 
   //create decision variables for each possible layout 
-  //for each phase. one for each computation and then one for the output
+  //for each phase. one for input, one for each computation and then one for the output
   auto vars = new TermList<NumDims>();
-  for(int knlIdx = 0; knlIdx < numKnls+1; knlIdx++) {
+  for(int knlIdx = 0; knlIdx < numKnls+2; knlIdx++) {
     for (auto perm : possiblePerms) {
       auto var = new FormatDecision<NumDims>(viewName, knlIdx, perm);
       vars->add(var);
